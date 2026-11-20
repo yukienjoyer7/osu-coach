@@ -1,5 +1,9 @@
 """Offline tests: no network, no real data/ writes."""
+import json
+from datetime import datetime, timedelta, timezone
+
 import pytest
+from typer.testing import CliRunner
 
 from osucoach import fetch as F
 from osucoach import gap as G
@@ -9,6 +13,7 @@ from osucoach import scores as S
 from osucoach import session as SS
 from osucoach import stats as ST
 from osucoach.api import OsuError
+from osucoach.cli import app
 
 
 # ---- gap -------------------------------------------------------------------
@@ -122,6 +127,7 @@ def test_in_session_window():
 @pytest.fixture
 def tmp_data(tmp_path, monkeypatch):
     monkeypatch.setattr(P, "DATA", tmp_path)
+    monkeypatch.setattr(P, "COACH", tmp_path / "coach")
     monkeypatch.setattr(P, "SESSIONS", tmp_path / "sessions")
     monkeypatch.setattr(P, "CURRENT", tmp_path / "current_session")
     return tmp_path
@@ -131,7 +137,7 @@ def test_session_lifecycle(tmp_data):
     assert SS.current() is None
     s = SS.start({"sleep_h": 7, "hand_pain_0_10": 1})
     assert SS.current() == s["session_id"] and s["before"]["sleep_h"] == 7
-    assert s["before"]["energy_1_5"] is None and s["setup"]["client"] == "lazer"
+    assert s["before"]["energy_1_5"] is None and s["setup"]["client"] is None
     with pytest.raises(OsuError):
         SS.start()
     SS.stamp_end(s)
@@ -141,6 +147,81 @@ def test_session_lifecycle(tmp_data):
     assert SS.current() is None
     assert SS.resolve() == s["session_id"]  # falls back to last
     assert SS.load(s["session_id"])["after"]["fatigue_1_5"] == 2
+
+
+def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
+    profile = P.COACH / "player.md"
+    profile.parent.mkdir()
+    markdown = (
+        "- input: tablet\n"
+        "- tablet: Example tablet\n"
+        "- keypad: Example keypad\n"
+        "- fps: ~480\n"
+        "- client: lazer (always)\n"
+        "- tablet area: 60 × 40 mm, center (75.5, 45) mm, rotation 0°\n"
+        "- driver: OpenTabletDriver, Absolute Mode\n"
+    )
+    profile.write_text(markdown, encoding="utf-8")
+    started_at = datetime(2026, 11, 21, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: started_at)
+    runner = CliRunner()
+
+    first = runner.invoke(app, ["session", "start", "--json"])
+    assert first.exit_code == 0, first.output
+    first_session = json.loads(first.output)
+    assert first_session["setup"] == {
+        "input": "tablet", "tablet": "Example tablet",
+        "area_mm": [60, 40], "area_center_mm": [75.5, 45],
+        "area_offset_mm": None, "area_rotation_deg": 0,
+        "driver": "OpenTabletDriver, Absolute Mode", "keypad": "Example keypad",
+        "fps": 480, "client": "lazer", "changed_since_last": False,
+    }
+    SS.close(first_session["session_id"])
+
+    profile.write_text(markdown.replace("60 × 40", "65 x 45"), encoding="utf-8")
+    started_at += timedelta(minutes=1)
+    second = runner.invoke(app, ["session", "start", "--json"])
+    assert second.exit_code == 0, second.output
+    second_session = json.loads(second.output)
+    assert second_session["setup"]["area_mm"] == [65, 45]
+    assert second_session["setup"]["changed_since_last"] is True
+    assert SS.load(first_session["session_id"])["setup"] == first_session["setup"]
+    SS.close(second_session["session_id"])
+
+    started_at += timedelta(minutes=1)
+    third = SS.start()
+    assert third["setup"]["changed_since_last"] is False
+
+
+def test_legacy_player_setup_and_missing_profile_fallback(tmp_data, monkeypatch):
+    profile = P.COACH / "player.md"
+    profile.parent.mkdir()
+    profile.write_text(
+        "- setup: Example tablet (previously mouse), Example keypad, ~480 fps\n"
+        "- client: lazer (always)\n"
+        "- tablet area: 60 x 40 mm, driver: OpenTabletDriver\n",
+        encoding="utf-8",
+    )
+    started_at = datetime(2026, 11, 21, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: started_at)
+    first = SS.start()
+    assert first["setup"]["input"] == "tablet"
+    assert first["setup"]["tablet"] == "Example tablet"
+    assert first["setup"]["driver"] == "OpenTabletDriver"
+    assert first["setup"]["area_mm"] == [60, 40]
+    assert first["setup"]["fps"] == 480
+    first["setup"].pop("area_center_mm")
+    first["setup"].pop("area_rotation_deg")
+    SS.save(first)
+    SS.close(first["session_id"])
+
+    profile.unlink()
+    started_at += timedelta(minutes=1)
+    assert SS.start(setup_changed=True)["setup"] == {
+        **first["setup"], "area_center_mm": None, "area_rotation_deg": None,
+        "changed_since_last": True,
+    }
+    assert SS.load(first["session_id"]) == first
 
 
 def test_apply_updates_validation():

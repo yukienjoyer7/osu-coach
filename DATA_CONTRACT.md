@@ -72,11 +72,14 @@ Values are mod-adjusted (DT changes AR/OD/BPM/length). Extra field `max_combo` (
  "after":  {"duration_min": 60, "fatigue_1_5": 3, "hand_pain_0_10": 0,
             "enjoyment_1_5": 4, "felt_hard": "free text", "notes": "free text"},
  "followed_plan": "yes|partly|no",
- "setup": {"input": "tablet", "tablet": "Wacom CTL-672", "area_mm": [0,0],
-           "area_offset_mm": [0,0], "driver": "", "keypad": "SayoDevice O3C",
-           "fps": 800, "client": "lazer", "changed_since_last": false}}
+ "setup": {"input": "tablet", "tablet": "Example tablet", "area_mm": [60,40],
+           "area_center_mm": [75.5,45], "area_offset_mm": null,
+           "area_rotation_deg": 0, "driver": "OpenTabletDriver",
+           "keypad": "Example keypad",
+           "fps": 480, "client": "lazer", "changed_since_last": false}}
 ```
-`session start` copies `setup` from the previous session (changed_since_last=false); unknown `before`/`after` fields are null.
+`session start` reads `coach/player.md` and saves a setup snapshot. Edit the profile to change future sessions. For example, `- tablet area: 60 × 40 mm, center (75.5, 45) mm, rotation 0°` supplies dimensions, center coordinates and rotation. Blank setup fields are null. If the profile is missing, the CLI reuses the last recorded setup when available.
+`setup.changed_since_last` reflects differences from the previous setup. `--setup-changed` and `--setup-same` override the comparison. Unknown `before` and `after` fields are null.
 `after.duration_min` is computed at `session end`. Edit fields afterwards only with `osucoach session update`.
 A session's scores are those with `created_at` from `started_at` to `ended_at` + 5 min.
 

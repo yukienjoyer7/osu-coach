@@ -160,7 +160,7 @@ def session_start(sleep_h: Optional[float] = typer.Option(None, "--sleep-h"),
                   motivation: Optional[int] = typer.Option(None, "--motivation", help="1-5"),
                   setup_changed: Optional[bool] = typer.Option(None, "--setup-changed/--setup-same"),
                   json_out: bool = JSON) -> None:
-    """Create a session and mark it current. Unset `before` fields stay null."""
+    """Start a session using the setup in coach/player.md."""
     s = _run(SS.start, _before_opts(sleep_h, energy, pain, motivation), setup_changed)
     _out(s, json_out, f"session {s['session_id']} started")
 

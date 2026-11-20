@@ -3,16 +3,12 @@ from datetime import datetime
 
 from . import paths as P
 from .api import OsuError
+from .player import SETUP_FIELDS, read_setup
 from .store import now_local, parse_ts, read_json, write_json
 
 BEFORE_KEYS = ("sleep_h", "energy_1_5", "hand_pain_0_10", "motivation_1_5")
 AFTER_KEYS = ("duration_min", "fatigue_1_5", "hand_pain_0_10", "enjoyment_1_5",
               "felt_hard", "notes")
-DEFAULT_SETUP = {
-    "input": "tablet", "tablet": "Wacom CTL-672", "area_mm": None, "area_offset_mm": None,
-    "driver": None, "keypad": "SayoDevice O3C", "fps": 800, "client": "lazer",
-    "changed_since_last": False,
-}
 
 
 def new_id(dt: datetime) -> str:
@@ -74,9 +70,15 @@ def start(before: dict | None = None, setup_changed: bool | None = None) -> dict
     sid = new_id(now)
     if (P.session_dir(sid) / "session.json").exists():
         raise OsuError(f"session {sid} already exists; wait a minute")
-    prev = load(list_ids()[-1]) if list_ids() else None
-    setup = dict(prev["setup"]) if prev else dict(DEFAULT_SETUP)
-    setup["changed_since_last"] = False
+    ids = list_ids()
+    previous_session = load(ids[-1]) if ids else {}
+    previous_setup = previous_session.get("setup") or {}
+    player_setup = read_setup(P.COACH / "player.md")
+    setup = dict.fromkeys(SETUP_FIELDS)
+    setup.update(previous_setup if player_setup is None else player_setup)
+    setup["changed_since_last"] = bool(previous_setup) and any(
+        setup[key] != previous_setup.get(key) for key in SETUP_FIELDS
+    )
     sess = {
         "session_id": sid,
         "started_at": now.isoformat(timespec="seconds"),
