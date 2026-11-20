@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.egg-info/
+.venv/
+data/
+.pytest_cache/
+*.zip
+
+# personal coaching state (templates: coach/*.example.md)
+coach/player.md
+coach/journal.md
+coach/plans/*
+coach/reviews/*
+!coach/plans/.gitkeep
+!coach/reviews/.gitkeep

@@ -1,0 +1,104 @@
+"""Session summary numbers. Pure functions over scores.json rows (plus a map lookup)."""
+from collections import defaultdict
+from statistics import mean
+
+from .store import parse_ts
+
+WINDOW_MIN = 20
+
+
+def _acc(rows: list[dict]) -> float | None:
+    vals = [r["accuracy"] for r in rows if r["passed"] and r.get("accuracy") is not None]
+    return round(100 * mean(vals), 2) if vals else None
+
+
+def _pass_rate(rows: list[dict]) -> float | None:
+    return round(100 * sum(r["passed"] for r in rows) / len(rows), 1) if rows else None
+
+
+def _block(rows: list[dict]) -> dict:
+    return {"plays": len(rows), "pass_rate": _pass_rate(rows), "acc_passed": _acc(rows)}
+
+
+def compute(scores: list[dict], sr_lookup=None) -> dict:
+    """sr_lookup(score) -> star rating (mod adjusted) or None."""
+    rows = sorted(scores, key=lambda r: (r["created_at"], r["score_id"]))
+    out: dict = {"plays": len(rows)}
+    if not rows:
+        return out
+    passed = [r for r in rows if r["passed"]]
+    out["passes"] = len(passed)
+    out["pass_rate"] = _pass_rate(rows)
+    out["acc_passed"] = _acc(rows)
+    pps = [r["pp"] for r in rows if r.get("pp") is not None]
+    out["best_pp"] = max(pps) if pps else None
+
+    first, last = parse_ts(rows[0]["created_at"]), parse_ts(rows[-1]["created_at"])
+    out["span_min"] = round((last - first).total_seconds() / 60, 1)
+
+    def avg_sr(group):
+        vals = [sr_lookup(r) for r in group] if sr_lookup else []
+        vals = [v for v in vals if v is not None]
+        return round(mean(vals), 2) if vals else None
+
+    out["avg_sr_passed"] = avg_sr(passed)
+    out["avg_sr_failed"] = avg_sr([r for r in rows if not r["passed"]])
+
+    half = len(rows) // 2
+    out["first_half"] = _block(rows[:half or 1])
+    out["second_half"] = _block(rows[half or 1:]) if len(rows) > 1 else _block([])
+
+    # first vs last 20 minutes (only meaningful if the session is long enough)
+    w = WINDOW_MIN * 60
+    if out["span_min"] >= 2 * WINDOW_MIN:
+        early = [r for r in rows if (parse_ts(r["created_at"]) - first).total_seconds() <= w]
+        late = [r for r in rows if (last - parse_ts(r["created_at"])).total_seconds() <= w]
+        out["first_20min"], out["last_20min"] = _block(early), _block(late)
+    else:
+        out["first_20min"] = out["last_20min"] = None
+
+    groups: dict[tuple, list[dict]] = defaultdict(list)
+    for r in rows:
+        groups[(r["beatmap_id"], tuple(r["mods"]))].append(r)
+    maps = []
+    for (bid, mods), rs in groups.items():
+        p = [x["pp"] for x in rs if x.get("pp") is not None]
+        maps.append({
+            "beatmap_id": bid, "title": rs[0]["title"], "version": rs[0]["version"],
+            "mods": list(mods), "plays": len(rs), "passes": sum(x["passed"] for x in rs),
+            "max_retry": max(x["retry_index"] or 0 for x in rs),
+            "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
+            "sr": sr_lookup(rs[0]) if sr_lookup else None,
+        })
+    out["maps"] = sorted(maps, key=lambda m: -m["plays"])
+    return out
+
+
+def _f(v, fmt="{}", none="-"):
+    return none if v is None else fmt.format(v)
+
+
+def render(session_id: str, s: dict) -> str:
+    if not s.get("plays"):
+        return f"{session_id}: no plays recorded"
+    lines = [
+        f"{session_id} | {s['plays']} plays, {s['passes']} passes ({s['pass_rate']}%) | "
+        f"span {s['span_min']} min | best pp {_f(s['best_pp'], '{:.0f}')}",
+        f"acc (passes) {_f(s['acc_passed'], '{}%')} | avg SR passed {_f(s['avg_sr_passed'])} "
+        f"vs failed {_f(s['avg_sr_failed'])}",
+    ]
+    for label, key in (("1st half", "first_half"), ("2nd half", "second_half"),
+                       ("first 20m", "first_20min"), ("last 20m", "last_20min")):
+        b = s.get(key)
+        if b:
+            lines.append(f"{label:9}: {b['plays']:>3} plays, pass {_f(b['pass_rate'], '{}%')}, "
+                         f"acc {_f(b['acc_passed'], '{}%')}")
+    lines.append("")
+    lines.append(f"{'map':38} {'mods':6} {'plays':>5} {'pass':>4} {'retry':>5} {'acc%':>6} {'pp':>5}")
+    for m in s["maps"][:12]:
+        name = f"{m['title']} [{m['version']}]"
+        lines.append(f"{name[:38]:38} {''.join(m['mods'])[:6]:6} {m['plays']:>5} {m['passes']:>4} "
+                     f"{m['max_retry']:>5} {_f(m['acc_passed']):>6} {_f(m['best_pp'], '{:.0f}'):>5}")
+    if len(s["maps"]) > 12:
+        lines.append(f"... +{len(s['maps']) - 12} more maps (use --json)")
+    return "\n".join(lines)

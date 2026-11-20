@@ -1,0 +1,107 @@
+"""Session lifecycle: data/sessions/<id>/session.json plus a `current_session` pointer."""
+from datetime import datetime
+
+from . import paths as P
+from .api import OsuError
+from .store import now_local, parse_ts, read_json, write_json
+
+BEFORE_KEYS = ("sleep_h", "energy_1_5", "hand_pain_0_10", "motivation_1_5")
+AFTER_KEYS = ("duration_min", "fatigue_1_5", "hand_pain_0_10", "enjoyment_1_5",
+              "felt_hard", "notes")
+DEFAULT_SETUP = {
+    "input": "tablet", "tablet": "Wacom CTL-672", "area_mm": None, "area_offset_mm": None,
+    "driver": None, "keypad": "SayoDevice O3C", "fps": 800, "client": "lazer",
+    "changed_since_last": False,
+}
+
+
+def new_id(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d_%H%M")
+
+
+def list_ids() -> list[str]:
+    if not P.SESSIONS.exists():
+        return []
+    return sorted(d.name for d in P.SESSIONS.iterdir() if (d / "session.json").exists())
+
+
+def current() -> str | None:
+    if not P.CURRENT.exists():
+        return None
+    sid = P.CURRENT.read_text(encoding="utf-8").strip()
+    return sid if sid and (P.session_dir(sid) / "session.json").exists() else None
+
+
+def resolve(session_id: str | None = None) -> str:
+    """Explicit id, else the open session, else the most recent one."""
+    sid = session_id or current() or (list_ids() or [None])[-1]
+    if not sid:
+        raise OsuError("no session found; run `osucoach session start`")
+    if not (P.session_dir(sid) / "session.json").exists():
+        raise OsuError(f"unknown session {sid}")
+    return sid
+
+
+def load(session_id: str) -> dict:
+    return read_json(P.session_dir(session_id) / "session.json")
+
+
+def save(session: dict) -> None:
+    write_json(P.session_dir(session["session_id"]) / "session.json", session)
+
+
+def apply_updates(session: dict, before: dict | None = None, after: dict | None = None,
+                  followed_plan: str | None = None, setup_changed: bool | None = None) -> dict:
+    for block, vals, keys in (("before", before, BEFORE_KEYS), ("after", after, AFTER_KEYS)):
+        for k, v in (vals or {}).items():
+            if k not in keys:
+                raise OsuError(f"unknown {block} field {k}")
+            if v is not None:
+                session[block][k] = v
+    if followed_plan is not None:
+        if followed_plan not in ("yes", "partly", "no"):
+            raise OsuError("followed_plan must be yes|partly|no")
+        session["followed_plan"] = followed_plan
+    if setup_changed is not None:
+        session["setup"]["changed_since_last"] = setup_changed
+    return session
+
+
+def start(before: dict | None = None, setup_changed: bool | None = None) -> dict:
+    if current():
+        raise OsuError(f"session {current()} is still open; run `osucoach session end`")
+    now = now_local()
+    sid = new_id(now)
+    if (P.session_dir(sid) / "session.json").exists():
+        raise OsuError(f"session {sid} already exists; wait a minute")
+    prev = load(list_ids()[-1]) if list_ids() else None
+    setup = dict(prev["setup"]) if prev else dict(DEFAULT_SETUP)
+    setup["changed_since_last"] = False
+    sess = {
+        "session_id": sid,
+        "started_at": now.isoformat(timespec="seconds"),
+        "ended_at": None,
+        "before": dict.fromkeys(BEFORE_KEYS),
+        "after": dict.fromkeys(AFTER_KEYS),
+        "followed_plan": None,
+        "setup": setup,
+    }
+    apply_updates(sess, before=before, setup_changed=setup_changed)
+    save(sess)
+    P.CURRENT.parent.mkdir(parents=True, exist_ok=True)
+    P.CURRENT.write_text(sid, encoding="utf-8")
+    return sess
+
+
+def stamp_end(session: dict) -> dict:
+    """Set ended_at and the computed duration (does not touch the current pointer)."""
+    end = now_local()
+    session["ended_at"] = end.isoformat(timespec="seconds")
+    mins = round((end - parse_ts(session["started_at"])).total_seconds() / 60)
+    session["after"]["duration_min"] = mins
+    return session
+
+
+def close(session_id: str) -> None:
+    if current() == session_id:
+        P.CURRENT.unlink()
