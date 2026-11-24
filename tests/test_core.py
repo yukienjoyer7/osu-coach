@@ -1391,3 +1391,20 @@ def test_discover_reports_only_recorded_history_without_claiming_unplayed(tmp_da
     assert result["recorded_history"]["missing_score_sessions"] == [missing["session_id"]]
     assert result["recorded_history"]["best_file_missing"] is False
     assert any("zero does not mean" in note for note in result["selection_limits"])
+
+
+def test_discover_filters_player_tags_without_claiming_pattern(tmp_data, monkeypatch):
+    from osucoach import maps
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    write_json(P.DATA / "map_tags" / "11.json", {"beatmap_id": 11, "tags": ["bursts"]})
+    class Client:
+        def get(self, path, **params):
+            return {"beatmapsets": [{"id": 1, "beatmaps": [
+                {"id": 11, "mode": "osu", "status": "ranked", "difficulty_rating": 5},
+                {"id": 12, "mode": "osu", "status": "ranked", "difficulty_rating": 5}]}]}
+    result = maps.discover(Client(), "", tag="BURSTS")
+    assert [item["beatmap_id"] for item in result["ranked_osu_candidates"]] == [11]
+    assert result["ranked_osu_candidates"][0]["user_tags"] == ["bursts"]
+    assert any("subjective" in item for item in result["selection_limits"])

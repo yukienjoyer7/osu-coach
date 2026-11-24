@@ -218,13 +218,16 @@ def map_search(query: str = typer.Argument(..., help="osu! website search query"
 def discover(query: str = typer.Argument("", help="osu! website search query"),
              cursor: Optional[str] = typer.Option(None, "--cursor", help="Cursor returned by a previous search"),
              min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0, help="Local nomod minimum star rating"),
-             max_sr: Optional[float] = typer.Option(None, "--max-sr", min=0, help="Local nomod maximum star rating")) -> None:
+             max_sr: Optional[float] = typer.Option(None, "--max-sr", min=0, help="Local nomod maximum star rating"),
+             tag: Optional[str] = typer.Option(None, "--tag", help="Filter by a player-supplied map label")) -> None:
     """Search osu! for candidate beatmapsets and output JSON."""
     if any(v is not None and not math.isfinite(v) for v in (min_sr, max_sr)):
         _fail(OsuError("star range must contain finite numbers"))
     if min_sr is not None and max_sr is not None and min_sr > max_sr:
         _fail(OsuError("minimum must not exceed maximum"))
-    result = _run(MAPS.discover, _client(), query, cursor, min_sr, max_sr)
+    if tag is not None and not tag.strip():
+        _fail(OsuError("--tag cannot be blank"))
+    result = _run(MAPS.discover, _client(), query, cursor, min_sr, max_sr, tag.strip() if tag else None)
     typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 

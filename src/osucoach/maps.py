@@ -64,7 +64,7 @@ def _recorded_scores():
     return seen, best is None, missing_sessions
 
 
-def discover(client, query, cursor=None, min_sr=None, max_sr=None):
+def discover(client, query, cursor=None, min_sr=None, max_sr=None, tag=None):
     """Search the upstream beatmapset endpoint; results are unverified candidates."""
     params = {"m": 0, "s": "ranked", "q": query}
     if cursor:
@@ -96,17 +96,21 @@ def discover(client, query, cursor=None, min_sr=None, max_sr=None):
                     or (min_sr is not None and rating < min_sr)
                     or (max_sr is not None and rating > max_sr)):
                 continue
+            annotation = read_json(paths.DATA / "map_tags" / f"{beatmap['id']}.json", {})
+            tags = annotation.get("tags", [])
+            if tag is not None and tag.casefold() not in tags:
+                continue
             candidates.append({"beatmap_id": beatmap["id"], "beatmapset_id": beatmapset["id"],
                                "title": beatmapset.get("title"), "artist": beatmapset.get("artist"),
                                "creator": beatmapset.get("creator"), "version": beatmap.get("version"),
                                "lazer_only": beatmap.get("lazer_only"), "total_length_s": beatmap.get("total_length"),
                                "star_rating_nomod": rating, "mode": beatmap["mode"],
-                               "status": beatmap["status"],
+                               "status": beatmap["status"], "user_tags": tags,
                                "recorded_score_count": len(recorded.get(beatmap["id"], set())),
                                "url": f"https://osu.ppy.sh/beatmapsets/{beatmapset['id']}#osu/{beatmap['id']}"})
     return {"query": query, "fetched_at": now_local().isoformat(timespec="seconds"),
             "requested_mode": "osu", "requested_status": "ranked",
-            "local_star_range": {"min": min_sr, "max": max_sr},
+            "local_star_range": {"min": min_sr, "max": max_sr}, "local_user_tag": tag,
             "recorded_history": {"account": account.binding(), "best_file_missing": best_missing,
                                  "missing_score_sessions": missing_sessions},
             "ranked_osu_candidates": candidates,
@@ -116,7 +120,8 @@ def discover(client, query, cursor=None, min_sr=None, max_sr=None):
             "cursor_string": response.get("cursor_string"),
             "selection_limits": [
                 "Upstream filters may depend on search permissions; verify each difficulty and status.",
-                "Local candidates match returned mode, status and optional nomod star range only; query filters are not verified.",
+                "Local candidates match returned mode, status, optional nomod star range and optional user tag; query filters are not verified.",
                 "Recorded score counts cover saved data only; zero does not mean a map is unfamiliar or unplayed.",
-                "Results do not establish patterns or mod-adjusted suitability; check lazer_only for client compatibility.",
+                "User tags are subjective and apply across mods; they do not verify patterns.",
+                "Results do not establish mod-adjusted suitability; check lazer_only for client compatibility.",
             ]}
