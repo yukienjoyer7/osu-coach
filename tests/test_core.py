@@ -1,5 +1,8 @@
 """Offline tests: no network, no real data/ writes."""
 import json
+import os
+import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -281,6 +284,19 @@ def test_context_distinguishes_missing_and_empty_scores(tmp_data, monkeypatch):
     assert recorded["stats"] == {"plays": 0}
     assert recorded["scores_file_modified_at"] is not None
     assert recorded["current_session_id"] == sid
+
+
+def test_cli_uses_explicit_workspace(tmp_path):
+    workspace = tmp_path / "player workspace"
+    (workspace / "coach").mkdir(parents=True)
+    (workspace / "coach" / "player.md").write_text("- goal: test workspace\n", encoding="utf-8")
+    env = {**os.environ, "OSUCOACH_HOME": str(workspace)}
+    result = subprocess.run(
+        [sys.executable, "-c", "from osucoach.cli import app; app()", "context"],
+        cwd=tmp_path, env=env, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["player"] == "- goal: test workspace\n"
 
 
 # ---- stats -----------------------------------------------------------------------

@@ -1,6 +1,7 @@
+import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(os.environ.get("OSUCOACH_HOME") or Path(__file__).resolve().parents[2]).expanduser().resolve()
 DATA = ROOT / "data"
 COACH = ROOT / "coach"
 ENV_FILE = ROOT / ".env"
