@@ -48,7 +48,7 @@ Then append to `coach/journal.md`:
 - metrics: ...
 - verdict: hit | partial | miss
 - subjective: fatigue x, enjoyment y, pain z
-- setup changed: yes/no (what)
+- setup changed: yes/no/unknown (what, if known)
 - next: ...
 ```
 
