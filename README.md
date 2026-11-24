@@ -24,6 +24,8 @@ See `plan.md` for the build plan and `DATA_CONTRACT.md` for schemas.
 
 `osucoach context [ID]` outputs saved player, profile, session, plan, review, up to three previous session reviews and score statistics as JSON for any tool-capable agent. It works offline and reports missing files as null. Profile fetch time and local file modification times help assess freshness, but do not prove complete score coverage. Fetch fresh data when needed.
 
+Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000,1200,1400` to model a rank target. The calculation holds bonus pp and the rank threshold constant and assumes distinct new scores. It is a scenario, not a forecast.
+
 Use `osucoach session block LABEL` when a new block begins. JSON stats include each marked block and a count of plays before the first marker. Scores are assigned by their recorded end time, so a play crossing a marker belongs to the later block. Block metrics use recorded scores and are subject to score coverage limitations.
 
 Set `OSUCOACH_HOME` to an absolute workspace directory when the package is installed separately from the player's files. The CLI reads `coach/` and `.env` and writes `data/` under that directory. The default remains the repository root for editable installations. For example, on Linux or macOS use `export OSUCOACH_HOME=/path/to/workspace` before invoking the CLI. Keep the coaching instructions accessible to your agent in that workspace.

@@ -38,6 +38,7 @@ coach/
  "rank_threshold_10k_pp": 9605.0}
 ```
 `rank_threshold_10k_pp`: pp of #10,000 (rankings page 200, last row). Optional but useful.
+`rank_thresholds` optionally maps rank strings to objects containing `pp` and `fetched_at`. `fetch threshold --rank 100` records the #100 threshold. The legacy #10,000 field is still populated for compatibility. Thresholds change over time, and each timestamp identifies its own fetch.
 
 ## best.json / scores.json (array, one object per score)
 ```json

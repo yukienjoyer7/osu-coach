@@ -41,6 +41,22 @@ def test_plays_needed_none_when_play_too_weak():
     assert G.plays_needed([300.0] * 100, 8000, 9000, 100) is None
 
 
+def test_rank_threshold_requires_matching_rank(tmp_path, monkeypatch):
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_path / "profile")
+
+    class Client:
+        def get(self, path, **params):
+            assert params["cursor[page]"] == 2
+            return {"ranking": [{"global_rank": 100, "pp": 20000.0}]}
+
+    from osucoach.store import write_json
+    write_json(F.profile_path(), {"pp": 8000, "fetched_at": "2026-01-01T00:00:00Z"})
+    profile = F.fetch_threshold(Client(), 100)
+    assert profile["rank_thresholds"]["100"]["pp"] == 20000.0
+    with pytest.raises(OsuError, match="did not contain"):
+        F.fetch_threshold(Client(), 99)
+
+
 # ---- mods ------------------------------------------------------------------
 def test_parse_mods():
     assert [m["acronym"] for m in M.parse_mods("HD,DT")] == ["HD", "DT"]

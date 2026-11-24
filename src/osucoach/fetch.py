@@ -7,7 +7,6 @@ from . import scores as S
 from .api import Client, OsuError
 from .store import now_local, parse_ts, read_json, write_json
 
-THRESHOLD_PAGE = 200  # last row of rankings page 200 = rank #10,000
 SESSION_GRACE = timedelta(minutes=5)
 
 
@@ -35,20 +34,29 @@ def fetch_profile(c: Client) -> dict:
         "play_count": st["play_count"],
         "play_time_s": st["play_time"],
         "rank_threshold_10k_pp": old.get("rank_threshold_10k_pp"),  # keep today's value
+        "rank_thresholds": old.get("rank_thresholds", {}),
     }
     write_json(path, prof)
     return prof
 
 
-def fetch_threshold(c: Client) -> dict:
-    r = c.get("/rankings/osu/performance", **{"cursor[page]": THRESHOLD_PAGE})
+def fetch_threshold(c: Client, rank: int = 10000) -> dict:
+    if rank < 1:
+        raise OsuError("rank must be positive")
+    page = (rank - 1) // 50 + 1
+    r = c.get("/rankings/osu/performance", **{"cursor[page]": page})
     rows = r.get("ranking") or []
-    if not rows:
-        raise OsuError("rankings page returned no rows")
-    pp = rows[-1]["pp"]
+    match = next((row for row in rows if row.get("global_rank") == rank), None)
+    if match is None:
+        raise OsuError(f"ranking response did not contain rank #{rank}")
+    pp = match["pp"]
     path = profile_path()
     prof = read_json(path) or fetch_profile(c)
-    prof["rank_threshold_10k_pp"] = pp
+    prof.setdefault("rank_thresholds", {})[str(rank)] = {
+        "pp": pp, "fetched_at": now_local().isoformat(timespec="seconds")
+    }
+    if rank == 10000:
+        prof["rank_threshold_10k_pp"] = pp
     write_json(path, prof)
     return prof
 

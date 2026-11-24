@@ -81,11 +81,14 @@ def fetch_best(json_out: bool = JSON) -> None:
 
 
 @fetch_app.command("threshold")
-def fetch_threshold(json_out: bool = JSON) -> None:
-    """pp of rank #10,000 -> into today's profile."""
-    p = _run(F.fetch_threshold, _client())
-    _out({"rank_threshold_10k_pp": p["rank_threshold_10k_pp"]}, json_out,
-         f"#10,000 = {p['rank_threshold_10k_pp']:,.0f} pp")
+def fetch_threshold(rank: int = typer.Option(10000, "--rank", min=1), json_out: bool = JSON) -> None:
+    """Fetch the pp threshold for a global rank into today's profile."""
+    p = _run(F.fetch_threshold, _client(), rank)
+    threshold = p["rank_thresholds"][str(rank)]
+    result = {"rank": rank, **threshold}
+    if rank == 10000:
+        result["rank_threshold_10k_pp"] = threshold["pp"]
+    _out(result, json_out, f"#{rank:,} = {threshold['pp']:,.0f} pp")
 
 
 @fetch_app.command("recent")
@@ -135,19 +138,22 @@ def context(session: Optional[str] = typer.Argument(None, help="Session id (defa
 @app.command("gap")
 def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
                                     help="Comma-separated new-play pp values"),
+        rank: int = typer.Option(10000, "--rank", min=1),
         json_out: bool = JSON) -> None:
-    """Current pp vs the rank #10,000 threshold, and plays needed."""
+    """Current pp vs a saved global rank threshold, and plays needed."""
     prof, best = F.latest_profile(), read_json(P.BEST)
     if not prof or not best:
         _fail(OsuError("need profile and best: run `osucoach fetch profile` and `fetch best`"))
-    thr = prof.get("rank_threshold_10k_pp")
+    entry = prof.get("rank_thresholds", {}).get(str(rank))
+    thr = entry["pp"] if entry else (prof.get("rank_threshold_10k_pp") if rank == 10000 else None)
     if thr is None:
-        _fail(OsuError("no threshold: run `osucoach fetch threshold`"))
+        _fail(OsuError(f"no threshold: run `osucoach fetch threshold --rank {rank}`"))
     tbl = G.table([b["pp"] for b in best], prof["pp"], thr,
                   [float(t) for t in targets.split(",")])
-    res = {"pp": prof["pp"], "threshold": thr, "gap": round(thr - prof["pp"], 1),
+    res = {"pp": prof["pp"], "rank": rank, "threshold": thr, "gap": round(thr - prof["pp"], 1),
+           "threshold_fetched_at": entry.get("fetched_at") if entry else None,
            "profile_date": prof["fetched_at"][:10], "table": tbl}
-    lines = [f"pp {prof['pp']:,.0f} | #10,000 = {thr:,.0f} | gap {res['gap']:,.0f} "
+    lines = [f"pp {prof['pp']:,.0f} | #{rank:,} = {thr:,.0f} | gap {res['gap']:,.0f} "
              f"(profile {res['profile_date']})", "new play pp -> plays needed"]
     lines += [f"  {t['play_pp']:>5g} -> {t['plays_needed'] if t['plays_needed'] is not None else f'>{G.CAP}'}"
               for t in tbl]
