@@ -36,6 +36,22 @@ def test_token_network_failure_is_secret_free(monkeypatch):
     assert "test-secret" not in str(error.value)
 
 
+def test_unranked_player_and_empty_best_are_supported(monkeypatch):
+    from osucoach import cli
+
+    profile = {"pp": 0, "global_rank": None, "accuracy": 0, "play_count": 0}
+    monkeypatch.setattr(cli, "_client", lambda: object())
+    monkeypatch.setattr(F, "fetch_profile", lambda client: profile)
+    monkeypatch.setattr(F, "fetch_best", lambda client: [])
+    runner = CliRunner()
+    result = runner.invoke(app, ["fetch", "profile", "--json"])
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["global_rank"] is None
+    result = runner.invoke(app, ["fetch", "best", "--json"])
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output) == {"scores": 0}
+
+
 # ---- gap -------------------------------------------------------------------
 def test_weighted():
     assert G.weighted([100, 100]) == pytest.approx(195)
@@ -90,6 +106,8 @@ def test_gap_reports_unreachable_scenario_and_invalid_input(tmp_path, monkeypatc
         result = runner.invoke(app, ["gap", "--pp", value])
         assert result.exit_code != 0
         assert "positive finite numbers" in result.output
+    write_json(P.BEST, [])
+    assert runner.invoke(app, ["gap", "--pp", "100"]).exit_code == 0
 
 
 # ---- mods ------------------------------------------------------------------

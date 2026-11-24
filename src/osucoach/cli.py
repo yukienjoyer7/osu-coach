@@ -45,6 +45,10 @@ def _out(obj, as_json: bool, text: str) -> None:
     typer.echo(json.dumps(obj, ensure_ascii=False) if as_json else text)
 
 
+def _rank(value):
+    return f"#{value:,}" if value is not None else "unranked"
+
+
 def _run(fn, *a, **kw):
     try:
         return fn(*a, **kw)
@@ -64,7 +68,7 @@ def auth_check(json_out: bool = JSON) -> None:
     u = _run(c.get, f"/users/{c.user_id}/osu")
     st = u["statistics"]
     _out({"username": u["username"], "pp": st["pp"], "global_rank": st["global_rank"]}, json_out,
-         f"{u['username']} | {st['pp']:,.0f} pp | #{st['global_rank']:,}")
+         f"{u['username']} | {st['pp']:,.0f} pp | {_rank(st['global_rank'])}")
 
 
 # ---- fetch ---------------------------------------------------------------
@@ -72,7 +76,7 @@ def auth_check(json_out: bool = JSON) -> None:
 def fetch_profile(json_out: bool = JSON) -> None:
     """Snapshot profile -> data/profile/YYYY-MM-DD.json."""
     p = _run(F.fetch_profile, _client())
-    _out(p, json_out, f"{p['pp']:,.0f} pp | #{p['global_rank']:,} | acc {p['accuracy']}% "
+    _out(p, json_out, f"{p['pp']:,.0f} pp | {_rank(p['global_rank'])} | acc {p['accuracy']}% "
                       f"| {p['play_count']:,} plays")
 
 
@@ -80,7 +84,10 @@ def fetch_profile(json_out: bool = JSON) -> None:
 def fetch_best(json_out: bool = JSON) -> None:
     """Top 100 plays -> data/best.json."""
     s = _run(F.fetch_best, _client())
-    _out({"scores": len(s)}, json_out, f"best.json: {len(s)} scores, top {s[0]['pp']:.0f}pp")
+    summary = f"best.json: {len(s)} scores"
+    if s and s[0].get("pp") is not None:
+        summary += f", top {s[0]['pp']:.0f}pp"
+    _out({"scores": len(s)}, json_out, summary)
 
 
 @fetch_app.command("threshold")
@@ -164,7 +171,7 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
         json_out: bool = JSON) -> None:
     """Current pp vs a saved global rank threshold, and plays needed."""
     prof, best = F.latest_profile(), read_json(P.BEST)
-    if not prof or not best:
+    if not prof or best is None:
         _fail(OsuError("need profile and best: run `osucoach fetch profile` and `fetch best`"))
     entry = prof.get("rank_thresholds", {}).get(str(rank))
     thr = entry["pp"] if entry else (prof.get("rank_threshold_10k_pp") if rank == 10000 else None)
