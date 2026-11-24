@@ -24,7 +24,7 @@ If the API is unavailable, `osucoach session end --offline` saves feedback and c
 
 See `plan.md` for the build plan and `DATA_CONTRACT.md` for schemas.
 
-`osucoach context [ID]` outputs saved player, profile, session, plan, review, up to three previous session reviews and score statistics as JSON for any tool-capable agent. It works offline and reports missing files as null. Profile fetch time and local file modification times help assess freshness, but do not prove complete score coverage. Fetch fresh data when needed.
+`osucoach context [ID]` outputs saved player, profile, session, plan, review, up to three previous sessions with plans, reviews, conditions, score statistics and sync metadata as JSON for any tool-capable agent. It works offline and reports missing files as null. Profile fetch time and local file modification times help assess freshness, but do not prove complete score coverage. Fetch fresh data when needed.
 
 `osucoach history BEATMAP_ID` shows saved scores for a map across sessions, including mods, setup snapshots and fetch metadata. It lists sessions with missing score files and preserves duplicate score IDs when session windows overlap. Compare conditions and deduplicate IDs before interpreting changes.
 

@@ -39,7 +39,7 @@ Write `coach/reviews/<id>.md`:
 - Plan vs actual: followed? metrics hit?
 - Numbers table: plays, pass rate, best pp, retries per map and avg SR of passes vs fails, when available. Report block accuracy only when block membership is known.
 - Describe observable errors and discuss plausible causes. Classify misses and timing only when supported by reliable replay data. Treat changes between halves as observations, not proof of fatigue.
-- Compare with the last 3 sessions. One bad session is noise, not a trend.
+- Compare with the last 3 sessions when conditions and coverage permit. Check their plans, reported experience and score summaries in `osucoach context`; missing statistics are unknown. One bad session is noise, not a trend.
 - 1-3 adjustments for next time, each tagged `[data]`, `[science]` or `[community]`.
 
 Then append to `coach/journal.md`:

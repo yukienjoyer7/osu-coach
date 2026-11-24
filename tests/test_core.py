@@ -931,3 +931,36 @@ def test_variable_speed_attributes_are_unknown(mod):
     adjusted = M.adjust(4, 9, 8, 180, 120, [{"acronym": mod}])
     assert adjusted == {"cs": 4, "ar": None, "od": None, "bpm": None, "length_s": None}
     assert M.key([{"acronym": mod}]).startswith("v4-")
+
+
+def test_context_prior_sessions_show_plans_and_coverage(tmp_data, monkeypatch):
+    from osucoach import context
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    clock = datetime(2026, 11, 20, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    first = SS.start()
+    SS.stamp_end(first)
+    SS.save(first)
+    SS.close(first["session_id"])
+    plan = P.COACH / "plans" / f"{first['session_id']}.md"
+    plan.parent.mkdir(parents=True, exist_ok=True)
+    plan.write_text("focus: bursts", encoding="utf-8")
+    write_json(P.session_dir(first["session_id"]) / "scores.json", [])
+    write_json(P.session_dir(first["session_id"]) / "scores_sync.json", {"returned_scores": 100})
+    clock += timedelta(hours=1)
+    second = SS.start()
+    SS.stamp_end(second)
+    SS.save(second)
+    SS.close(second["session_id"])
+    clock += timedelta(hours=1)
+    third = SS.start()
+    result = context.build(third["session_id"])
+    prior, missing = result["previous_reviews"]
+    assert prior["plan"] == "focus: bursts" and prior["review"] is None
+    assert prior["stats"]["plays"] == 0 and prior["scores_sync"]["limit_reached_ever"]
+    assert missing["session_id"] == second["session_id"] and missing["stats"] is None
+    assert missing["plan"] is None and missing["scores_sync"] is None
