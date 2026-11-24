@@ -116,5 +116,4 @@ Stats expose `first_recorded_attempts` and `later_recorded_attempts`, grouped by
              "cursor_dist_r": 0.0}],
  "early_late_by_section": [{"t_start_ms": 0, "t_end_ms": 0, "mean_error_ms": 0.0, "ur": 0.0}]}
 ```
-- `cursor_dist_r`: cursor distance from circle center at the click, in radii. >1 means an aim miss.
-- `kind`: aim if cursor_dist_r > 1, tap if inside the circle but outside the hit window.
+This is a proposed external format, not produced or validated by the CLI. A replay stores sampled input; deriving object judgements and timing requires the matching beatmap, client rules, mods and correct replay interpretation. A click outside a circle or outside a hit window does not by itself prove the cause of a miss. Treat classifications as hypotheses with documented provenance and uncertainty; do not assume the example labels are verified diagnoses.
