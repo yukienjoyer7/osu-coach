@@ -1224,6 +1224,19 @@ def test_score_mapping_preserves_api_user_id():
     assert S.map_score(RAW)["user_id"] is None
 
 
+def test_score_with_no_end_time_is_not_assigned_to_block():
+    from osucoach import stats
+
+    row = S.map_score({**RAW, "ended_at": None, "started_at": "2026-11-20T10:00:00Z"})
+    row["retry_index"] = 1
+    assert row["timestamp_source"] == "started_at"
+    summary = stats.compute([row], blocks=[{"label": "focus", "started_at": "2026-11-20T09:59:00Z"}])
+    assert summary["plays"] == 1
+    assert summary["plays_with_unknown_end_time"] == 1
+    assert summary["blocks"][0]["plays"] == 0
+    assert summary["plays_before_first_block"] == 0
+
+
 def test_consecutive_repeats_respect_map_mods_and_intervening_plays():
     rows = [
         _sc(1, 10, "2026-01-01T00:01:00Z"),

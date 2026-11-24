@@ -73,7 +73,8 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
         for i, marker in enumerate(blocks):
             start = parse_ts(marker["started_at"])
             end = parse_ts(blocks[i + 1]["started_at"]) if i + 1 < len(blocks) else None
-            selected = [row for row in rows if parse_ts(row["created_at"]) >= start
+            selected = [row for row in rows if row.get("timestamp_source") != "started_at"
+                        and parse_ts(row["created_at"]) >= start
                         and (end is None or parse_ts(row["created_at"]) < end)]
             crossing = sum(parse_ts(row["started_at"]) < start for row in selected if row.get("started_at"))
             unknown_start = sum(not row.get("started_at") for row in selected)
@@ -85,8 +86,10 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
                               "maps": _block_maps(selected, start, session_end)})
         out["blocks"] = summaries
         out["plays_before_first_block"] = sum(
+            row.get("timestamp_source") != "started_at" and
             parse_ts(row["created_at"]) < parse_ts(blocks[0]["started_at"]) for row in rows
         )
+        out["plays_with_unknown_end_time"] = sum(row.get("timestamp_source") == "started_at" for row in rows)
     if not rows:
         return out
     passed = [r for r in rows if r["passed"]]

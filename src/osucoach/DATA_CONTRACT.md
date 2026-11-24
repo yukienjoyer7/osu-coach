@@ -61,6 +61,7 @@ coach/
  "retry_index": 1}
 ```
 - `retry_index`: Nth recorded attempt of that beatmap within this session, regardless of mods, computed from score end-time order. Map stats retain `max_retry` as the largest such index for compatibility; it is not a retry count.
+- `timestamp_source` identifies whether `created_at` came from `ended_at` or a start-time fallback. If only a start time is available, session filtering uses that fallback and may miss plays that began before the session. Such records remain in overall statistics but are excluded from block assignment and counted in `plays_with_unknown_end_time`; ordering-based summaries can also be uncertain. Older rows may omit `timestamp_source`, so their timestamp provenance cannot be recovered and they retain legacy end-time treatment in block summaries.
 - Map stats also provide `consecutive_recorded_repeats`: the number of recorded scores immediately preceded by a score on the same beatmap with the same mods and settings. It ignores mod order, does not prove the player used the retry button, and cannot account for missing or unsubmitted attempts or intervening breaks.
 - `legacy_score_id` and `build_id` preserve the API values when available. A non-null legacy score ID identifies a stable-origin score; a null or missing value alone does not establish client or gameplay rules. Older saved scores may omit both. Classic mod settings and client rules can affect comparability.
 - `pp` may be null for fails/unranked; keep the row anyway. `weight_pct` is only set for best.json, null for session scores.
