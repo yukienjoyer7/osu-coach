@@ -623,8 +623,17 @@ def test_stats_basic():
     assert s["first_half"]["plays"] == 2 and s["second_half"]["plays"] == 2
     assert s["first_20min"] is None  # session too short for 20 min windows
     assert s["maps"][0]["plays"] == 2 and s["maps"][0]["max_retry"] in (2,)
-    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "acc_passed": 97.0}
-    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "acc_passed": 94.0}
+    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "acc_passed": 97.0, "acc_passed_samples": 2}
+    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "acc_passed": 94.0, "acc_passed_samples": 1}
+
+
+def test_accuracy_sample_count_excludes_failed_and_unknown_scores():
+    rows = S.add_retry_index([_sc(1, 1, "2026-01-01T00:00:00Z", acc=0.98),
+                              _sc(2, 1, "2026-01-01T00:01:00Z", acc=None),
+                              _sc(3, 1, "2026-01-01T00:02:00Z", passed=False, acc=0.5)])
+    summary = ST.compute(rows)
+    assert summary["acc_passed"] == 98.0 and summary["acc_passed_samples"] == 1
+    assert summary["maps"][0]["acc_passed_samples"] == 1
 
 
 def test_stats_empty_and_render():

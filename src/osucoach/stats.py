@@ -18,7 +18,8 @@ def _pass_rate(rows: list[dict]) -> float | None:
 
 
 def _block(rows: list[dict]) -> dict:
-    return {"plays": len(rows), "pass_rate": _pass_rate(rows), "acc_passed": _acc(rows)}
+    return {"plays": len(rows), "pass_rate": _pass_rate(rows), "acc_passed": _acc(rows),
+            "acc_passed_samples": sum(row["passed"] and row.get("accuracy") is not None for row in rows)}
 
 
 def _hit_results(rows: list[dict]) -> dict:
@@ -62,6 +63,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     out["hit_results"] = _hit_results(rows)
     out["pass_rate"] = _pass_rate(rows)
     out["acc_passed"] = _acc(rows)
+    out["acc_passed_samples"] = sum(row.get("accuracy") is not None for row in passed)
     pps = [r["pp"] for r in rows if r.get("pp") is not None]
     out["best_pp"] = max(pps) if pps else None
 
@@ -102,6 +104,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
             "plays": len(rs), "passes": sum(x["passed"] for x in rs),
             "max_retry": max(x["retry_index"] or 0 for x in rs),
             "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
+            "acc_passed_samples": sum(row["passed"] and row.get("accuracy") is not None for row in rs),
             "hit_results": _hit_results(rs),
             "sr": sr_lookup(rs[0]) if sr_lookup else None,
         })
