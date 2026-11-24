@@ -3,6 +3,7 @@ import json
 import math
 import sys
 from importlib.resources import files
+from urllib.parse import urlencode
 from typing import Optional
 
 import typer
@@ -171,6 +172,14 @@ def map_tag(beatmap_id: int = typer.Argument(..., min=1),
     """Replace the user-supplied labels for a beatmap."""
     result = MAPS.set_tags(beatmap_id, tags.split(","))
     typer.echo(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("map-search")
+def map_search(query: str = typer.Argument(..., help="osu! website search query")) -> None:
+    """Build an osu!standard ranked-map search URL without requesting data."""
+    params = urlencode({"m": "0", "s": "ranked", "q": query})
+    typer.echo(json.dumps({"url": f"https://osu.ppy.sh/beatmapsets?{params}", "query": query,
+                           "scope": "ranked osu!standard beatmapsets"}, ensure_ascii=False))
 
 
 @app.command("maps")

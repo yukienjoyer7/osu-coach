@@ -43,6 +43,18 @@ def test_guide_exposes_coaching_rules():
     assert "## Evidence discipline" in result.output
 
 
+def test_map_search_encodes_query():
+    from urllib.parse import parse_qs, urlparse
+
+    result = CliRunner().invoke(app, ["map-search", "stars>=5 stars<6 tag=\"finger control\""])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    parsed = urlparse(data["url"])
+    params = parse_qs(parsed.query)
+    assert parsed.netloc == "osu.ppy.sh" and parsed.path == "/beatmapsets"
+    assert params == {"m": ["0"], "s": ["ranked"], "q": [data["query"]]}
+
+
 def test_unranked_player_and_empty_best_are_supported(monkeypatch):
     from osucoach import cli
 

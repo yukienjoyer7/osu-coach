@@ -15,6 +15,7 @@ osucoach context [ID]
 osucoach history BEATMAP_ID
 osucoach maps [--min-sr X --max-sr X --min-bpm X --max-bpm X]
 osucoach map-tag BEATMAP_ID --tags LABELS
+osucoach map-search QUERY
 osucoach gap
 ```
 Add `--json` when you need to parse output. `session start` takes `--sleep-h --energy --pain --motivation`. `session end` takes `--fatigue --pain --enjoyment --felt-hard --notes --followed-plan yes|partly|no`. For `session update`, use `--pain-before` and `--pain-after` for the respective pain values. Use it to record what the player tells you. `osucoach <cmd> --help` lists every option.
