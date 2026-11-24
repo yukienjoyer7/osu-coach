@@ -581,7 +581,7 @@ def test_maps_filter_recorded_cached_attributes(tmp_data, monkeypatch):
     row["mod_settings"] = {"DT": {"speed_change": 1.3}}
     write_json(P.BEST, [row, row, _sc(2, 100, "2026-11-21T10:02:00Z")])
     write_json(F.beatmap_path(99, S.score_mods(row)),
-               {"beatmap_id": 99, "star_rating": 6.5, "bpm": 220})
+               {"beatmap_id": 99, "star_rating": 6.5, "bpm": 220, "ar": 9.5, "length_s": 120})
     runner = CliRunner()
     result = runner.invoke(app, ["maps", "--min-sr", "6", "--max-bpm", "230"])
     assert result.exit_code == 0, result.output
@@ -590,6 +590,9 @@ def test_maps_filter_recorded_cached_attributes(tmp_data, monkeypatch):
     assert maps[0]["mod_settings"]["DT"]["speed_change"] == 1.3
     assert maps[0]["ranked_status"] is None and maps[0]["pattern_type"] is None
     assert runner.invoke(app, ["maps", "--min-sr", "7", "--max-sr", "6"]).exit_code != 0
+    assert len(json.loads(runner.invoke(app, ["maps", "--min-ar", "9", "--max-length", "120"]).output)["maps"]) == 1
+    assert json.loads(runner.invoke(app, ["maps", "--min-length", "121"]).output)["maps"] == []
+    assert runner.invoke(app, ["maps", "--min-ar", "nan"]).exit_code != 0
 
 
 # ---- stats -----------------------------------------------------------------------

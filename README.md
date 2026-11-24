@@ -28,7 +28,7 @@ See `plan.md` for the build plan and `DATA_CONTRACT.md` for schemas.
 
 `osucoach history BEATMAP_ID` shows saved scores for a map across sessions, including mods, setup snapshots and fetch metadata. It lists sessions with missing score files and preserves duplicate score IDs when session windows overlap. Compare conditions and deduplicate IDs before interpreting changes.
 
-`osucoach maps --min-sr 5 --max-sr 6 --min-bpm 170 --max-bpm 210` finds recorded maps with cached attributes. Results only cover stored scores with cached map attributes. Pattern type and ranked status are unknown and must be verified separately.
+`osucoach maps --min-sr 5 --max-sr 6 --min-bpm 170 --max-bpm 210 --min-ar 9 --max-length 180` finds recorded maps with cached attributes. Length is in seconds. Results only cover stored scores with cached map attributes. Pattern type and ranked status are unknown and must be verified separately.
 
 Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000,1200,1400` to model a rank target. The calculation holds bonus pp and the rank threshold constant and assumes distinct new scores. It is a scenario, not a forecast.
 

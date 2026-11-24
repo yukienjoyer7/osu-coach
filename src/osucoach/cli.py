@@ -143,12 +143,18 @@ def fetch_beatmaps(session: Optional[str] = typer.Option(None, "--session", help
 def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
          max_sr: Optional[float] = typer.Option(None, "--max-sr", min=0),
          min_bpm: Optional[float] = typer.Option(None, "--min-bpm", min=0),
-         max_bpm: Optional[float] = typer.Option(None, "--max-bpm", min=0)) -> None:
+         max_bpm: Optional[float] = typer.Option(None, "--max-bpm", min=0),
+         min_ar: Optional[float] = typer.Option(None, "--min-ar", min=0),
+         max_ar: Optional[float] = typer.Option(None, "--max-ar", min=0),
+         min_length: Optional[float] = typer.Option(None, "--min-length", min=0, help="Seconds"),
+         max_length: Optional[float] = typer.Option(None, "--max-length", min=0, help="Seconds")) -> None:
     """Find recorded maps with cached attributes and output JSON."""
-    if ((min_sr is not None and max_sr is not None and min_sr > max_sr)
-            or (min_bpm is not None and max_bpm is not None and min_bpm > max_bpm)):
+    ranges = ((min_sr, max_sr), (min_bpm, max_bpm), (min_ar, max_ar), (min_length, max_length))
+    if any(value is not None and not math.isfinite(value) for pair in ranges for value in pair):
+        _fail(OsuError("map filters must be finite numbers"))
+    if any(low is not None and high is not None and low > high for low, high in ranges):
         _fail(OsuError("minimum must not exceed maximum"))
-    results = MAPS.find(min_sr, max_sr, min_bpm, max_bpm)
+    results = MAPS.find(min_sr, max_sr, min_bpm, max_bpm, min_ar, max_ar, min_length, max_length)
     typer.echo(json.dumps({"maps": results}, ensure_ascii=False, indent=2))
 
 
