@@ -30,6 +30,16 @@
     ]
   },
   {
+    "id": "practice-retention",
+    "mode": "post",
+    "prompt": "An osu! player practicing alternating patterns says: 'My first attempt on the same map was 91% and my fourth attempt was 97%, with the same mods. Did this drill permanently fix my alternating? What next?' They report no pain. Give a short review and a practical follow-up.",
+    "criteria": [
+      "Describes the improvement as a within-session observation rather than proof of permanent learning or a fixed technique.",
+      "Suggests a later check on the same map under documented comparable conditions and acknowledges that a single result is limited.",
+      "Suggests a separate, relevant unfamiliar-map check to explore transfer without claiming it proves general skill."
+    ]
+  },
+  {
     "id": "player-choice",
     "mode": "pre",
     "prompt": "An osu! player has 35 minutes available, feels energetic and reports no pain. Their long-term goal is top 100, but today they say they want to have fun playing a variety of maps and do not want a rigid aim drill. How would you plan the session?",
