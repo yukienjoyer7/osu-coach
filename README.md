@@ -55,6 +55,7 @@ The workspace defaults to the current working directory. Set `OSUCOACH_HOME` to 
 ## Development (maintainer notes)
 - Python 3.11+ (developed on 3.12 from python.org / `winget install Python.Python.3.12`; the msys2 Python lacks wheels for pydantic).
 - Run the CLI as `.venv/Scripts/osucoach`; tests with `.venv/Scripts/python -m pytest`.
+- Run `python tests/check_distribution.py` for an isolated wheel smoke test. It builds with pip's isolated build requirements, installs without dependencies into a temporary directory, and exercises the installed guide and workspace commands outside the checkout. Runtime dependencies must already be installed for the test.
 - Layout (`src/osucoach/`): `api.py` (HTTP, token, rate limit; only module that touches the network), `fetch.py` (API -> data/), `scores.py` (the only place that knows the score JSON shape), `mods.py` (mod parsing, cache keys, AR/OD/CS/BPM maths), `gap.py` (weighted pp maths), `session.py`, `stats.py` (pure functions), `store.py` (JSON IO, only module that writes files), `paths.py`, `cli.py` (thin typer layer).
 - Score format is the lazer one (`x-api-version` header in `api.py`); map `statistics.*` to `n300/n100/n50/miss` in one place only.
 - Never print or log `.env` values. Errors are one line, non-zero exit.
