@@ -146,6 +146,14 @@ def guide() -> None:
     typer.echo(files("osucoach").joinpath("COACHING.md").read_text(encoding="utf-8"))
 
 
+@app.command("map-tag")
+def map_tag(beatmap_id: int = typer.Argument(..., min=1),
+            tags: str = typer.Option(..., "--tags", help="Comma-separated labels; empty clears them.")) -> None:
+    """Replace the user-supplied labels for a beatmap."""
+    result = MAPS.set_tags(beatmap_id, tags.split(","))
+    typer.echo(json.dumps(result, ensure_ascii=False))
+
+
 @app.command("maps")
 def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
          max_sr: Optional[float] = typer.Option(None, "--max-sr", min=0),
@@ -154,14 +162,16 @@ def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
          min_ar: Optional[float] = typer.Option(None, "--min-ar", min=0),
          max_ar: Optional[float] = typer.Option(None, "--max-ar", min=0),
          min_length: Optional[float] = typer.Option(None, "--min-length", min=0, help="Seconds"),
-         max_length: Optional[float] = typer.Option(None, "--max-length", min=0, help="Seconds")) -> None:
+         max_length: Optional[float] = typer.Option(None, "--max-length", min=0, help="Seconds"),
+         tag: Optional[str] = typer.Option(None, "--tag", help="User-supplied map label")) -> None:
     """Find recorded maps with cached attributes and output JSON."""
     ranges = ((min_sr, max_sr), (min_bpm, max_bpm), (min_ar, max_ar), (min_length, max_length))
     if any(value is not None and not math.isfinite(value) for pair in ranges for value in pair):
         _fail(OsuError("map filters must be finite numbers"))
     if any(low is not None and high is not None and low > high for low, high in ranges):
         _fail(OsuError("minimum must not exceed maximum"))
-    results = MAPS.find(min_sr, max_sr, min_bpm, max_bpm, min_ar, max_ar, min_length, max_length)
+    results = MAPS.find(min_sr, max_sr, min_bpm, max_bpm, min_ar, max_ar, min_length, max_length,
+                        tag.strip() if tag else None)
     typer.echo(json.dumps({"maps": results}, ensure_ascii=False, indent=2))
 
 

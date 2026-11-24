@@ -2,17 +2,28 @@
 import json
 
 from . import fetch, paths, scores, session
-from .store import read_json
+from .store import read_json, write_json
+
+
+def set_tags(beatmap_id, tags):
+    normalized = sorted({tag.strip().casefold() for tag in tags if tag.strip()})
+    data = {"beatmap_id": beatmap_id, "tags": normalized}
+    write_json(paths.DATA / "map_tags" / f"{beatmap_id}.json", data)
+    return data
 
 
 def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
-         min_ar=None, max_ar=None, min_length=None, max_length=None):
+         min_ar=None, max_ar=None, min_length=None, max_length=None, tag=None):
     candidates = {}
     sources = [paths.BEST] + [paths.session_dir(sid) / "scores.json" for sid in session.list_ids()]
     for source in sources:
         for score in read_json(source, []) or []:
             attributes = read_json(fetch.beatmap_path(score["beatmap_id"], scores.score_mods(score)))
             if not attributes:
+                continue
+            annotation = read_json(paths.DATA / "map_tags" / f"{score['beatmap_id']}.json", {})
+            tags = annotation.get("tags", [])
+            if tag and tag.casefold() not in tags:
                 continue
             filters = (("star_rating", min_sr, max_sr), ("bpm", min_bpm, max_bpm),
                        ("ar", min_ar, max_ar), ("length_s", min_length, max_length))
@@ -26,6 +37,7 @@ def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
                 "beatmap_id": score["beatmap_id"], "title": score.get("title"),
                 "version": score.get("version"), "mods": score["mods"],
                 "mod_settings": settings, "attributes": attributes,
+                "user_tags": tags,
                 "ranked_status": None, "pattern_type": None,
             }
     return sorted(candidates.values(), key=lambda item: (item["attributes"]["star_rating"], item["beatmap_id"]))

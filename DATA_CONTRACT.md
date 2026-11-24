@@ -7,6 +7,7 @@ data/
   profile/YYYY-MM-DD.json          # snapshot per fetch
   best.json                        # top 100, refreshed each fetch
   best_sync.json                   # timestamp and count of last successful best-score fetch
+  map_tags/<beatmap_id>.json       # user-supplied, mod-independent labels
   beatmaps/<beatmap_id>_<mods>.json   # <mods> = difficulty-affecting mods only: NM, DT, HR, DTHR, DT-sp1.3 (NC=DT, DC=HT; HD/FL/etc ignored)
   beatmaps/_meta/<beatmap_id>.json    # raw nomod CS/AR/OD/BPM/length/counts captured from score objects (cache)
   current_session                  # id of the open session, absent when none

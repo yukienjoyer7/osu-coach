@@ -602,6 +602,13 @@ def test_maps_filter_recorded_cached_attributes(tmp_data, monkeypatch):
     assert len(json.loads(runner.invoke(app, ["maps", "--min-ar", "9", "--max-length", "120"]).output)["maps"]) == 1
     assert json.loads(runner.invoke(app, ["maps", "--min-length", "121"]).output)["maps"] == []
     assert runner.invoke(app, ["maps", "--min-ar", "nan"]).exit_code != 0
+    tagged = runner.invoke(app, ["map-tag", "99", "--tags", "Jumps, bursts, Jumps"])
+    assert tagged.exit_code == 0, tagged.output
+    found = json.loads(runner.invoke(app, ["maps", "--tag", "JUMPS"]).output)["maps"]
+    assert found[0]["user_tags"] == ["bursts", "jumps"]
+    assert json.loads(runner.invoke(app, ["maps", "--tag", "streams"]).output)["maps"] == []
+    assert runner.invoke(app, ["map-tag", "99", "--tags", ""]).exit_code == 0
+    assert json.loads(runner.invoke(app, ["maps", "--tag", "jumps"]).output)["maps"] == []
 
 
 # ---- stats -----------------------------------------------------------------------
