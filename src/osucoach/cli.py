@@ -179,6 +179,17 @@ def session_current(json_out: bool = JSON) -> None:
     _out({"session_id": sid}, json_out, sid or "none")
 
 
+@session_app.command("block")
+def session_block(label: str = typer.Argument(..., help="Name of the block beginning now"),
+                  json_out: bool = JSON) -> None:
+    """Mark the start of a practice block in the current session."""
+    sid = SS.current()
+    if not sid:
+        _fail(OsuError("no open session"))
+    marker = _run(SS.mark_block, SS.load(sid), label)
+    _out(marker, json_out, f"{sid}: block {marker['label']} started")
+
+
 def _after_opts(fatigue, pain, enjoyment, felt_hard, notes) -> dict:
     return {"fatigue_1_5": fatigue, "hand_pain_0_10": pain, "enjoyment_1_5": enjoyment,
             "felt_hard": felt_hard, "notes": notes}
@@ -249,6 +260,6 @@ def stats(session: Optional[str] = typer.Argument(None, help="Session id (defaul
         d = read_json(F.beatmap_path(sc["beatmap_id"], S.score_mods(sc)))
         return d["star_rating"] if d else None
 
-    res = ST.compute(scores, sr)
+    res = ST.compute(scores, sr, SS.load(sid).get("blocks"))
     res["session_id"] = sid
     _out(res, json_out, ST.render(sid, res))

@@ -365,3 +365,26 @@ def test_stats_basic():
 def test_stats_empty_and_render():
     assert ST.compute([]) == {"plays": 0}
     assert "no plays" in ST.render("x", {"plays": 0})
+
+
+def test_session_blocks_assign_end_times(tmp_data, monkeypatch):
+    clock = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    sess = SS.start()
+    clock += timedelta(minutes=1)
+    runner = CliRunner()
+    assert runner.invoke(app, ["session", "block", "warmup"]).exit_code == 0
+    clock += timedelta(minutes=10)
+    assert runner.invoke(app, ["session", "block", "focus"]).exit_code == 0
+    blocks = SS.load(sess["session_id"])["blocks"]
+    rows = S.add_retry_index([
+        _sc(1, 1, "2026-01-01T00:00:30Z"),
+        _sc(2, 2, "2026-01-01T00:02:00Z", acc=0.97),
+        _sc(3, 3, "2026-01-01T00:11:00Z", passed=False),
+    ])
+    result = ST.compute(rows, blocks=blocks)
+    assert result["plays_before_first_block"] == 1
+    assert [(b["label"], b["plays"], b["pass_rate"]) for b in result["blocks"]] == [
+        ("warmup", 1, 100.0), ("focus", 1, 0.0)
+    ]
+    assert runner.invoke(app, ["session", "block", "same second"]).exit_code != 0

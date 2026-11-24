@@ -106,6 +106,23 @@ def stamp_end(session: dict) -> dict:
     return session
 
 
+def mark_block(session: dict, label: str) -> dict:
+    """Mark the beginning of a practice block in the current session."""
+    label = label.strip()
+    if not label:
+        raise OsuError("block label cannot be empty")
+    if session.get("ended_at"):
+        raise OsuError("session has ended; finish syncing it first")
+    at = now_local().isoformat(timespec="seconds")
+    markers = session.setdefault("blocks", [])
+    if markers and parse_ts(at) <= parse_ts(markers[-1]["started_at"]):
+        raise OsuError("block markers must have distinct increasing timestamps")
+    marker = {"label": label, "started_at": at}
+    markers.append(marker)
+    save(session)
+    return marker
+
+
 def close(session_id: str) -> None:
     if current() == session_id:
         P.CURRENT.unlink()

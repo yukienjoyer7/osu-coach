@@ -20,10 +20,22 @@ def _block(rows: list[dict]) -> dict:
     return {"plays": len(rows), "pass_rate": _pass_rate(rows), "acc_passed": _acc(rows)}
 
 
-def compute(scores: list[dict], sr_lookup=None) -> dict:
+def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     """sr_lookup(score) -> star rating (mod adjusted) or None."""
     rows = sorted(scores, key=lambda r: (r["created_at"], r["score_id"]))
     out: dict = {"plays": len(rows)}
+    if blocks:
+        summaries = []
+        for i, marker in enumerate(blocks):
+            start = parse_ts(marker["started_at"])
+            end = parse_ts(blocks[i + 1]["started_at"]) if i + 1 < len(blocks) else None
+            selected = [row for row in rows if parse_ts(row["created_at"]) >= start
+                        and (end is None or parse_ts(row["created_at"]) < end)]
+            summaries.append({**marker, **_block(selected)})
+        out["blocks"] = summaries
+        out["plays_before_first_block"] = sum(
+            parse_ts(row["created_at"]) < parse_ts(blocks[0]["started_at"]) for row in rows
+        )
     if not rows:
         return out
     passed = [r for r in rows if r["passed"]]

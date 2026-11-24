@@ -57,5 +57,5 @@ def build(session_id=None):
                 beatmap = read_json(fetch.beatmap_path(row["beatmap_id"], scores.score_mods(row)))
                 return beatmap.get("star_rating") if beatmap else None
 
-            result["stats"] = stats.compute(rows, sr)
+            result["stats"] = stats.compute(rows, sr, result["session"].get("blocks"))
     return result
