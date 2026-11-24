@@ -58,7 +58,9 @@ def fetch_threshold(c: Client, rank: int = 10000) -> dict:
     match = next((row for row in rows if row.get("global_rank") == rank), None)
     if match is None:
         raise OsuError(f"ranking response did not contain rank #{rank}")
-    pp = match["pp"]
+    pp = match.get("pp")
+    if type(pp) not in (int, float) or not math.isfinite(pp) or pp < 0:
+        raise OsuError(f"ranking response contained invalid pp for rank #{rank}")
     path = profile_path()
     prof = read_json(path) or fetch_profile(c)
     prof.setdefault("rank_thresholds", {})[str(rank)] = {

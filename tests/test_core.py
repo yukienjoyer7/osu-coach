@@ -190,6 +190,23 @@ def test_rank_threshold_requires_matching_rank(tmp_path, monkeypatch):
         F.fetch_threshold(Client(), 99)
 
 
+@pytest.mark.parametrize("pp", [None, float("nan"), float("inf"), -1, True, "20000"])
+def test_rank_threshold_rejects_invalid_pp_without_overwriting(tmp_path, monkeypatch, pp):
+    from osucoach.store import read_json, write_json
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_path / "profile")
+    original = {"pp": 8000, "rank_thresholds": {"100": {"pp": 19000}}}
+    write_json(F.profile_path(), original)
+
+    class Client:
+        def get(self, path, **params):
+            return {"ranking": [{"global_rank": 100, "pp": pp}]}
+
+    with pytest.raises(OsuError, match="invalid pp"):
+        F.fetch_threshold(Client(), 100)
+    assert read_json(F.profile_path()) == original
+
+
 def test_gap_reports_unreachable_scenario_and_invalid_input(tmp_path, monkeypatch):
     from osucoach.store import write_json
 
