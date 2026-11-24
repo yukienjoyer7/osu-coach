@@ -54,6 +54,7 @@ coach/
 - `created_at` is the score's `ended_at` (UTC). `map_max_combo` is null until the beatmap file exists.
 - `mod_settings` (optional): present only when a mod has settings, e.g. `{"DT": {"speed_change": 1.3}}`.
 - Lazer score format: `n300/n100/n50/miss` = `statistics.great/ok/meh/miss`.
+- When the statistics dictionary is absent, those counts are null. Within a present dictionary, omitted hit results are treated as zero. Scores saved by older versions may contain zeros that cannot be distinguished from missing source statistics without refetching.
 - Session and map stats include `hit_results` with totals for scores that have all four counts, plus the number of scores covered and the total scores. Null totals mean no complete counts were available. These aggregates include fails and retries, which can have different played lengths. Miss counts do not identify aim or tapping causes.
 
 ## beatmaps/<beatmap_id>_<mods>.json

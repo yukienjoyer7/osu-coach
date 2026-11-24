@@ -7,7 +7,7 @@ from .store import parse_ts
 
 def map_score(s: dict) -> dict:
     bm = s.get("beatmap") or {}
-    st = s.get("statistics") or {}
+    st = s.get("statistics")
     mods = [m["acronym"] for m in s.get("mods") or []]
     settings = {m["acronym"]: m["settings"] for m in s.get("mods") or [] if m.get("settings")}
     w = s.get("weight") or {}
@@ -23,10 +23,10 @@ def map_score(s: dict) -> dict:
         "accuracy": s.get("accuracy"),
         "max_combo": s.get("max_combo"),
         "map_max_combo": None,  # filled from beatmap files once fetched
-        "n300": st.get("great", 0),
-        "n100": st.get("ok", 0),
-        "n50": st.get("meh", 0),
-        "miss": st.get("miss", 0),
+        "n300": st.get("great", 0) if isinstance(st, dict) else None,
+        "n100": st.get("ok", 0) if isinstance(st, dict) else None,
+        "n50": st.get("meh", 0) if isinstance(st, dict) else None,
+        "miss": st.get("miss", 0) if isinstance(st, dict) else None,
         "pp": s.get("pp"),
         "weight_pct": w.get("percentage"),
         "rank": s.get("rank"),

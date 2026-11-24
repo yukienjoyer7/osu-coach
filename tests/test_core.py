@@ -173,6 +173,13 @@ def test_map_score_fail_without_pp_or_weight():
     assert "mod_settings" not in sc
 
 
+def test_map_score_distinguishes_missing_statistics_from_sparse_counts():
+    missing = S.map_score({**RAW, "statistics": None})
+    assert all(missing[key] is None for key in ("n300", "n100", "n50", "miss"))
+    sparse = S.map_score({**RAW, "statistics": {"great": 100}})
+    assert (sparse["n300"], sparse["n100"], sparse["n50"], sparse["miss"]) == (100, 0, 0, 0)
+
+
 def _sc(i, bid, t, passed=True, acc=0.95):
     return {"score_id": i, "beatmap_id": bid, "created_at": t, "passed": passed,
             "accuracy": acc, "pp": None, "title": "t", "version": "v", "mods": []}
