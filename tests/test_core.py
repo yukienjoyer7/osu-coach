@@ -1293,3 +1293,25 @@ def test_map_history_includes_best_scores_without_implying_complete_history(tmp_
     assert result["best_session_duplicate_score_ids"] == [5]
     assert result["best_sync"]["fetched_at"] == "2026-01-01T00:00:00Z"
     assert history.map_history(101)["best_scores"] == []
+
+
+def test_map_history_identifies_duplicate_plays_across_sessions(tmp_data, monkeypatch):
+    from osucoach import history
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    first = SS.start()
+    SS.close(first["session_id"])
+    clock += timedelta(minutes=1)
+    second = SS.start()
+    shared = _sc(10, 99, "2026-11-21T10:01:30Z")
+    unique = _sc(11, 99, "2026-11-21T10:01:40Z")
+    write_json(P.session_dir(first["session_id"]) / "scores.json", [shared])
+    write_json(P.session_dir(second["session_id"]) / "scores.json", [shared, unique])
+    result = history.map_history(99)
+    assert result["session_duplicate_scores"] == [{"score_id": 10,
+        "session_ids": [first["session_id"], second["session_id"]]}]
+    assert result["unique_recorded_session_score_count"] == 2
+    assert [len(item["scores"]) for item in result["sessions"]] == [1, 2]
