@@ -581,6 +581,18 @@ def test_map_stats_separate_custom_mod_settings():
     assert '"speed_change": 1.3' in ST.render("test", summary)
 
 
+def test_hit_result_totals_report_coverage():
+    rows = [_sc(1, 11, "2026-01-01T00:00:00Z"),
+            _sc(2, 11, "2026-01-01T00:10:00Z", passed=False)]
+    rows[0].update(n300=100, n100=5, n50=1, miss=2)
+    S.add_retry_index(rows)
+    summary = ST.compute(rows)
+    expected = {"scores_with_counts": 1, "scores_total": 2,
+                "totals": {"n300": 100, "n100": 5, "n50": 1, "miss": 2}}
+    assert summary["hit_results"] == expected
+    assert summary["maps"][0]["hit_results"] == expected
+
+
 def test_session_blocks_assign_end_times(tmp_data, monkeypatch):
     clock = datetime(2026, 1, 1, tzinfo=timezone.utc)
     monkeypatch.setattr(SS, "now_local", lambda: clock)

@@ -21,6 +21,13 @@ def _block(rows: list[dict]) -> dict:
     return {"plays": len(rows), "pass_rate": _pass_rate(rows), "acc_passed": _acc(rows)}
 
 
+def _hit_results(rows: list[dict]) -> dict:
+    fields = ("n300", "n100", "n50", "miss")
+    known = [row for row in rows if all(row.get(field) is not None for field in fields)]
+    return {"scores_with_counts": len(known), "scores_total": len(rows),
+            "totals": {field: sum(row[field] for row in known) for field in fields} if known else None}
+
+
 def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     """sr_lookup(score) -> star rating (mod adjusted) or None."""
     rows = sorted(scores, key=lambda r: (parse_ts(r["created_at"]), r["score_id"]))
@@ -49,6 +56,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     out["first_recorded_attempts"] = _block(first_attempts)
     out["later_recorded_attempts"] = _block(later_attempts)
     out["passes"] = len(passed)
+    out["hit_results"] = _hit_results(rows)
     out["pass_rate"] = _pass_rate(rows)
     out["acc_passed"] = _acc(rows)
     pps = [r["pp"] for r in rows if r.get("pp") is not None]
@@ -91,6 +99,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
             "plays": len(rs), "passes": sum(x["passed"] for x in rs),
             "max_retry": max(x["retry_index"] or 0 for x in rs),
             "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
+            "hit_results": _hit_results(rs),
             "sr": sr_lookup(rs[0]) if sr_lookup else None,
         })
     out["maps"] = sorted(maps, key=lambda m: -m["plays"])
