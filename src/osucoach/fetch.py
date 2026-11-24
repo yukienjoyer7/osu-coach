@@ -75,6 +75,10 @@ def fetch_best(c: Client) -> list[dict]:
     scores = [S.map_score(r) for r in raw]
     fill_map_max_combo(scores)
     write_json(P.BEST, scores)
+    write_json(P.BEST.with_name("best_sync.json"), {
+        "fetched_at": now_local().isoformat(timespec="seconds"),
+        "scores_returned": len(scores),
+    })
     return scores
 
 

@@ -5,7 +5,7 @@ Coach the osu!standard player toward the goals in `coach/player.md`. Ask when th
 ## Always load first
 1. `coach/player.md`
 2. Last 3 entries of `coach/journal.md`
-3. Latest `data/profile/*.json` and `data/best.json` (run `osucoach fetch profile` / `fetch best` if missing or older than a day)
+3. Latest `data/profile/*.json` and `data/best.json` (run `osucoach fetch profile` / `fetch best` if missing or older than a day; use `best_sync.fetched_at` to assess best-score freshness, and treat missing metadata as unknown)
 
 `osucoach context [ID]` provides saved context and recent reviews in JSON. Check `scores_sync` and its fetch time before relying on session statistics. A page limit or old fetch can leave scores missing, and a short response does not prove full coverage. Check `overlapping_session_ids` and compare score IDs when combining sessions because the five-minute grace period can include the same score twice. Use `osucoach session block LABEL` to mark a new practice block when the player starts it. Scores are assigned using their end times.
 

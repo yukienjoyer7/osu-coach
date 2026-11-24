@@ -52,6 +52,30 @@ def test_unranked_player_and_empty_best_are_supported(monkeypatch):
     assert json.loads(result.output) == {"scores": 0}
 
 
+def test_best_fetch_time_is_separate_from_file_modification(tmp_path, monkeypatch):
+    from osucoach import context
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_path / "best.json")
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_path / "profile")
+    monkeypatch.setattr(P, "COACH", tmp_path / "coach")
+    monkeypatch.setattr(P, "SESSIONS", tmp_path / "sessions")
+    monkeypatch.setattr(P, "CURRENT", tmp_path / "current_session")
+    monkeypatch.setattr(F, "now_local", lambda: datetime(2026, 1, 1, tzinfo=timezone.utc))
+
+    class Client:
+        user_id = "test"
+
+        def get(self, path, **params):
+            return []
+
+    F.fetch_best(Client())
+    write_json(P.BEST, [])  # A local enrichment write must not change fetch metadata.
+    assert context.build()["best_sync"] == {
+        "fetched_at": "2026-01-01T00:00:00+00:00", "scores_returned": 0
+    }
+
+
 # ---- gap -------------------------------------------------------------------
 def test_weighted():
     assert G.weighted([100, 100]) == pytest.approx(195)

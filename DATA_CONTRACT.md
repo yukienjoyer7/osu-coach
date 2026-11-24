@@ -6,6 +6,7 @@ The fetcher writes; the coach only reads `data/` and writes `coach/`.
 data/
   profile/YYYY-MM-DD.json          # snapshot per fetch
   best.json                        # top 100, refreshed each fetch
+  best_sync.json                   # timestamp and count of last successful best-score fetch
   beatmaps/<beatmap_id>_<mods>.json   # <mods> = difficulty-affecting mods only: NM, DT, HR, DTHR, DT-sp1.3 (NC=DT, DC=HT; HD/FL/etc ignored)
   beatmaps/_meta/<beatmap_id>.json    # raw nomod CS/AR/OD/BPM/length/counts captured from score objects (cache)
   current_session                  # id of the open session, absent when none
@@ -39,6 +40,8 @@ coach/
 ```
 `rank_threshold_10k_pp`: pp of #10,000 (rankings page 200, last row). Optional but useful.
 `rank_thresholds` optionally maps rank strings to objects containing `pp` and `fetched_at`. `fetch threshold --rank 100` records the #100 threshold. The legacy #10,000 field is still populated for compatibility. Thresholds change over time, and each timestamp identifies its own fetch.
+
+`best_sync.json` contains `fetched_at` and `scores_returned` for the most recent successful best-score fetch. Older installations may lack it. Editing cached map details can change the modification time of `best.json` without fetching new scores, so the file modification time is not a reliable fetch timestamp.
 
 ## best.json / scores.json (array, one object per score)
 ```json

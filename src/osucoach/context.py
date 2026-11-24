@@ -35,6 +35,7 @@ def build(session_id=None):
         "recent_journal": recent_journal,
         "profile": profile,
         "best": read_json(paths.BEST),
+        "best_sync": read_json(paths.BEST.with_name("best_sync.json")),
         "best_file_modified_at": _file_time(paths.BEST),
         "session": session.load(sid) if sid else None,
         "current_session_id": session.current(),
