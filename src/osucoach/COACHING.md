@@ -31,7 +31,7 @@ Triggered when a session is open and the user asks something.
 - Answer in 3-5 lines. One actionable thing.
 - Use only this session's scores plus player.md and the current plan.
 - Do not rewrite the plan unless asked.
-- Compare early and late performance only when the maps and conditions are comparable. A change alone cannot establish fatigue. Ask how the player feels and suggest a break when appropriate.
+- Compare early and late performance only when the maps and conditions are comparable. Check `ordering_evidence` and score coverage; tied or uncertain timestamps can make the order and half assignment ambiguous. A change alone cannot establish fatigue. Ask how the player feels and suggest a break when appropriate.
 - If the user mentions pain, tell them to stop for today.
 
 ### post: review the session

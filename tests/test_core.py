@@ -1265,6 +1265,21 @@ def test_score_with_no_end_time_is_not_assigned_to_block():
     assert summary["plays_before_first_block"] == 0
 
 
+def test_stats_report_timestamp_ordering_limits():
+    from osucoach import stats
+
+    rows = [_sc(1, 99, "2026-11-20T10:00:00Z"),
+            _sc(2, 99, "2026-11-20T11:00:00+01:00"),
+            _sc(3, 99, "2026-11-20T10:01:00Z")]
+    rows[0]["timestamp_source"] = "ended_at"
+    rows[1]["timestamp_source"] = "started_at"
+    for row in rows:
+        row["retry_index"] = 1
+    evidence = stats.compute(rows)["ordering_evidence"]
+    assert evidence == {"start_time_fallbacks": 1, "unknown_timestamp_source": 1,
+                        "tied_timestamp_groups": 1, "scores_in_tied_groups": 2}
+
+
 def test_consecutive_repeats_respect_map_mods_and_intervening_plays():
     rows = [
         _sc(1, 10, "2026-01-01T00:01:00Z"),

@@ -1,5 +1,5 @@
 """Session summary numbers. Pure functions over scores.json rows (plus a map lookup)."""
-from collections import defaultdict
+from collections import Counter, defaultdict
 import json
 from statistics import mean
 
@@ -66,7 +66,15 @@ def _block_maps(rows, start, session_end):
 def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=None) -> dict:
     """sr_lookup(score) -> star rating (mod adjusted) or None."""
     rows = sorted(scores, key=lambda r: (parse_ts(r["created_at"]), r["score_id"]))
+    timestamps = Counter(parse_ts(row["created_at"]) for row in rows)
     out: dict = {"plays": len(rows)}
+    if rows:
+        out["ordering_evidence"] = {
+            "start_time_fallbacks": sum(row.get("timestamp_source") == "started_at" for row in rows),
+            "unknown_timestamp_source": sum(row.get("timestamp_source") not in ("ended_at", "started_at") for row in rows),
+            "tied_timestamp_groups": sum(count > 1 for count in timestamps.values()),
+            "scores_in_tied_groups": sum(count for count in timestamps.values() if count > 1),
+        }
     if blocks:
         session_end = parse_ts(session_ended_at) if session_ended_at else None
         summaries = []
