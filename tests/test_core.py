@@ -930,6 +930,7 @@ def test_map_history_keeps_conditions_and_missing_sessions(tmp_data, monkeypatch
     monkeypatch.setattr(SS, "now_local", lambda: clock)
     first = SS.start()
     sid = first["session_id"]
+    marker = SS.mark_block(first, "benchmark")
     score = _sc(1, 99, "2026-11-21T10:01:00Z")
     score["mods"] = ["HD"]
     write_json(P.session_dir(sid) / "scores.json", [score])
@@ -944,6 +945,9 @@ def test_map_history_keeps_conditions_and_missing_sessions(tmp_data, monkeypatch
     assert history["sessions"][0]["scores"][0]["mods"] == ["HD"]
     assert history["sessions"][0]["setup"] == first["setup"]
     assert history["sessions"][0]["scores_sync"] is None
+    assert history["sessions"][0]["session_started_at"] == first["started_at"]
+    assert history["sessions"][0]["session_ended_at"] is None
+    assert history["sessions"][0]["blocks"] == [marker]
 
 
 def test_maps_filter_recorded_cached_attributes(tmp_data, monkeypatch):

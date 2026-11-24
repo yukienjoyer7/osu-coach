@@ -17,6 +17,9 @@ def map_history(beatmap_id: int) -> dict:
             sess = session.load(sid)
             entries.append({
                 "session_id": sid,
+                "session_started_at": sess.get("started_at"),
+                "session_ended_at": sess.get("ended_at"),
+                "blocks": sess.get("blocks", []),
                 "setup": sess.get("setup"),
                 "scores_sync": fetch.recent_sync(sid),
                 "scores": sorted(matches, key=lambda row: (parse_ts(row["created_at"]), row["score_id"])),
