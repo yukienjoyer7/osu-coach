@@ -431,6 +431,48 @@ def test_session_can_close_offline_after_failed_sync(tmp_data, monkeypatch):
     assert SS.start()["session_id"] != sess["session_id"]
 
 
+def test_complete_cli_session_handoff_with_simulated_api(tmp_data, monkeypatch):
+    from osucoach import cli
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    monkeypatch.setattr(P, "META_DIR", tmp_data / "beatmaps" / "_meta")
+    clock = datetime(2026, 11, 20, 9, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    monkeypatch.setattr(F, "now_local", lambda: clock)
+    raw = {**RAW, "started_at": "2026-11-20T09:03:00Z", "ended_at": "2026-11-20T09:05:00Z"}
+
+    class Client:
+        user_id = "test"
+
+        def get(self, path, **params):
+            return [raw]
+
+        def post(self, path, body):
+            return {"attributes": {"star_rating": 6.0, "max_combo": 600}}
+
+    monkeypatch.setattr(cli, "_client", lambda: Client())
+    runner = CliRunner()
+    started = runner.invoke(app, ["session", "start", "--energy", "4", "--json"])
+    assert started.exit_code == 0, started.output
+    sid = json.loads(started.output)["session_id"]
+    clock += timedelta(minutes=1)
+    assert runner.invoke(app, ["session", "block", "focus"]).exit_code == 0
+    clock += timedelta(minutes=9)
+    ended = runner.invoke(app, ["session", "end", "--fatigue", "2", "--json"])
+    assert ended.exit_code == 0, ended.output
+    assert json.loads(ended.output)["scores"] == 1
+    handoff = runner.invoke(app, ["context", sid])
+    assert handoff.exit_code == 0, handoff.output
+    context = json.loads(handoff.output)
+    assert context["current_session_id"] is None
+    assert context["session"]["after"]["fatigue_1_5"] == 2
+    assert context["stats"]["blocks"][0]["plays"] == 1
+    assert context["stats"]["avg_sr_passed"] == 6.0
+    assert context["scores_sync"]["returned_scores"] == 1
+
+
 def test_stats_distinguishes_missing_score_file_from_empty(tmp_data):
     from osucoach.store import write_json
 
