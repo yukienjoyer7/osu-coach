@@ -83,6 +83,7 @@ Values are mod-adjusted (DT changes AR/OD/BPM/length). Extra field `max_combo` (
 `session start` reads `coach/player.md` and saves a setup snapshot. Edit the profile to change future sessions. For example, `- tablet area: 60 × 40 mm, center (75.5, 45) mm, rotation 0°` supplies dimensions, center coordinates and rotation. Blank setup fields are null. If the profile is missing, the CLI reuses the last recorded setup when available.
 `setup.changed_since_last` reflects differences from the previous setup. `--setup-changed` and `--setup-same` override the comparison. Unknown `before` and `after` fields are null.
 `after.duration_min` is computed at `session end`. Edit fields afterwards only with `osucoach session update`.
+Energy, motivation, fatigue and enjoyment use integer values from 1 to 5. Pain uses integers from 0 to 10. Sleep hours must be finite and non-negative. Invalid updates are rejected before saving.
 Optional `blocks` is an ordered array of `{ "label": "focus", "started_at": "ISO8601 with offset" }` markers created by `session block`. Older sessions may omit it. Statistics assign scores by score end time, including crossing plays, and count plays before the first marker separately.
 `session end` saves the end time and feedback before syncing scores. If sync fails, the session remains current and retrying `session end` keeps the original end time and feedback. Run it again promptly to recover scores.
 A session's scores are those with `created_at` from `started_at` to `ended_at` + 5 min.

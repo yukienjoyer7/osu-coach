@@ -307,6 +307,23 @@ def test_apply_updates_validation():
         SS.apply_updates(s, followed_plan="maybe")
 
 
+def test_invalid_feedback_is_rejected_without_partial_updates(tmp_data):
+    runner = CliRunner()
+    rejected = runner.invoke(app, ["session", "start", "--pain", "11"])
+    assert rejected.exit_code != 0
+    assert SS.current() is None
+    sess = SS.start()
+    sid = sess["session_id"]
+    rejected = runner.invoke(app, ["session", "update", "--energy", "4", "--pain-before", "-1"])
+    assert rejected.exit_code != 0
+    assert SS.load(sid)["before"]["energy_1_5"] is None
+    rejected = runner.invoke(app, ["session", "update", "--sleep-h", "nan"])
+    assert rejected.exit_code != 0
+    accepted = runner.invoke(app, ["session", "update", "--energy", "4", "--pain-before", "0"])
+    assert accepted.exit_code == 0, accepted.output
+    assert SS.load(sid)["before"]["energy_1_5"] == 4
+
+
 def test_context_distinguishes_missing_and_empty_scores(tmp_data, monkeypatch):
     from osucoach.store import write_json
 

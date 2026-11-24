@@ -1,5 +1,6 @@
 """Session lifecycle: data/sessions/<id>/session.json plus a `current_session` pointer."""
 from datetime import datetime
+from math import isfinite
 
 from . import paths as P
 from .api import OsuError
@@ -48,15 +49,30 @@ def save(session: dict) -> None:
 
 def apply_updates(session: dict, before: dict | None = None, after: dict | None = None,
                   followed_plan: str | None = None, setup_changed: bool | None = None) -> dict:
+    ranges = {"energy_1_5": (1, 5), "motivation_1_5": (1, 5),
+              "fatigue_1_5": (1, 5), "enjoyment_1_5": (1, 5),
+              "hand_pain_0_10": (0, 10)}
     for block, vals, keys in (("before", before, BEFORE_KEYS), ("after", after, AFTER_KEYS)):
         for k, v in (vals or {}).items():
             if k not in keys:
                 raise OsuError(f"unknown {block} field {k}")
+            if v is None:
+                continue
+            if k in ranges:
+                low, high = ranges[k]
+                if type(v) is not int or not low <= v <= high:
+                    raise OsuError(f"{k} must be an integer from {low} to {high}")
+            if k == "sleep_h" and (type(v) not in (int, float) or not isfinite(v) or v < 0):
+                raise OsuError("sleep_h must be a finite non-negative number")
+            if k == "duration_min" and (type(v) is not int or v < 0):
+                raise OsuError("duration_min must be a non-negative integer")
+    if followed_plan is not None and followed_plan not in ("yes", "partly", "no"):
+        raise OsuError("followed_plan must be yes|partly|no")
+    for block, vals in (("before", before), ("after", after)):
+        for k, v in (vals or {}).items():
             if v is not None:
                 session[block][k] = v
     if followed_plan is not None:
-        if followed_plan not in ("yes", "partly", "no"):
-            raise OsuError("followed_plan must be yes|partly|no")
         session["followed_plan"] = followed_plan
     if setup_changed is not None:
         session["setup"]["changed_since_last"] = setup_changed
