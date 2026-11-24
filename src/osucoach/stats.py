@@ -122,8 +122,9 @@ def render(session_id: str, s: dict) -> str:
     lines = [
         f"{session_id} | {s['plays']} plays, {s['passes']} passes ({s['pass_rate']}%) | "
         f"span {s['span_min']} min | best pp {_f(s['best_pp'], '{:.0f}')}",
-        f"acc (passes) {_f(s['acc_passed'], '{}%')} | avg SR passed {_f(s['avg_sr_passed'])} "
-        f"vs failed {_f(s['avg_sr_failed'])}",
+        f"acc (passes) {_f(s['acc_passed'], '{}%')} (n={s.get('acc_passed_samples', '?')}) | "
+        f"avg SR passed {_f(s['avg_sr_passed'])} (n={s.get('avg_sr_passed_samples', '?')}) "
+        f"vs failed {_f(s['avg_sr_failed'])} (n={s.get('avg_sr_failed_samples', '?')})",
     ]
     for label, key in (("1st half", "first_half"), ("2nd half", "second_half"),
                        ("first 20m", "first_20min"), ("last 20m", "last_20min")):

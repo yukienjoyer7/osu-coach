@@ -714,6 +714,9 @@ def test_stats_basic():
     assert s["acc_passed"] == 96.0 and s["span_min"] == 30.0
     assert s["avg_sr_passed"] == pytest.approx(5.67, abs=0.01) and s["avg_sr_failed"] == 5.0
     assert s["avg_sr_passed_samples"] == 3 and s["avg_sr_failed_samples"] == 1
+    rendered = ST.render("session", s)
+    assert "acc (passes) 96.0% (n=3)" in rendered
+    assert "avg SR passed 5.67 (n=3) vs failed 5.0 (n=1)" in rendered
     assert s["first_half"]["plays"] == 2 and s["second_half"]["plays"] == 2
     assert s["first_20min"] is None  # session too short for 20 min windows
     assert s["maps"][0]["plays"] == 2 and s["maps"][0]["max_retry"] in (2,)
