@@ -988,3 +988,25 @@ def test_difficulty_adjust_null_settings_keep_map_values(tmp_path, monkeypatch):
 
     data, called = F.fetch_beatmap(Client(), 11, mods)
     assert called and (data["cs"], data["ar"], data["od"]) == (4, 0, 8)
+
+
+def test_init_uses_current_directory_and_preserves_existing_files(tmp_path):
+    env = dict(os.environ)
+    env.pop("OSUCOACH_HOME", None)
+    cmd = [sys.executable, "-c", "from osucoach.cli import app; app()", "init", "--json"]
+    result = subprocess.run(cmd, cwd=tmp_path, env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    assert data["workspace"] == str(tmp_path)
+    assert set(data["created"]) == {"coach/player.md", "coach/journal.md"}
+    player = tmp_path / "coach" / "player.md"
+    journal = tmp_path / "coach" / "journal.md"
+    player.write_text("personal player data", encoding="utf-8")
+    journal.write_text("personal journal", encoding="utf-8")
+    result = subprocess.run(cmd, cwd=tmp_path, env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert set(json.loads(result.stdout)["existing"]) == {"coach/player.md", "coach/journal.md"}
+    assert player.read_text(encoding="utf-8") == "personal player data"
+    assert journal.read_text(encoding="utf-8") == "personal journal"
+    assert (tmp_path / "coach" / "plans").is_dir()
+    assert (tmp_path / "coach" / "reviews").is_dir()

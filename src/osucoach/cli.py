@@ -62,6 +62,29 @@ def _client() -> Client:
     return _run(Client)
 
 
+@app.command("init")
+def init(json_out: bool = JSON) -> None:
+    """Initialize coaching files in the workspace without overwriting existing files."""
+    templates = {
+        P.COACH / "player.md": "# Player\n\n- user: <osu! username and id>\n- goal: <your goals>\n- history: <experience and breaks>\n- input: <tablet or mouse>\n- client: <lazer or stable>\n\n## Open hypotheses\n",
+        P.COACH / "journal.md": "# Journal\n\nAppend-only. One entry per session, newest at the bottom.\n",
+    }
+    created, existing = [], []
+    for path, content in templates.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with path.open("x", encoding="utf-8") as out:
+                out.write(content)
+        except FileExistsError:
+            existing.append(str(path.relative_to(P.ROOT)))
+        else:
+            created.append(str(path.relative_to(P.ROOT)))
+    for directory in (P.COACH / "plans", P.COACH / "reviews"):
+        directory.mkdir(parents=True, exist_ok=True)
+    result = {"workspace": str(P.ROOT), "created": created, "existing": existing}
+    _out(result, json_out, f"workspace {P.ROOT}: {len(created)} files created, {len(existing)} already present")
+
+
 # ---- auth ----------------------------------------------------------------
 @auth_app.command("check")
 def auth_check(json_out: bool = JSON) -> None:

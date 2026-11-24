@@ -40,7 +40,7 @@ Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000
 
 Use `osucoach session block LABEL` when a new block begins. JSON stats include each marked block and a count of plays before the first marker. Scores are assigned by their recorded end time, so a play crossing a marker belongs to the later block. Block metrics use recorded scores and are subject to score coverage limitations.
 
-Set `OSUCOACH_HOME` to an absolute workspace directory when the package is installed separately from the player's files. The CLI reads `coach/` and `.env` and writes `data/` under that directory. The default remains the repository root for editable installations. For example, on Linux or macOS use `export OSUCOACH_HOME=/path/to/workspace` before invoking the CLI. Keep the coaching instructions accessible to your agent in that workspace.
+The workspace defaults to the current working directory. Set `OSUCOACH_HOME` to an absolute workspace directory to use it from elsewhere, including when the package is installed separately. The CLI reads `coach/` and `.env` and writes `data/` there. Run `osucoach init` to create missing player and journal templates and plan/review directories without overwriting existing files; edit the player file before coaching. Run `osucoach guide` to supply the playbook to any agent. For example, on Linux or macOS use `export OSUCOACH_HOME=/path/to/workspace` before invoking the CLI.
 
 ## Development (maintainer notes)
 - Python 3.11+ (developed on 3.12 from python.org / `winget install Python.Python.3.12`; the msys2 Python lacks wheels for pydantic).
