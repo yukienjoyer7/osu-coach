@@ -159,10 +159,13 @@ def _r(v, nd):
 def _valid_map_meta(meta, beatmap_id):
     if not isinstance(meta, dict) or meta.get("id") != beatmap_id:
         return False
-    fields = ("cs", "ar", "accuracy", "bpm", "total_length", "count_circles", "count_sliders", "count_spinners")
+    fields = ("cs", "ar", "accuracy", "total_length", "count_circles", "count_sliders", "count_spinners")
     if any(type(meta.get(field)) not in (int, float) or not math.isfinite(meta[field]) for field in fields):
         return False
-    return meta["bpm"] > 0 and all(meta[field] >= 0 for field in fields[4:])
+    bpm = meta.get("bpm")
+    return ("bpm" in meta and (bpm is None or
+            (type(bpm) in (int, float) and math.isfinite(bpm) and bpm > 0)) and
+            all(meta[field] >= 0 for field in fields[3:]))
 
 
 def beatmap_path(beatmap_id: int, mods: list[dict]):

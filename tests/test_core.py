@@ -1474,3 +1474,23 @@ def test_invalid_cached_map_metadata_is_refetched(tmp_data, monkeypatch):
             return {"attributes": {"star_rating": 5}}
     data, fetched = F.fetch_beatmap(Client(), 11, [])
     assert fetched and data["cs"] == 4
+
+
+def test_nullable_map_bpm_preserves_other_attributes(tmp_data, monkeypatch):
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    monkeypatch.setattr(P, "META_DIR", tmp_data / "meta")
+
+    class Client:
+        def get(self, path):
+            return {"id": 11, "cs": 4, "ar": 9, "accuracy": 8, "bpm": None,
+                    "total_length": 120, "count_circles": 1, "count_sliders": 2, "count_spinners": 0}
+
+        def post(self, path, body):
+            return {"attributes": {"star_rating": 5}}
+
+    data, fetched = F.fetch_beatmap(Client(), 11, [{"acronym": "DT"}])
+    assert fetched and data["star_rating"] == 5 and data["bpm"] is None
+    assert data["length_s"] == 80 and data["ar"] > 9
+    assert F._valid_map_meta({"id": 11, "cs": 4, "ar": 9, "accuracy": 8,
+                              "bpm": None, "total_length": 120, "count_circles": 1,
+                              "count_sliders": 2, "count_spinners": 0}, 11)

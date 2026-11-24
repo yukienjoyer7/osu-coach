@@ -82,7 +82,7 @@ def _ms_to_ar(ms: float) -> float:
     return (1800 - ms) / 120 if ms > 1200 else 5 + (1200 - ms) / 150
 
 
-def adjust(cs: float, ar: float, od: float, bpm: float, length_s: float,
+def adjust(cs: float, ar: float, od: float, bpm: float | None, length_s: float,
            mods: list[dict]) -> dict:
     """Mod-adjusted CS/AR/OD/BPM/length for osu!standard."""
     acr = {m["acronym"]: m.get("settings") or {} for m in mods}
@@ -102,4 +102,4 @@ def adjust(cs: float, ar: float, od: float, bpm: float, length_s: float,
         ar = _ms_to_ar(_ar_to_ms(ar) / r)
         od = (80 - (80 - 6 * od) / r) / 6
     return {"cs": round(cs, 2), "ar": round(ar, 2), "od": round(od, 2),
-            "bpm": round(bpm * r, 2), "length_s": round(length_s / r)}
+            "bpm": round(bpm * r, 2) if bpm is not None else None, "length_s": round(length_s / r)}
