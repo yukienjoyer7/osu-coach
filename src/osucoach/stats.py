@@ -24,7 +24,7 @@ def _block(rows: list[dict]) -> dict:
 
 def _hit_results(rows: list[dict]) -> dict:
     fields = ("n300", "n100", "n50", "miss")
-    known = [row for row in rows if all(row.get(field) is not None for field in fields)]
+    known = [row for row in rows if all(type(row.get(field)) is int and row[field] >= 0 for field in fields)]
     return {"scores_with_counts": len(known), "scores_total": len(rows),
             "totals": {field: sum(row[field] for row in known) for field in fields} if known else None}
 

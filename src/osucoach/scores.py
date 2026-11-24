@@ -5,6 +5,13 @@ from . import mods as M
 from .store import parse_ts
 
 
+def _hit_count(statistics, key):
+    if not isinstance(statistics, dict):
+        return None
+    value = statistics.get(key, 0)
+    return value if type(value) is int and value >= 0 else None
+
+
 def map_score(s: dict) -> dict:
     bm = s.get("beatmap") or {}
     st = s.get("statistics")
@@ -28,10 +35,10 @@ def map_score(s: dict) -> dict:
         "accuracy": s.get("accuracy"),
         "max_combo": s.get("max_combo"),
         "map_max_combo": None,  # filled from beatmap files once fetched
-        "n300": st.get("great", 0) if isinstance(st, dict) else None,
-        "n100": st.get("ok", 0) if isinstance(st, dict) else None,
-        "n50": st.get("meh", 0) if isinstance(st, dict) else None,
-        "miss": st.get("miss", 0) if isinstance(st, dict) else None,
+        "n300": _hit_count(st, "great"),
+        "n100": _hit_count(st, "ok"),
+        "n50": _hit_count(st, "meh"),
+        "miss": _hit_count(st, "miss"),
         "pp": s.get("pp"),
         "weight_pct": w.get("percentage"),
         "rank": s.get("rank"),

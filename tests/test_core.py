@@ -415,6 +415,19 @@ def test_map_score_distinguishes_missing_statistics_from_sparse_counts():
     assert (sparse["n300"], sparse["n100"], sparse["n50"], sparse["miss"]) == (100, 0, 0, 0)
 
 
+@pytest.mark.parametrize("invalid", [None, -1, True, 1.5, "2"])
+def test_invalid_hit_counts_remain_unknown_and_do_not_break_totals(invalid):
+    from osucoach import stats
+
+    score = S.map_score({**RAW, "statistics": {"great": 100, "miss": invalid}})
+    assert score["miss"] is None and score["n100"] == 0
+    valid = {"n300": 50, "n100": 2, "n50": 0, "miss": 1}
+    legacy_invalid = {**valid, "miss": invalid}
+    result = stats._hit_results([score, valid, legacy_invalid])
+    assert result["scores_with_counts"] == 1 and result["scores_total"] == 3
+    assert result["totals"] == valid
+
+
 def _sc(i, bid, t, passed=True, acc=0.95):
     return {"score_id": i, "beatmap_id": bid, "created_at": t, "passed": passed,
             "accuracy": acc, "pp": None, "title": "t", "version": "v", "mods": []}
