@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 import re
 
-from . import fetch, paths, scores, session, stats
+from . import account, fetch, paths, scores, session, stats
 from .store import parse_ts, read_json
 
 
@@ -52,6 +52,7 @@ def build(session_id=None):
     recent_journal = "".join(sections[-3:]) if sections else journal
     result = {
         "schema_version": 1,
+        "account": account.binding(),
         "player": _text(paths.COACH / "player.md"),
         "recent_journal": recent_journal,
         "profile": profile,

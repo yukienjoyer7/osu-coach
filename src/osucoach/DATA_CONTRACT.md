@@ -4,6 +4,7 @@ The fetcher writes; the coach only reads `data/` and writes `coach/`.
 
 ```
 data/
+  account.json                     # binding for subsequent player fetches; legacy data may be unverified
   profile/YYYY-MM-DD.json          # snapshot per fetch
   best.json                        # top 100, refreshed each fetch
   best_sync.json                   # timestamp and count of last successful best-score fetch
@@ -32,6 +33,10 @@ coach/
 - `GET /users/{id}/scores/recent?include_fails=1&limit=100` -> scores.json
   - recent only covers ~24h, so fetch right after the session
 - `POST /beatmaps/{id}/attributes` with mods, or rosu-pp locally -> beatmaps/
+
+## Account provenance
+
+`account.json` binds future profile and score fetches in a workspace to a configured `OSU_USER_ID`. A different configured user is rejected; use a separate workspace for another player. `legacy_data_present` is true when profile, best, or session score files existed before binding. The binding does not identify those files. A missing binding also leaves provenance unknown. New score rows retain API `user_id` when supplied; null or absent remains unknown. Known numeric user mismatches are rejected before merging session scores. A binding is a guard against future configuration changes, not proof of the origin of legacy data.
 
 ## profile/YYYY-MM-DD.json
 ```json

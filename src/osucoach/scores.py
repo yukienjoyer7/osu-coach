@@ -13,6 +13,7 @@ def map_score(s: dict) -> dict:
     w = s.get("weight") or {}
     out = {
         "score_id": s["id"],
+        "user_id": s.get("user_id"),
         "beatmap_id": s.get("beatmap_id") or bm.get("id"),
         "beatmapset_id": bm.get("beatmapset_id") or (s.get("beatmapset") or {}).get("id"),
         "title": (s.get("beatmapset") or {}).get("title", ""),

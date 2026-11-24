@@ -40,6 +40,8 @@ Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000
 
 Use `osucoach session block LABEL` when a new block begins. JSON stats include each marked block and a count of plays before the first marker. Scores are assigned by their recorded end time, so a play crossing a marker belongs to the later block. Block metrics use recorded scores and are subject to score coverage limitations.
 
+Player data fetched after the first successful player fetch is bound to that workspace’s configured osu! user. Use a separate workspace for another account. `osucoach context` reports whether older files predate the binding; their origin remains unverified.
+
 The workspace defaults to the current working directory. Set `OSUCOACH_HOME` to an absolute workspace directory to use it from elsewhere, including when the package is installed separately. The CLI reads `coach/` and `.env` and writes `data/` there. Run `osucoach init` to create missing player and journal templates and plan/review directories without overwriting existing files; edit the player file before coaching. Run `osucoach guide` to supply the playbook to any agent. For example, on Linux or macOS use `export OSUCOACH_HOME=/path/to/workspace` before invoking the CLI.
 
 ## Development (maintainer notes)

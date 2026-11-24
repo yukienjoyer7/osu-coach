@@ -82,6 +82,7 @@ def test_best_fetch_time_is_separate_from_file_modification(tmp_path, monkeypatc
     from osucoach import context
     from osucoach.store import write_json
 
+    monkeypatch.setattr(P, "DATA", tmp_path)
     monkeypatch.setattr(P, "BEST", tmp_path / "best.json")
     monkeypatch.setattr(P, "PROFILE_DIR", tmp_path / "profile")
     monkeypatch.setattr(P, "COACH", tmp_path / "coach")
@@ -1026,3 +1027,49 @@ def test_init_uses_current_directory_and_preserves_existing_files(tmp_path):
     assert journal.read_text(encoding="utf-8") == "personal journal"
     assert (tmp_path / "coach" / "plans").is_dir()
     assert (tmp_path / "coach" / "reviews").is_dir()
+
+
+def test_account_binding_rejects_changed_user_and_marks_legacy_data(tmp_data, monkeypatch):
+    from osucoach import account, context
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    write_json(P.BEST, [{"score_id": 999}])
+    class Client:
+        user_id = "123"
+        def get(self, path, **params):
+            return []
+    F.fetch_best(Client())
+    assert account.binding()["user_id"] == "123"
+    assert context.build()["account"]["legacy_data_present"] is True
+    before = P.BEST.read_text(encoding="utf-8")
+    Client.user_id = "456"
+    with pytest.raises(OsuError, match="bound to another"):
+        F.fetch_best(Client())
+    assert P.BEST.read_text(encoding="utf-8") == before
+
+
+def test_recent_fetch_refuses_known_foreign_scores(tmp_data, monkeypatch):
+    from osucoach import account
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    sess = SS.start()
+    path = P.session_dir(sess["session_id"]) / "scores.json"
+    score = {**_sc(1, 99, sess["started_at"]), "user_id": 456}
+    write_json(path, [score])
+    before = path.read_text(encoding="utf-8")
+    class Client:
+        user_id = "123"
+        def get(self, path, **params):
+            raise AssertionError("must reject saved mismatch before a network request")
+    with pytest.raises(OsuError, match="another osu! user"):
+        F.fetch_recent(Client(), sess["session_id"], sess)
+    assert path.read_text(encoding="utf-8") == before and account.binding() is None
+
+
+def test_score_mapping_preserves_api_user_id():
+    assert S.map_score({**RAW, "user_id": 123})["user_id"] == 123
+    assert S.map_score(RAW)["user_id"] is None

@@ -1,6 +1,7 @@
 """API -> data/ files, per DATA_CONTRACT.md. All network calls go through api.Client."""
 from datetime import timedelta
 
+from . import account
 from . import mods as M
 from . import paths as P
 from . import scores as S
@@ -21,12 +22,17 @@ def latest_profile() -> dict | None:
 
 
 def fetch_profile(c: Client) -> dict:
+    user_id = account.check(c.user_id)
     u = c.get(f"/users/{c.user_id}/osu")
+    if user_id.isdecimal() and u.get("id") is not None and u["id"] != int(user_id):
+        raise OsuError("profile data belongs to another osu! user")
     st = u["statistics"]
+    account.bind(user_id)
     path = profile_path()
     old = read_json(path, {})
     prof = {
         "fetched_at": now_local().isoformat(timespec="seconds"),
+        "user_id": u.get("id"),
         "pp": st["pp"],
         "global_rank": st["global_rank"],
         "country_rank": st["country_rank"],
@@ -43,6 +49,8 @@ def fetch_profile(c: Client) -> dict:
 def fetch_threshold(c: Client, rank: int = 10000) -> dict:
     if rank < 1:
         raise OsuError("rank must be positive")
+    if account.binding() is not None:
+        account.check(c.user_id)
     page = (rank - 1) // 50 + 1
     r = c.get("/rankings/osu/performance", **{"cursor[page]": page})
     rows = r.get("ranking") or []
@@ -69,7 +77,10 @@ def _save_meta(raw: dict) -> None:
 
 
 def fetch_best(c: Client) -> list[dict]:
+    user_id = account.check(c.user_id)
     raw = c.get(f"/users/{c.user_id}/scores/best", mode="osu", limit=100)
+    account.check_response(user_id, raw)
+    account.bind(user_id)
     for r in raw:
         _save_meta(r)
     scores = [S.map_score(r) for r in raw]
@@ -109,8 +120,13 @@ def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
     path = P.session_dir(session_id) / "scores.json"
     sync_path = P.session_dir(session_id) / "scores_sync.json"
     previous_sync = recent_sync(session_id) or {}
-    merged = {s["score_id"]: s for s in read_json(path, [])}  # recent only spans 24h: keep old
+    user_id = account.check(c.user_id)
+    saved_rows = read_json(path, [])
+    account.check_response(user_id, saved_rows)
+    merged = {s["score_id"]: s for s in saved_rows}  # recent only spans 24h: keep old
     raw, page_limit_reached = _recent_raw(c)
+    account.check_response(user_id, raw)
+    account.bind(user_id)
     for r in raw:
         sc = S.map_score(r)
         if sc["created_at"] and in_session(sc["created_at"], start, end):
