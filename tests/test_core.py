@@ -170,6 +170,10 @@ def test_refresh_beatmap_replaces_cached_attributes(tmp_path, monkeypatch):
     write_json(F.beatmap_path(11, []), {"beatmap_id": 11, "star_rating": 4.0})
 
     class Client:
+        def get(self, path):
+            return {"id": 11, "cs": 4, "ar": 9.5, "accuracy": 8, "bpm": 200,
+                    "total_length": 120, "count_circles": 1, "count_sliders": 2, "count_spinners": 0}
+
         def post(self, path, body):
             return {"attributes": {"star_rating": 5.0, "max_combo": 10}}
 
@@ -177,6 +181,7 @@ def test_refresh_beatmap_replaces_cached_attributes(tmp_path, monkeypatch):
     assert not called and cached["star_rating"] == 4.0
     refreshed, called = F.fetch_beatmap(Client(), 11, [], refresh=True)
     assert called and refreshed["star_rating"] == 5.0 and refreshed["fetched_at"]
+    assert refreshed["ar"] == 9.5 and refreshed["bpm"] == 200 and refreshed["length_s"] == 120
     assert F.fetch_beatmap(Client(), 11, [])[0] == refreshed
 
 

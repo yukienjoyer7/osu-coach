@@ -143,13 +143,12 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
     norm = M.normalize(mods)
     meta_path = P.META_DIR / f"{beatmap_id}.json"
     meta = read_json(meta_path)
-    if not meta:
+    if not meta or refresh:
         b = c.get(f"/beatmaps/{beatmap_id}")
         meta = {"id": b["id"], "cs": b["cs"], "ar": b["ar"], "accuracy": b["accuracy"],
                 "bpm": b["bpm"], "total_length": b["total_length"],
                 "count_circles": b["count_circles"], "count_sliders": b["count_sliders"],
                 "count_spinners": b["count_spinners"]}
-        write_json(meta_path, meta)
     body_mods = [m if m.get("settings") else m["acronym"] for m in norm]
     a = c.post(f"/beatmaps/{beatmap_id}/attributes", {"mods": body_mods, "ruleset": "osu"})
     a = a["attributes"]
@@ -171,6 +170,7 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
         "n_spinners": meta["count_spinners"],
         "max_combo": a.get("max_combo") or None,
     }
+    write_json(meta_path, meta)
     write_json(path, data)
     return data, True
 
