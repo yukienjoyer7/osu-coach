@@ -32,6 +32,8 @@ See `plan.md` for the build plan. Run `osucoach schema` for the data contract, i
 
 `osucoach maps --min-sr 5 --max-sr 6 --min-bpm 170 --max-bpm 210 --min-ar 9 --max-length 180` finds recorded maps with cached attributes. Length is in seconds. Results only cover stored scores with cached map attributes. Pattern type and ranked status are unknown and must be verified separately. BPM is a map-level tempo, not a guarantee of tapping speed, and total length includes breaks.
 
+`osucoach discover 'stars>=5 stars<6 bpm>=170 bpm<=210'` requests candidate beatmapsets using the osu! API. Pass a returned `cursor_string` as `--cursor` for another page. The server may ignore advanced filters depending on search permissions; inspect each returned difficulty, mode and ranked status, and verify pattern suitability and mod-adjusted attributes. The output does not establish whether a player has played a map.
+
 `osucoach map-search 'stars>=5 stars<6 bpm>=170 bpm<=210'` builds a link to the official ranked osu!standard beatmap listing for discovering additional maps. The website filters base map attributes, so verify individual difficulties, mods and pattern suitability before recommending them.
 
 Use two-character mod acronyms such as `HDDT` or `HD,DT`; `NM` must stand alone. Use `osucoach fetch beatmap 123 --mods DT --rate 1.3 --refresh` to refresh a custom-rate difficulty cache. Difficulty Adjust values in the standard 0–10 range can be specified with `--mods DA --ar 9 --od 8 --cs 4`. Extended-limit settings are not supported by these options.

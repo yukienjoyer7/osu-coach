@@ -211,7 +211,15 @@ def map_search(query: str = typer.Argument(..., help="osu! website search query"
     """Build an osu!standard ranked-map search URL without requesting data."""
     params = urlencode({"m": "0", "s": "ranked", "q": query})
     typer.echo(json.dumps({"url": f"https://osu.ppy.sh/beatmapsets?{params}", "query": query,
-                           "scope": "ranked osu!standard beatmapsets"}, ensure_ascii=False))
+                           "requested_scope": "ranked osu!standard beatmapsets", "scope_verified": False}, ensure_ascii=False))
+
+
+@app.command("discover")
+def discover(query: str = typer.Argument("", help="osu! website search query"),
+             cursor: Optional[str] = typer.Option(None, "--cursor", help="Cursor returned by a previous search")) -> None:
+    """Search osu! for candidate beatmapsets and output JSON."""
+    result = _run(MAPS.discover, _client(), query, cursor)
+    typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 @app.command("maps")

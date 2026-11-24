@@ -83,6 +83,33 @@ def test_map_search_encodes_query():
     assert params == {"m": ["0"], "s": ["ranked"], "q": [data["query"]]}
 
 
+def test_discover_returns_candidates_and_cursor_with_filter_caveats(monkeypatch):
+    from osucoach import cli
+    class Client:
+        def get(self, path, **params):
+            assert path == "/beatmapsets/search"
+            assert params == {"m": 0, "s": "ranked", "q": "stars>=5", "cursor_string": "next"}
+            return {"beatmapsets": [{"id": 42, "beatmaps": [{"id": 11, "mode": "taiko"}]}],
+                    "total": 10, "cursor_string": "later", "error": None}
+    monkeypatch.setattr(cli, "_client", lambda: Client())
+    result = CliRunner().invoke(app, ["discover", "stars>=5", "--cursor", "next"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data["beatmapsets"][0]["beatmaps"][0]["mode"] == "taiko"
+    assert data["cursor_string"] == "later"
+    assert any("permissions" in item for item in data["selection_limits"])
+
+
+def test_discover_rejects_unexpected_response(monkeypatch):
+    from osucoach import cli
+    class Client:
+        def get(self, path, **params):
+            return {"error": "not exposed"}
+    monkeypatch.setattr(cli, "_client", lambda: Client())
+    result = CliRunner().invoke(app, ["discover", "test"])
+    assert result.exit_code != 0 and "unexpected response" in result.output
+
+
 def test_unranked_player_and_empty_best_are_supported(monkeypatch):
     from osucoach import cli
 
