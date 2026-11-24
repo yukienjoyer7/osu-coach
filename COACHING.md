@@ -20,7 +20,7 @@ Write `coach/plans/<id>.md`:
 - **Blocks** with minutes: warmup, focus, push, free/fun. Default 45-75 min total.
 - **Map criteria per block**: star range, BPM, AR, length, mods, pattern type. Suggest 2-3 example maps only if confident they exist and are ranked.
 - **Retry guidance**: agree a reasonable switching point with the player, adjusted to the purpose of the block.
-- **Success metric**: 1-2 measurable targets (pass rate, acc on focus maps, misses per map).
+- **Success metric**: 1-2 measurable targets (pass rate, acc on focus maps, misses per map). When useful, choose a small map-specific target with the player using `osucoach history BEATMAP_ID` and a comparable recorded baseline [community]. If none exists, establish one before setting a performance target. A first recorded score is not necessarily a first-ever play.
 - **Hypothesis tag**: `H-<short-name>`, from player.md or a new one.
 
 ### live: mid-session question
