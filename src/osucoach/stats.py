@@ -39,7 +39,10 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
             end = parse_ts(blocks[i + 1]["started_at"]) if i + 1 < len(blocks) else None
             selected = [row for row in rows if parse_ts(row["created_at"]) >= start
                         and (end is None or parse_ts(row["created_at"]) < end)]
-            summaries.append({**marker, **_block(selected)})
+            crossing = sum(parse_ts(row["started_at"]) < start for row in selected if row.get("started_at"))
+            unknown_start = sum(not row.get("started_at") for row in selected)
+            summaries.append({**marker, **_block(selected),
+                              "crossing_start": crossing, "unknown_start": unknown_start})
         out["blocks"] = summaries
         out["plays_before_first_block"] = sum(
             parse_ts(row["created_at"]) < parse_ts(blocks[0]["started_at"]) for row in rows

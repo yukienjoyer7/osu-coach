@@ -195,6 +195,8 @@ def test_map_score_lazer_format():
     assert sc["mods"] == ["HD", "DT"] and sc["mod_settings"] == {"DT": {"speed_change": 1.3}}
     assert sc["created_at"] == "2026-11-20T10:00:00Z" and sc["weight_pct"] == 95.0
     assert sc["title"] == "Song" and sc["version"] == "Insane" and sc["beatmapset_id"] == 7
+    assert S.map_score({**RAW, "started_at": "2026-11-20T09:58:00Z"})["started_at"] == "2026-11-20T09:58:00Z"
+    assert S.map_score({**RAW, "ended_at": None, "started_at": "2026-11-20T09:58:00Z"})["started_at"] is None
 
 
 def test_map_score_fail_without_pp_or_weight():
@@ -678,9 +680,12 @@ def test_session_blocks_assign_end_times(tmp_data, monkeypatch):
         _sc(2, 2, "2026-01-01T00:02:00Z", acc=0.97),
         _sc(3, 3, "2026-01-01T00:11:00Z", passed=False),
     ])
+    rows[2]["started_at"] = "2026-01-01T00:10:00Z"
     result = ST.compute(rows, blocks=blocks)
     assert result["plays_before_first_block"] == 1
     assert [(b["label"], b["plays"], b["pass_rate"]) for b in result["blocks"]] == [
         ("warmup", 1, 100.0), ("focus", 1, 0.0)
     ]
+    assert result["blocks"][0]["unknown_start"] == 1
+    assert result["blocks"][1]["crossing_start"] == 1
     assert runner.invoke(app, ["session", "block", "same second"]).exit_code != 0

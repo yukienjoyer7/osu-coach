@@ -55,6 +55,7 @@ coach/
 - `retry_index`: Nth attempt of that beatmap within this session (compute from created_at order).
 - `pp` may be null for fails/unranked; keep the row anyway. `weight_pct` is only set for best.json, null for session scores.
 - `created_at` is the score's `ended_at` (UTC). `map_max_combo` is null until the beatmap file exists.
+- `started_at` is the API's score start time when available, otherwise null. Older saved scores may omit it.
 - `mod_settings` (optional): present only when a mod has settings, e.g. `{"DT": {"speed_change": 1.3}}`.
 - Lazer score format: `n300/n100/n50/miss` = `statistics.great/ok/meh/miss`.
 - When the statistics dictionary is absent, those counts are null. Within a present dictionary, omitted hit results are treated as zero. Scores saved by older versions may contain zeros that cannot be distinguished from missing source statistics without refetching.
@@ -90,6 +91,7 @@ Values are mod-adjusted (DT changes AR/OD/BPM/length). Extra field `max_combo` (
 `after.duration_min` is computed at `session end`. Edit fields afterwards only with `osucoach session update`.
 Energy, motivation, fatigue and enjoyment use integer values from 1 to 5. Pain uses integers from 0 to 10. Sleep hours must be finite and non-negative. Invalid updates are rejected before saving.
 Optional `blocks` is an ordered array of `{ "label": "focus", "started_at": "ISO8601 with offset" }` markers created by `session block`. Older sessions may omit it. Statistics assign scores by score end time, including crossing plays, and count plays before the first marker separately.
+Each block summary also counts assigned plays that started before the block (`crossing_start`) and those with no known start time (`unknown_start`). Crossing and unknown-start plays remain in the block totals, so use caution when interpreting block-specific performance.
 `session end` saves the end time and feedback before syncing scores. If sync fails, the session remains current and retrying `session end` keeps the original end time and feedback. Run it again promptly to recover scores.
 `session end --offline` closes the saved session without fetching. Sync it later with `fetch recent --session ID` and `fetch beatmaps --session ID`. Existing scores and sync metadata, if any, are retained and may be incomplete.
 `stats` returns an error when `scores.json` is missing. An existing empty array reports zero recorded plays, subject to the same coverage limitations as any fetched data.

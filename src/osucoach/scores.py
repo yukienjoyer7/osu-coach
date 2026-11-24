@@ -18,6 +18,7 @@ def map_score(s: dict) -> dict:
         "title": (s.get("beatmapset") or {}).get("title", ""),
         "version": bm.get("version", ""),
         "created_at": s.get("ended_at") or s.get("started_at"),
+        "started_at": s.get("started_at") if s.get("ended_at") else None,
         "mods": mods,
         "passed": bool(s.get("passed")),
         "accuracy": s.get("accuracy"),
