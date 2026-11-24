@@ -265,7 +265,7 @@ def test_refresh_beatmap_replaces_cached_attributes(tmp_path, monkeypatch):
 
     monkeypatch.setattr(P, "BEATMAPS", tmp_path / "beatmaps")
     monkeypatch.setattr(P, "META_DIR", tmp_path / "meta")
-    write_json(P.META_DIR / "11.json", {"cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
+    write_json(P.META_DIR / "11.json", {"id": 11, "cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
                "total_length": 100, "count_circles": 1, "count_sliders": 2, "count_spinners": 0})
     write_json(F.beatmap_path(11, []), {"beatmap_id": 11, "star_rating": 4.0})
 
@@ -1038,7 +1038,7 @@ def test_beatmap_fetch_keeps_all_mods_and_settings(tmp_path, monkeypatch):
 
     monkeypatch.setattr(P, "BEATMAPS", tmp_path / "beatmaps")
     monkeypatch.setattr(P, "META_DIR", tmp_path / "meta")
-    write_json(P.META_DIR / "11.json", {"cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
+    write_json(P.META_DIR / "11.json", {"id": 11, "cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
                "total_length": 100, "count_circles": 1, "count_sliders": 2, "count_spinners": 0})
     mods = [{"acronym": "HD"}, {"acronym": "FL", "settings": {"size_multiplier": 0.8}}]
 
@@ -1104,7 +1104,7 @@ def test_difficulty_adjust_null_settings_keep_map_values(tmp_path, monkeypatch):
 
     monkeypatch.setattr(P, "BEATMAPS", tmp_path / "beatmaps")
     monkeypatch.setattr(P, "META_DIR", tmp_path / "meta")
-    write_json(P.META_DIR / "11.json", {"cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
+    write_json(P.META_DIR / "11.json", {"id": 11, "cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
                "total_length": 100, "count_circles": 1, "count_sliders": 2, "count_spinners": 0})
     mods = [{"acronym": "DA", "settings": {"circle_size": None, "approach_rate": 0,
                                              "overall_difficulty": None}}]
@@ -1435,3 +1435,42 @@ def test_map_attributes_invalid_batch_fails_before_client(monkeypatch):
     for ids in ("1,,2", "-1", "0", ",".join(str(i) for i in range(1, 27))):
         result = CliRunner().invoke(app, ["map-attributes", "--", ids])
         assert result.exit_code != 0 and "positive comma-separated" in result.output
+
+
+def test_batch_reports_malformed_attributes_and_continues(tmp_data, monkeypatch):
+    from osucoach import cli
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    monkeypatch.setattr(P, "META_DIR", tmp_data / "meta")
+    for bid in (11, 12):
+        write_json(P.META_DIR / f"{bid}.json", {"id": bid, "cs": 4, "ar": 9, "accuracy": 8,
+                   "bpm": 180, "total_length": 100, "count_circles": 1, "count_sliders": 2,
+                   "count_spinners": 0})
+    class Client:
+        def post(self, path, body):
+            if "/11/" in path:
+                return {"attributes": {"star_rating": None}}
+            return {"attributes": {"star_rating": 5.2, "max_combo": 50}}
+    monkeypatch.setattr(cli, "_client", lambda: Client())
+    result = CliRunner().invoke(app, ["map-attributes", "11,12"])
+    assert result.exit_code == 0, result.output
+    first, second = json.loads(result.output)["results"]
+    assert first["attributes"] is None and "invalid difficulty attributes" in first["error"]
+    assert second["attributes"]["star_rating"] == 5.2 and second["error"] is None
+
+
+def test_invalid_cached_map_metadata_is_refetched(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    monkeypatch.setattr(P, "META_DIR", tmp_data / "meta")
+    write_json(P.META_DIR / "11.json", {"id": 11, "cs": None})
+    class Client:
+        def get(self, path):
+            return {"id": 11, "cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
+                    "total_length": 100, "count_circles": 1, "count_sliders": 2, "count_spinners": 0}
+        def post(self, path, body):
+            return {"attributes": {"star_rating": 5}}
+    data, fetched = F.fetch_beatmap(Client(), 11, [])
+    assert fetched and data["cs"] == 4

@@ -1,5 +1,6 @@
 """API -> data/ files, per DATA_CONTRACT.md. All network calls go through api.Client."""
 from datetime import timedelta
+import math
 
 from . import account
 from . import mods as M
@@ -152,7 +153,16 @@ def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
 
 # ---- beatmaps ------------------------------------------------------------
 def _r(v, nd):
-    return None if v is None else round(v, nd)
+    return round(v, nd) if type(v) in (int, float) and math.isfinite(v) else None
+
+
+def _valid_map_meta(meta, beatmap_id):
+    if not isinstance(meta, dict) or meta.get("id") != beatmap_id:
+        return False
+    fields = ("cs", "ar", "accuracy", "bpm", "total_length", "count_circles", "count_sliders", "count_spinners")
+    if any(type(meta.get(field)) not in (int, float) or not math.isfinite(meta[field]) for field in fields):
+        return False
+    return meta["bpm"] > 0 and all(meta[field] >= 0 for field in fields[4:])
 
 
 def beatmap_path(beatmap_id: int, mods: list[dict]):
@@ -163,19 +173,23 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
     """Return (beatmap data, made_api_calls), optionally refreshing cached attributes."""
     path = beatmap_path(beatmap_id, mods)
     cached = read_json(path)
-    if cached and not refresh:
+    if isinstance(cached, dict) and _r(cached.get("star_rating"), 3) is not None and not refresh:
         return cached, False
     norm = M.normalize(mods)
     meta_path = P.META_DIR / f"{beatmap_id}.json"
     meta = read_json(meta_path)
-    if not meta or refresh:
+    if refresh or not _valid_map_meta(meta, beatmap_id):
         b = c.get(f"/beatmaps/{beatmap_id}")
-        meta = {"id": b["id"], "cs": b["cs"], "ar": b["ar"], "accuracy": b["accuracy"],
-                "bpm": b["bpm"], "total_length": b["total_length"],
-                "count_circles": b["count_circles"], "count_sliders": b["count_sliders"],
-                "count_spinners": b["count_spinners"]}
-    a = c.post(f"/beatmaps/{beatmap_id}/attributes", {"mods": norm, "ruleset": "osu"})
-    a = a["attributes"]
+        if not isinstance(b, dict):
+            raise OsuError(f"beatmap {beatmap_id} returned invalid metadata")
+        meta = {field: b.get(field) for field in ("id", "cs", "ar", "accuracy", "bpm", "total_length",
+                                                   "count_circles", "count_sliders", "count_spinners")}
+        if not _valid_map_meta(meta, beatmap_id):
+            raise OsuError(f"beatmap {beatmap_id} returned invalid metadata")
+    response = c.post(f"/beatmaps/{beatmap_id}/attributes", {"mods": norm, "ruleset": "osu"})
+    a = response.get("attributes") if isinstance(response, dict) else None
+    if not isinstance(a, dict) or _r(a.get("star_rating"), 3) is None:
+        raise OsuError(f"beatmap {beatmap_id} returned invalid difficulty attributes")
     adj = M.adjust(meta["cs"], meta["ar"], meta["accuracy"], meta["bpm"],
                    meta["total_length"], norm)
     data = {
@@ -183,7 +197,7 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
         "fetched_at": now_local().isoformat(timespec="seconds"),
         "mods": [m["acronym"] for m in norm],
         "mod_settings": {m["acronym"]: m["settings"] for m in norm if m.get("settings")},
-        "star_rating": round(a["star_rating"], 3),
+        "star_rating": _r(a["star_rating"], 3),
         # some maps come back with only star_rating + max_combo 0: keep the rest null
         "aim": _r(a.get("aim_difficulty"), 3),
         "speed": _r(a.get("speed_difficulty"), 3),
@@ -193,7 +207,7 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
         "n_circles": meta["count_circles"],
         "n_sliders": meta["count_sliders"],
         "n_spinners": meta["count_spinners"],
-        "max_combo": a.get("max_combo") or None,
+        "max_combo": (a.get("max_combo") if type(a.get("max_combo")) is int and a["max_combo"] > 0 else None),
     }
     write_json(meta_path, meta)
     write_json(path, data)
