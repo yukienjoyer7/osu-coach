@@ -9,6 +9,7 @@ import typer
 from . import fetch as F
 from . import context as C
 from . import gap as G
+from . import history as H
 from . import mods as M
 from . import paths as P
 from . import scores as S
@@ -130,6 +131,12 @@ def fetch_beatmaps(session: Optional[str] = typer.Option(None, "--session", help
 
 
 # ---- gap -----------------------------------------------------------------
+@app.command("history")
+def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
+    """Show saved session scores and conditions for a beatmap as JSON."""
+    typer.echo(json.dumps(H.map_history(beatmap_id), ensure_ascii=False, indent=2))
+
+
 @app.command("context")
 def context(session: Optional[str] = typer.Argument(None, help="Session id (default: current/last)")) -> None:
     """Print saved coaching context as JSON, without fetching or modifying data."""

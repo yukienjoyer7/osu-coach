@@ -468,6 +468,29 @@ def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
     assert context.build(second["session_id"])["overlapping_session_ids"] == [first["session_id"]]
 
 
+def test_map_history_keeps_conditions_and_missing_sessions(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    first = SS.start()
+    sid = first["session_id"]
+    score = _sc(1, 99, "2026-11-21T10:01:00Z")
+    score["mods"] = ["HD"]
+    write_json(P.session_dir(sid) / "scores.json", [score])
+    SS.close(sid)
+    clock += timedelta(minutes=2)
+    second = SS.start()
+    runner = CliRunner()
+    result = runner.invoke(app, ["history", "99"])
+    assert result.exit_code == 0, result.output
+    history = json.loads(result.output)
+    assert history["missing_score_sessions"] == [second["session_id"]]
+    assert history["sessions"][0]["scores"][0]["mods"] == ["HD"]
+    assert history["sessions"][0]["setup"] == first["setup"]
+    assert history["sessions"][0]["scores_sync"] is None
+
+
 # ---- stats -----------------------------------------------------------------------
 def test_stats_basic():
     rows = [_sc(1, 1, "2026-01-01T00:00:00Z", True, 0.96), _sc(2, 1, "2026-01-01T00:10:00Z", False),
