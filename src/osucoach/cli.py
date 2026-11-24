@@ -114,9 +114,10 @@ def fetch_recent(session: Optional[str] = typer.Option(None, "--session", help="
 
 @fetch_app.command("beatmap")
 def fetch_beatmap(beatmap_id: int, mods: Optional[str] = typer.Option(None, "--mods", help="e.g. HD,DT"),
+                  refresh: bool = typer.Option(False, "--refresh", help="Refresh cached attributes."),
                   json_out: bool = JSON) -> None:
     """Mod-adjusted difficulty + map stats -> data/beatmaps/ID_MODS.json (cached)."""
-    d, called = _run(F.fetch_beatmap, _client(), beatmap_id, M.parse_mods(mods))
+    d, called = _run(F.fetch_beatmap, _client(), beatmap_id, M.parse_mods(mods), refresh)
     _out(d, json_out, f"{beatmap_id} {''.join(d['mods']) or 'NM'}: {d['star_rating']}* "
                       f"AR{d['ar']} OD{d['od']} CS{d['cs']} {d['bpm']}bpm "
                       f"{'(fetched)' if called else '(cached)'}")

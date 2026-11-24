@@ -160,6 +160,26 @@ def test_custom_rate_gets_own_key():
     assert M.key(M.from_score(["DT"], {"DT": {"speed_change": 1.5}})) == "DT"
 
 
+def test_refresh_beatmap_replaces_cached_attributes(tmp_path, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEATMAPS", tmp_path / "beatmaps")
+    monkeypatch.setattr(P, "META_DIR", tmp_path / "meta")
+    write_json(P.META_DIR / "11.json", {"cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
+               "total_length": 100, "count_circles": 1, "count_sliders": 2, "count_spinners": 0})
+    write_json(F.beatmap_path(11, []), {"beatmap_id": 11, "star_rating": 4.0})
+
+    class Client:
+        def post(self, path, body):
+            return {"attributes": {"star_rating": 5.0, "max_combo": 10}}
+
+    cached, called = F.fetch_beatmap(Client(), 11, [])
+    assert not called and cached["star_rating"] == 4.0
+    refreshed, called = F.fetch_beatmap(Client(), 11, [], refresh=True)
+    assert called and refreshed["star_rating"] == 5.0 and refreshed["fetched_at"]
+    assert F.fetch_beatmap(Client(), 11, [])[0] == refreshed
+
+
 def test_adjust_dt_matches_known_values():
     # AR8.2 + DT = ~9.8, OD8.2 + DT = ~9.91
     a = M.adjust(3.8, 8.2, 8.2, 135, 209, M.parse_mods("DT"))

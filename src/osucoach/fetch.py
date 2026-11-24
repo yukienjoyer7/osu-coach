@@ -134,11 +134,11 @@ def beatmap_path(beatmap_id: int, mods: list[dict]):
     return P.BEATMAPS / f"{beatmap_id}_{M.key(mods)}.json"
 
 
-def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict]) -> tuple[dict, bool]:
-    """Return (beatmap data, made_api_calls). Cached forever by id + difficulty mods."""
+def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = False) -> tuple[dict, bool]:
+    """Return (beatmap data, made_api_calls), optionally refreshing cached attributes."""
     path = beatmap_path(beatmap_id, mods)
     cached = read_json(path)
-    if cached:
+    if cached and not refresh:
         return cached, False
     norm = M.normalize(mods)
     meta_path = P.META_DIR / f"{beatmap_id}.json"
@@ -157,6 +157,7 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict]) -> tuple[dict, b
                    meta["total_length"], norm)
     data = {
         "beatmap_id": beatmap_id,
+        "fetched_at": now_local().isoformat(timespec="seconds"),
         "mods": [m["acronym"] for m in norm],
         "star_rating": round(a["star_rating"], 3),
         # some maps come back with only star_rating + max_combo 0: keep the rest null
