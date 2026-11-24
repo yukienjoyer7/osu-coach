@@ -1230,3 +1230,24 @@ def test_session_scores_command_exposes_raw_rows_and_missing_coverage(tmp_data):
     assert data["scores"] == [score] and data["scores_sync"]["limit_reached_ever"] is True
     write_json(P.session_dir(sid) / "scores.json", [])
     assert json.loads(runner.invoke(app, ["scores", sid]).output)["scores"] == []
+
+
+def test_map_history_includes_best_scores_without_implying_complete_history(tmp_data, monkeypatch):
+    from osucoach import history
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    sess = SS.start()
+    sid = sess["session_id"]
+    recorded = _sc(5, 99, sess["started_at"])
+    write_json(P.session_dir(sid) / "scores.json", [recorded])
+    missing = history.map_history(99)
+    assert missing["best_scores"] is None and missing["best_session_duplicate_score_ids"] is None
+    write_json(P.BEST, [recorded, _sc(6, 99, "2025-01-01T00:00:00Z"),
+                        _sc(7, 100, "2025-01-01T00:00:00Z")])
+    write_json(P.BEST.with_name("best_sync.json"), {"fetched_at": "2026-01-01T00:00:00Z"})
+    result = history.map_history(99)
+    assert [score["score_id"] for score in result["best_scores"]] == [6, 5]
+    assert result["best_session_duplicate_score_ids"] == [5]
+    assert result["best_sync"]["fetched_at"] == "2026-01-01T00:00:00Z"
+    assert history.map_history(101)["best_scores"] == []
