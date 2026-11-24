@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 data/
 .pytest_cache/
+/docs/research/
 *.zip
 
 # personal coaching state (templates: coach/*.example.md)
