@@ -20,6 +20,8 @@ osucoach session block warmup  # mark each practice block as it starts
 osucoach session end        # then ask the agent: "post"
 ```
 
+If the API is unavailable, `osucoach session end --offline` saves feedback and closes the session without fetching. Once connected, run `osucoach fetch recent --session ID` followed by `osucoach fetch beatmaps --session ID`. Fetch promptly because the API retains only a limited recent history.
+
 See `plan.md` for the build plan and `DATA_CONTRACT.md` for schemas.
 
 `osucoach context [ID]` outputs saved player, profile, session, plan, review, up to three previous session reviews and score statistics as JSON for any tool-capable agent. It works offline and reports missing files as null. Profile fetch time and local file modification times help assess freshness, but do not prove complete score coverage. Fetch fresh data when needed.

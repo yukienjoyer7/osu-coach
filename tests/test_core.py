@@ -253,6 +253,31 @@ def test_session_end_retry_preserves_time_and_feedback(tmp_data, monkeypatch):
     assert SS.load(session["session_id"]) == saved
 
 
+def test_session_can_close_offline_after_failed_sync(tmp_data, monkeypatch):
+    from osucoach import cli
+
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    sess = SS.start()
+    clock += timedelta(minutes=30)
+
+    def fail_client():
+        raise OsuError("offline")
+
+    monkeypatch.setattr(cli, "Client", fail_client)
+    runner = CliRunner()
+    assert runner.invoke(app, ["session", "end", "--fatigue", "3"]).exit_code != 0
+    saved = SS.load(sess["session_id"])
+    clock += timedelta(minutes=10)
+    closed = runner.invoke(app, ["session", "end", "--offline", "--json"])
+    assert closed.exit_code == 0, closed.output
+    assert json.loads(closed.output)["synced"] is False
+    assert SS.current() is None
+    assert SS.load(sess["session_id"]) == saved
+    assert not (P.session_dir(sess["session_id"]) / "scores.json").exists()
+    assert SS.start()["session_id"] != sess["session_id"]
+
+
 def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
     profile = P.COACH / "player.md"
     profile.parent.mkdir()

@@ -214,6 +214,7 @@ def session_end(fatigue: Optional[int] = typer.Option(None, "--fatigue", help="1
                 felt_hard: Optional[str] = typer.Option(None, "--felt-hard"),
                 notes: Optional[str] = typer.Option(None, "--notes"),
                 followed_plan: Optional[str] = typer.Option(None, "--followed-plan", help="yes|partly|no"),
+                offline: bool = typer.Option(False, "--offline", help="Close without fetching scores."),
                 json_out: bool = JSON) -> None:
     """Stamp end, fetch recent scores and their beatmaps, close the session."""
     sid = SS.current()
@@ -224,6 +225,11 @@ def session_end(fatigue: Optional[int] = typer.Option(None, "--fatigue", help="1
          followed_plan=followed_plan)
     SS.stamp_end(sess)
     SS.save(sess)
+    if offline:
+        SS.close(sid)
+        _out({"session_id": sid, "synced": False}, json_out,
+             f"session {sid} ended offline; run `osucoach fetch recent --session {sid}` soon")
+        return
     c = _client()
     scores = _run(F.fetch_recent, c, sid, sess)
     maps, api = _run(F.fetch_beatmaps_for, c, scores)
