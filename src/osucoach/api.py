@@ -75,9 +75,12 @@ class Client:
             if r.status_code == 429 and attempt == 0:
                 time.sleep(30)
                 continue
-            if r.status_code >= 400:
+            if not 200 <= r.status_code < 300:
                 raise OsuError(f"{method} {path} -> HTTP {r.status_code}")
-            return r.json()
+            try:
+                return r.json()
+            except ValueError:
+                raise OsuError(f"{method} {path} -> invalid JSON response") from None
 
     def get(self, path: str, **params):
         return self.request("GET", path, params=params)

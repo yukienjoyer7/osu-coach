@@ -36,6 +36,27 @@ def test_token_network_failure_is_secret_free(monkeypatch):
     assert "test-secret" not in str(error.value)
 
 
+def test_api_invalid_json_and_redirect_are_clear_errors():
+    from osucoach.api import Client
+
+    class Transport:
+        def __init__(self, response):
+            self.response = response
+        def request(self, *args, **kwargs):
+            return self.response
+
+    client = Client.__new__(Client)
+    client._token = "token"
+    client._calls = []
+    client._http = Transport(httpx.Response(200, text="not json"))
+    with pytest.raises(OsuError, match="invalid JSON response") as error:
+        client.get("/test")
+    assert "not json" not in str(error.value)
+    client._http = Transport(httpx.Response(302))
+    with pytest.raises(OsuError, match="HTTP 302"):
+        client.get("/test")
+
+
 def test_guide_exposes_coaching_rules():
     result = CliRunner().invoke(app, ["guide"])
     assert result.exit_code == 0, result.output
