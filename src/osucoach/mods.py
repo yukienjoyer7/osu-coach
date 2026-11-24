@@ -52,7 +52,8 @@ def key(mods: list[dict]) -> str:
             return [canonical(v) for v in value]
         return value
     encoded = json.dumps(canonical(normalized), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-    return "v3-" + hashlib.sha256(encoded.encode()).hexdigest()[:24]
+    version = "v4" if any(m["acronym"] in {"WU", "WD", "AS"} for m in normalized) else "v3"
+    return version + "-" + hashlib.sha256(encoded.encode()).hexdigest()[:24]
 
 
 def rate(mods: list[dict]) -> float:
@@ -85,6 +86,8 @@ def adjust(cs: float, ar: float, od: float, bpm: float, length_s: float,
         cs = s.get("circle_size", cs)
         ar = s.get("approach_rate", ar)
         od = s.get("overall_difficulty", od)
+    if {"WU", "WD", "AS"} & acr.keys():
+        return {"cs": round(cs, 2), "ar": None, "od": None, "bpm": None, "length_s": None}
     r = rate(mods)
     if r != 1.0:
         ar = _ms_to_ar(_ar_to_ms(ar) / r)

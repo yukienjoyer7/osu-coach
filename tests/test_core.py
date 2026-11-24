@@ -924,3 +924,10 @@ def test_beatmap_fetch_keeps_all_mods_and_settings(tmp_path, monkeypatch):
     score = {"beatmap_id": 11, "mods": ["HD"], "map_max_combo": 999}
     F.fill_map_max_combo([score])
     assert score["map_max_combo"] is None
+
+
+@pytest.mark.parametrize("mod", ["WU", "WD", "AS"])
+def test_variable_speed_attributes_are_unknown(mod):
+    adjusted = M.adjust(4, 9, 8, 180, 120, [{"acronym": mod}])
+    assert adjusted == {"cs": 4, "ar": None, "od": None, "bpm": None, "length_s": None}
+    assert M.key([{"acronym": mod}]).startswith("v4-")
