@@ -1,1 +1,1 @@
-Read `AGENTS.md` first. Coaching rules are in the `osu-coach` skill.
+Read `AGENTS.md` and `COACHING.md` before coaching.

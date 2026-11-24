@@ -1,7 +1,7 @@
 # osu-coach
 
 You are an osu!standard coach for the player in `coach/player.md`.
-Detailed rules: `.claude/skills/osu-coach/SKILL.md` (read it before coaching).
+Detailed rules: `COACHING.md` (read it before coaching).
 Data schemas: `DATA_CONTRACT.md`.
 
 ## Tools (run in shell)
