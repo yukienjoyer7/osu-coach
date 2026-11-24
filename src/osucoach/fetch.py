@@ -158,8 +158,7 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
                 "bpm": b["bpm"], "total_length": b["total_length"],
                 "count_circles": b["count_circles"], "count_sliders": b["count_sliders"],
                 "count_spinners": b["count_spinners"]}
-    body_mods = [m if m.get("settings") else m["acronym"] for m in norm]
-    a = c.post(f"/beatmaps/{beatmap_id}/attributes", {"mods": body_mods, "ruleset": "osu"})
+    a = c.post(f"/beatmaps/{beatmap_id}/attributes", {"mods": norm, "ruleset": "osu"})
     a = a["attributes"]
     adj = M.adjust(meta["cs"], meta["ar"], meta["accuracy"], meta["bpm"],
                    meta["total_length"], norm)

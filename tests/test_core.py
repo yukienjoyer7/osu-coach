@@ -916,10 +916,11 @@ def test_beatmap_fetch_keeps_all_mods_and_settings(tmp_path, monkeypatch):
 
     client = Client()
     data, called = F.fetch_beatmap(client, 11, mods)
-    assert called and {str(m) for m in client.body["mods"]} == {
-        "HD", str({"acronym": "FL", "settings": {"size_multiplier": 0.8}})}
+    assert called and client.body["mods"] == [
+        {"acronym": "FL", "settings": {"size_multiplier": 0.8}}, {"acronym": "HD"}]
     assert data["mod_settings"]["FL"]["size_multiplier"] == 0.8
     assert F.beatmap_path(11, mods) != F.beatmap_path(11, [{"acronym": "HD"}])
+    assert "_v3-" in F.beatmap_path(11, mods).name
     score = {"beatmap_id": 11, "mods": ["HD"], "map_max_combo": 999}
     F.fill_map_max_combo([score])
     assert score["map_max_combo"] is None

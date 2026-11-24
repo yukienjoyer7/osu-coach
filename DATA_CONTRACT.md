@@ -72,7 +72,7 @@ coach/
  "n_circles": 0, "n_sliders": 0, "n_spinners": 0}
 ```
 Values are mod-adjusted (DT changes AR/OD/BPM/length). Extra field `max_combo` (null if unknown).
-New attribute files include `fetched_at` and `mod_settings`. The versioned cache key distinguishes all supplied mods and settings, because visual and other mods can affect difficulty. Older modded cache files used incomplete keys and are not used by the current lookup; fetch attributes again to populate them. Nomod files remain usable. Older files may omit it. `fetch beatmap ID --mods X --refresh` requests fresh map metadata and difficulty attributes for that mod combination. Other cached mod combinations retain their previous values until refreshed. Algorithm changes can make old cached ratings stale.
+New attribute files include `fetched_at` and `mod_settings`. The versioned cache key distinguishes all supplied mods and settings, because visual and other mods can affect difficulty. Older modded cache files used incomplete keys or mixed-format API requests and are not used by the current lookup; fetch attributes again to populate them. Nomod files remain usable. Older files may omit it. `fetch beatmap ID --mods X --refresh` requests fresh map metadata and difficulty attributes for that mod combination. Other cached mod combinations retain their previous values until refreshed. Algorithm changes can make old cached ratings stale.
 `aim`, `speed`, `slider_factor`, `speed_note_count` are null for maps where the API returns only star rating.
 `cs/ar/od/bpm/length_s` are computed by us from the nomod map stats (`mods.adjust`), not returned by the API. The adjustment handles EZ, HR, DA and constant DT/HT rates only; other mods or settings may make these estimates inaccurate.
 

@@ -52,7 +52,7 @@ def key(mods: list[dict]) -> str:
             return [canonical(v) for v in value]
         return value
     encoded = json.dumps(canonical(normalized), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-    return "v2-" + hashlib.sha256(encoded.encode()).hexdigest()[:24]
+    return "v3-" + hashlib.sha256(encoded.encode()).hexdigest()[:24]
 
 
 def rate(mods: list[dict]) -> float:
