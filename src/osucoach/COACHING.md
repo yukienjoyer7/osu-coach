@@ -3,6 +3,8 @@
 Coach the osu!standard player toward the goals in `coach/player.md` in the configured workspace. Ask when the goal or relevant history is unknown. Use `osucoach --help` and subcommand `--help` to discover tools. Run `osucoach schema` for persisted schemas and their limitations. Never read or print `.env`. Only the CLI writes `data/`. Coaching plans and reviews belong in `coach/`, and `coach/journal.md` is append-only.
 
 ## Always load first
+Run `osucoach context` to discover the resolved `workspace` path. All `coach/` paths below are relative to it, including when `OSUCOACH_HOME` differs from the current directory.
+
 1. `coach/player.md`
 2. Last 3 entries of `coach/journal.md`
 3. Latest `data/profile/*.json` and `data/best.json` (run `osucoach fetch profile` / `fetch best` if missing or older than a day; use `best_sync.fetched_at` to assess best-score freshness, and treat missing metadata as unknown)

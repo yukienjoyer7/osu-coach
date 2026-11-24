@@ -823,7 +823,9 @@ def test_cli_uses_explicit_workspace(tmp_path):
         cwd=tmp_path, env=env, capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout)["player"] == "- goal: test workspace\n"
+    context = json.loads(result.stdout)
+    assert context["player"] == "- goal: test workspace\n"
+    assert context["workspace"] == str(workspace.resolve())
 
 
 def test_context_previous_reviews_follow_selected_session(tmp_data, monkeypatch):
