@@ -6,6 +6,7 @@ from typing import Optional
 import typer
 
 from . import fetch as F
+from . import context as C
 from . import gap as G
 from . import mods as M
 from . import paths as P
@@ -125,6 +126,12 @@ def fetch_beatmaps(session: Optional[str] = typer.Option(None, "--session", help
 
 
 # ---- gap -----------------------------------------------------------------
+@app.command("context")
+def context(session: Optional[str] = typer.Argument(None, help="Session id (default: current/last)")) -> None:
+    """Print saved coaching context as JSON, without fetching or modifying data."""
+    typer.echo(json.dumps(_run(C.build, session), ensure_ascii=False, indent=2))
+
+
 @app.command("gap")
 def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
                                     help="Comma-separated new-play pp values"),

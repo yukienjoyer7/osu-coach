@@ -21,6 +21,8 @@ osucoach session end        # then ask the agent: "post"
 
 See `plan.md` for the build plan and `DATA_CONTRACT.md` for schemas.
 
+`osucoach context [ID]` outputs saved player, profile, session, plan, review and score statistics as JSON for any tool-capable agent. It works offline and reports missing files as null. Profile fetch time and local file modification times help assess freshness, but do not prove complete score coverage. Fetch fresh data when needed.
+
 ## Development (maintainer notes)
 - Python 3.11+ (developed on 3.12 from python.org / `winget install Python.Python.3.12`; the msys2 Python lacks wheels for pydantic).
 - Run the CLI as `.venv/Scripts/osucoach`; tests with `.venv/Scripts/python -m pytest`.

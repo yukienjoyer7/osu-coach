@@ -10,6 +10,7 @@ osucoach auth check
 osucoach session start | end | current | update [ID]
 osucoach fetch profile | best | threshold | recent [--session ID] | beatmap ID [--mods X] | beatmaps [--session ID]
 osucoach stats [ID]
+osucoach context [ID]
 osucoach gap
 ```
 Add `--json` when you need to parse output. `session start` takes `--sleep-h --energy --pain --motivation`. `session end` takes `--fatigue --pain --enjoyment --felt-hard --notes --followed-plan yes|partly|no`. For `session update`, use `--pain-before` and `--pain-after` for the respective pain values. Use it to record what the player tells you. `osucoach <cmd> --help` lists every option.

@@ -262,6 +262,27 @@ def test_apply_updates_validation():
         SS.apply_updates(s, followed_plan="maybe")
 
 
+def test_context_distinguishes_missing_and_empty_scores(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    runner = CliRunner()
+    empty = runner.invoke(app, ["context"])
+    assert empty.exit_code == 0, empty.output
+    assert json.loads(empty.output)["session"] is None
+    sess = SS.start()
+    sid = sess["session_id"]
+    missing = json.loads(runner.invoke(app, ["context"]).output)
+    assert missing["stats"] is None
+    assert missing["scores_file_modified_at"] is None
+    write_json(P.session_dir(sid) / "scores.json", [])
+    recorded = json.loads(runner.invoke(app, ["context", sid]).output)
+    assert recorded["stats"] == {"plays": 0}
+    assert recorded["scores_file_modified_at"] is not None
+    assert recorded["current_session_id"] == sid
+
+
 # ---- stats -----------------------------------------------------------------------
 def test_stats_basic():
     rows = [_sc(1, 1, "2026-01-01T00:00:00Z", True, 0.96), _sc(2, 1, "2026-01-01T00:10:00Z", False),
