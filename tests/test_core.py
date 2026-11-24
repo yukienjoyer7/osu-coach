@@ -680,10 +680,11 @@ def test_context_previous_reviews_follow_selected_session(tmp_data, monkeypatch)
     reviews.mkdir(parents=True)
     (reviews / f"{ids[0]}.md").write_text("previous adjustment", encoding="utf-8")
     previous = context.build(ids[2])["previous_reviews"]
-    assert previous == [
-        {"session_id": ids[0], "review": "previous adjustment"},
-        {"session_id": ids[1], "review": None},
+    assert [(entry["session_id"], entry["review"]) for entry in previous] == [
+        (ids[0], "previous adjustment"), (ids[1], None),
     ]
+    assert previous[0]["session"]["session_id"] == ids[0]
+    assert previous[0]["scores_sync"] is None
 
 
 def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):

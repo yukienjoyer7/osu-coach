@@ -43,7 +43,9 @@ def build(session_id=None):
         "review": _text(paths.COACH / "reviews" / f"{sid}.md") if sid else None,
         "previous_reviews": [
             {"session_id": previous_id,
-             "review": _text(paths.COACH / "reviews" / f"{previous_id}.md")}
+             "review": _text(paths.COACH / "reviews" / f"{previous_id}.md"),
+             "session": session.load(previous_id),
+             "scores_sync": read_json(paths.session_dir(previous_id) / "scores_sync.json")}
             for previous_id in [item for item in ids if sid and item < sid][-3:]
         ],
         "scores_file_modified_at": None,
