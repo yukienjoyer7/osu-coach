@@ -115,6 +115,9 @@ def fetch_recent(session: Optional[str] = typer.Option(None, "--session", help="
 @fetch_app.command("beatmap")
 def fetch_beatmap(beatmap_id: int, mods: Optional[str] = typer.Option(None, "--mods", help="e.g. HD,DT"),
                   rate: Optional[float] = typer.Option(None, "--rate", help="Custom DT/NC/HT/DC speed multiplier."),
+                  ar: Optional[float] = typer.Option(None, "--ar", help="Difficulty Adjust AR."),
+                  od: Optional[float] = typer.Option(None, "--od", help="Difficulty Adjust OD."),
+                  cs: Optional[float] = typer.Option(None, "--cs", help="Difficulty Adjust CS."),
                   refresh: bool = typer.Option(False, "--refresh", help="Refresh cached attributes."),
                   json_out: bool = JSON) -> None:
     """Mod-adjusted difficulty + map stats -> data/beatmaps/ID_MODS.json (cached)."""
@@ -124,6 +127,14 @@ def fetch_beatmap(beatmap_id: int, mods: Optional[str] = typer.Option(None, "--m
         if not math.isfinite(rate) or rate <= 0 or len(speed_mods) != 1:
             _fail(OsuError("--rate requires a positive finite value and exactly one DT, NC, HT or DC mod"))
         speed_mods[0]["settings"] = {"speed_change": rate}
+    adjustments = {key: value for key, value in (("approach_rate", ar), ("overall_difficulty", od),
+                                                 ("circle_size", cs)) if value is not None}
+    if adjustments:
+        da_mods = [mod for mod in selected if mod["acronym"] == "DA"]
+        if (len(da_mods) != 1 or any(not math.isfinite(value) or not 0 <= value <= 10
+                                      for value in adjustments.values())):
+            _fail(OsuError("--ar, --od and --cs require DA and finite values from 0 to 10"))
+        da_mods[0]["settings"] = adjustments
     d, called = _run(F.fetch_beatmap, _client(), beatmap_id, selected, refresh)
     _out(d, json_out, f"{beatmap_id} {''.join(d['mods']) or 'NM'}: {d['star_rating']}* "
                       f"AR{d['ar']} OD{d['od']} CS{d['cs']} {d['bpm']}bpm "
