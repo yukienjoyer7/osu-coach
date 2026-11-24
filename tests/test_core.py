@@ -491,6 +491,27 @@ def test_map_history_keeps_conditions_and_missing_sessions(tmp_data, monkeypatch
     assert history["sessions"][0]["scores_sync"] is None
 
 
+def test_maps_filter_recorded_cached_attributes(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    row = _sc(1, 99, "2026-11-21T10:01:00Z")
+    row["mods"] = ["DT"]
+    row["mod_settings"] = {"DT": {"speed_change": 1.3}}
+    write_json(P.BEST, [row, row, _sc(2, 100, "2026-11-21T10:02:00Z")])
+    write_json(F.beatmap_path(99, S.score_mods(row)),
+               {"beatmap_id": 99, "star_rating": 6.5, "bpm": 220})
+    runner = CliRunner()
+    result = runner.invoke(app, ["maps", "--min-sr", "6", "--max-bpm", "230"])
+    assert result.exit_code == 0, result.output
+    maps = json.loads(result.output)["maps"]
+    assert len(maps) == 1 and maps[0]["beatmap_id"] == 99
+    assert maps[0]["mod_settings"]["DT"]["speed_change"] == 1.3
+    assert maps[0]["ranked_status"] is None and maps[0]["pattern_type"] is None
+    assert runner.invoke(app, ["maps", "--min-sr", "7", "--max-sr", "6"]).exit_code != 0
+
+
 # ---- stats -----------------------------------------------------------------------
 def test_stats_basic():
     rows = [_sc(1, 1, "2026-01-01T00:00:00Z", True, 0.96), _sc(2, 1, "2026-01-01T00:10:00Z", False),

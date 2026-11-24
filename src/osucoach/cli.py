@@ -10,6 +10,7 @@ from . import fetch as F
 from . import context as C
 from . import gap as G
 from . import history as H
+from . import maps as MAPS
 from . import mods as M
 from . import paths as P
 from . import scores as S
@@ -131,6 +132,19 @@ def fetch_beatmaps(session: Optional[str] = typer.Option(None, "--session", help
 
 
 # ---- gap -----------------------------------------------------------------
+@app.command("maps")
+def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
+         max_sr: Optional[float] = typer.Option(None, "--max-sr", min=0),
+         min_bpm: Optional[float] = typer.Option(None, "--min-bpm", min=0),
+         max_bpm: Optional[float] = typer.Option(None, "--max-bpm", min=0)) -> None:
+    """Find recorded maps with cached attributes and output JSON."""
+    if ((min_sr is not None and max_sr is not None and min_sr > max_sr)
+            or (min_bpm is not None and max_bpm is not None and min_bpm > max_bpm)):
+        _fail(OsuError("minimum must not exceed maximum"))
+    results = MAPS.find(min_sr, max_sr, min_bpm, max_bpm)
+    typer.echo(json.dumps({"maps": results}, ensure_ascii=False, indent=2))
+
+
 @app.command("history")
 def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
     """Show saved session scores and conditions for a beatmap as JSON."""
