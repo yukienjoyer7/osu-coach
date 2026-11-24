@@ -1211,6 +1211,15 @@ def test_block_containment_excludes_post_session_grace_scores(tmp_data, monkeypa
     assert json.loads(result.output)["blocks"][0]["fully_contained"]["score_ids"] == [1]
 
 
+def test_map_search_exposes_tempo_and_length_limitations(tmp_data, monkeypatch):
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    result = CliRunner().invoke(app, ["maps"])
+    assert result.exit_code == 0, result.output
+    limits = json.loads(result.output)["selection_limits"]
+    assert any("tapping speed" in item for item in limits)
+    assert any("includes breaks" in item for item in limits)
+
+
 def test_session_scores_command_exposes_raw_rows_and_missing_coverage(tmp_data):
     from osucoach.store import write_json
 

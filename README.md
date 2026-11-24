@@ -30,7 +30,7 @@ See `plan.md` for the build plan. Run `osucoach schema` for the data contract, i
 
 `osucoach history BEATMAP_ID` shows saved scores for a map across sessions, including mods, setup snapshots and fetch metadata. It includes matching saved top scores and their fetch metadata, lists sessions with missing score files, and preserves duplicate score IDs when session windows overlap. The top-score list is selective, not a complete play history. Compare conditions, including client and Classic mod settings when known, and deduplicate IDs before interpreting changes. Newly fetched scores retain the API's legacy score ID and build ID when present; their absence does not prove a client.
 
-`osucoach maps --min-sr 5 --max-sr 6 --min-bpm 170 --max-bpm 210 --min-ar 9 --max-length 180` finds recorded maps with cached attributes. Length is in seconds. Results only cover stored scores with cached map attributes. Pattern type and ranked status are unknown and must be verified separately.
+`osucoach maps --min-sr 5 --max-sr 6 --min-bpm 170 --max-bpm 210 --min-ar 9 --max-length 180` finds recorded maps with cached attributes. Length is in seconds. Results only cover stored scores with cached map attributes. Pattern type and ranked status are unknown and must be verified separately. BPM is a map-level tempo, not a guarantee of tapping speed, and total length includes breaks.
 
 `osucoach map-search 'stars>=5 stars<6 bpm>=170 bpm<=210'` builds a link to the official ranked osu!standard beatmap listing for discovering additional maps. The website filters base map attributes, so verify individual difficulties, mods and pattern suitability before recommending them.
 
