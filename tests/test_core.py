@@ -278,6 +278,21 @@ def test_session_can_close_offline_after_failed_sync(tmp_data, monkeypatch):
     assert SS.start()["session_id"] != sess["session_id"]
 
 
+def test_stats_distinguishes_missing_score_file_from_empty(tmp_data):
+    from osucoach.store import write_json
+
+    sess = SS.start()
+    sid = sess["session_id"]
+    runner = CliRunner()
+    missing = runner.invoke(app, ["stats", sid, "--json"])
+    assert missing.exit_code != 0
+    assert "scores missing" in missing.output
+    write_json(P.session_dir(sid) / "scores.json", [])
+    empty = runner.invoke(app, ["stats", sid, "--json"])
+    assert empty.exit_code == 0
+    assert json.loads(empty.output)["plays"] == 0
+
+
 def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
     profile = P.COACH / "player.md"
     profile.parent.mkdir()

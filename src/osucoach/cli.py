@@ -272,7 +272,9 @@ def stats(session: Optional[str] = typer.Argument(None, help="Session id (defaul
           json_out: bool = JSON) -> None:
     """Summary numbers for a session."""
     sid = _run(SS.resolve, session)
-    scores = read_json(P.session_dir(sid) / "scores.json", [])
+    scores = read_json(P.session_dir(sid) / "scores.json")
+    if scores is None:
+        _fail(OsuError(f"scores missing for {sid}; run `osucoach fetch recent --session {sid}`"))
 
     def sr(sc):
         d = read_json(F.beatmap_path(sc["beatmap_id"], S.score_mods(sc)))
