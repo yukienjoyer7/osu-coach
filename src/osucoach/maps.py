@@ -1,5 +1,6 @@
 """Find previously recorded maps with cached difficulty attributes."""
 import json
+import math
 
 from . import fetch, paths, scores, session
 from .api import OsuError
@@ -44,7 +45,7 @@ def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
     return sorted(candidates.values(), key=lambda item: (item["attributes"]["star_rating"], item["beatmap_id"]))
 
 
-def discover(client, query, cursor=None):
+def discover(client, query, cursor=None, min_sr=None, max_sr=None):
     """Search the upstream beatmapset endpoint; results are unverified candidates."""
     params = {"m": 0, "s": "ranked", "q": query}
     if cursor:
@@ -54,12 +55,42 @@ def discover(client, query, cursor=None):
         raise OsuError("beatmap search returned an unexpected response")
     if response.get("error"):
         raise OsuError("beatmap search returned an error")
+    candidates = []
+    sets_without_difficulties = 0
+    incomplete_difficulties = 0
+    for beatmapset in response["beatmapsets"]:
+        if not isinstance(beatmapset, dict) or not isinstance(beatmapset.get("beatmaps"), list):
+            sets_without_difficulties += 1
+            continue
+        for beatmap in beatmapset["beatmaps"]:
+            if not isinstance(beatmap, dict):
+                incomplete_difficulties += 1
+                continue
+            rating = beatmap.get("difficulty_rating")
+            if (type(beatmap.get("id")) is not int or type(beatmapset.get("id")) is not int
+                    or not isinstance(beatmap.get("mode"), str) or not isinstance(beatmap.get("status"), str)
+                    or type(rating) not in (int, float) or not math.isfinite(rating)):
+                incomplete_difficulties += 1
+                continue
+            if (beatmap["mode"] != "osu" or beatmap["status"] != "ranked"
+                    or (min_sr is not None and rating < min_sr)
+                    or (max_sr is not None and rating > max_sr)):
+                continue
+            candidates.append({"beatmap_id": beatmap["id"], "beatmapset_id": beatmapset["id"],
+                               "title": beatmapset.get("title"), "version": beatmap.get("version"),
+                               "star_rating_nomod": rating, "mode": beatmap["mode"],
+                               "status": beatmap["status"],
+                               "url": f"https://osu.ppy.sh/beatmapsets/{beatmapset['id']}#osu/{beatmap['id']}"})
     return {"query": query, "fetched_at": now_local().isoformat(timespec="seconds"),
             "requested_mode": "osu", "requested_status": "ranked",
+            "local_star_range": {"min": min_sr, "max": max_sr},
+            "ranked_osu_candidates": candidates,
+            "sets_without_difficulties": sets_without_difficulties,
+            "incomplete_difficulties": incomplete_difficulties,
             "beatmapsets": response["beatmapsets"], "total": response.get("total"),
             "cursor_string": response.get("cursor_string"),
             "selection_limits": [
                 "Upstream filters may depend on search permissions; verify each difficulty and status.",
-                "A set result can include difficulties that do not match the query or osu!standard.",
+                "Local candidates match returned mode, status and optional nomod star range only; query filters are not verified.",
                 "Results do not establish player familiarity, patterns, or mod-adjusted suitability.",
             ]}
