@@ -37,7 +37,7 @@ Inputs: session.json, scores.json, beatmaps/, replay_stats.json if present, the 
 If fatigue, enjoyment, pain or what felt hard is missing, ask the player for the missing values in one line and record their answers with `osucoach session update <id> ...`.
 Write `coach/reviews/<id>.md`:
 - Plan vs actual: followed? metrics hit?
-- Numbers table: plays, pass rate, best pp, consecutive recorded repeats per map and avg SR of passes vs fails, when available. A consecutive recorded repeat is not necessarily a retry button press and can omit attempts. Report block accuracy only when block membership is known.
+- Numbers table: plays, pass rate, best pp, consecutive recorded repeats per map and avg SR of passes vs fails, when available. A consecutive recorded repeat is not necessarily a retry button press and can omit attempts. Use block map summaries for map-specific targets, and report boundary-crossing and unknown-start plays. Do not infer comparable scoring rules merely from matching map and mods. Report block accuracy only when block membership is known.
 - Describe observable errors and discuss plausible causes. Treat external replay-derived classifications as hypotheses only after checking their provenance, matching beatmap, mods and client rules. A replay alone does not prove the cause of a miss. Treat changes between halves as observations, not proof of fatigue.
 - Compare with the last 3 sessions when conditions and coverage permit. Check their plans, reported experience and score summaries in `osucoach context`; missing statistics are unknown. One bad session is noise, not a trend.
 - 1-3 adjustments for next time, each tagged `[data]`, `[science]` or `[community]`.

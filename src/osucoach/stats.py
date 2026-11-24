@@ -29,6 +29,29 @@ def _hit_results(rows: list[dict]) -> dict:
             "totals": {field: sum(row[field] for row in known) for field in fields} if known else None}
 
 
+def _condition_key(row):
+    settings = json.dumps(row.get("mod_settings") or {}, sort_keys=True, separators=(",", ":"))
+    return row["beatmap_id"], tuple(sorted(row["mods"])), settings
+
+
+def _block_maps(rows, start):
+    groups = defaultdict(list)
+    for row in rows:
+        groups[_condition_key(row)].append(row)
+    summaries = []
+    for (beatmap_id, mods, settings), group in groups.items():
+        summaries.append({
+            "beatmap_id": beatmap_id, "title": group[0]["title"], "version": group[0]["version"],
+            "mods": list(mods), "mod_settings": json.loads(settings),
+            "score_ids": [row["score_id"] for row in group],
+            **_block(group), "passes": sum(row["passed"] for row in group),
+            "hit_results": _hit_results(group),
+            "crossing_start": sum(parse_ts(row["started_at"]) < start for row in group if row.get("started_at")),
+            "unknown_start": sum(not row.get("started_at") for row in group),
+        })
+    return summaries
+
+
 def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     """sr_lookup(score) -> star rating (mod adjusted) or None."""
     rows = sorted(scores, key=lambda r: (parse_ts(r["created_at"]), r["score_id"]))
@@ -43,7 +66,8 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
             crossing = sum(parse_ts(row["started_at"]) < start for row in selected if row.get("started_at"))
             unknown_start = sum(not row.get("started_at") for row in selected)
             summaries.append({**marker, **_block(selected),
-                              "crossing_start": crossing, "unknown_start": unknown_start})
+                              "crossing_start": crossing, "unknown_start": unknown_start,
+                              "maps": _block_maps(selected, start)})
         out["blocks"] = summaries
         out["plays_before_first_block"] = sum(
             parse_ts(row["created_at"]) < parse_ts(blocks[0]["started_at"]) for row in rows
@@ -95,8 +119,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     consecutive_repeats = defaultdict(int)
     previous_key = None
     for r in rows:
-        settings = json.dumps(r.get("mod_settings") or {}, sort_keys=True, separators=(",", ":"))
-        key = (r["beatmap_id"], tuple(sorted(r["mods"])), settings)
+        key = _condition_key(r)
         if key == previous_key:
             consecutive_repeats[key] += 1
         groups[key].append(r)

@@ -965,6 +965,10 @@ def test_session_blocks_assign_end_times(tmp_data, monkeypatch):
     ]
     assert result["blocks"][0]["unknown_start"] == 1
     assert result["blocks"][1]["crossing_start"] == 1
+    focus_map = result["blocks"][1]["maps"][0]
+    assert focus_map["beatmap_id"] == 3 and focus_map["score_ids"] == [3]
+    assert focus_map["crossing_start"] == 1 and focus_map["unknown_start"] == 0
+    assert focus_map["passes"] == 0 and focus_map["acc_passed_samples"] == 0
     assert runner.invoke(app, ["session", "block", "same second"]).exit_code != 0
 
 
@@ -1147,3 +1151,24 @@ def test_score_mapping_preserves_source_identifiers_without_inference():
     assert current["legacy_score_id"] is None and current["build_id"] == 800
     unknown = S.map_score(RAW)
     assert unknown["legacy_score_id"] is None and unknown["build_id"] is None
+
+
+def test_block_maps_keep_mod_settings_and_unknown_start_separate():
+    rows = S.add_retry_index([
+        _sc(1, 10, "2026-01-01T00:01:00Z", acc=0.95),
+        _sc(2, 10, "2026-01-01T00:02:00Z", acc=0.98),
+        _sc(3, 10, "2026-01-01T00:03:00Z", passed=False),
+    ])
+    rows[0]["mods"] = ["DT"]
+    rows[0]["mod_settings"] = {"DT": {"speed_change": 1.2}}
+    rows[1]["mods"] = ["DT"]
+    rows[1]["mod_settings"] = {"DT": {"speed_change": 1.5}}
+    rows[2]["mods"] = ["DT"]
+    rows[2]["mod_settings"] = {"DT": {"speed_change": 1.5}}
+    rows[2]["started_at"] = "2025-12-31T23:59:00Z"
+    block = [{"label": "focus", "started_at": "2026-01-01T00:00:00Z"}]
+    groups = ST.compute(rows, blocks=block)["blocks"][0]["maps"]
+    assert len(groups) == 2
+    assert groups[0]["score_ids"] == [1] and groups[0]["unknown_start"] == 1
+    assert groups[1]["score_ids"] == [2, 3] and groups[1]["crossing_start"] == 1
+    assert groups[1]["passes"] == 1 and groups[1]["acc_passed"] == 98.0
