@@ -236,12 +236,22 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
             raise ValueError
     except ValueError:
         _fail(OsuError("--pp must be a comma-separated list of positive finite numbers"))
-    tbl = G.table([b["pp"] for b in best], prof["pp"], thr, values)
+    best_pps = [b.get("pp") for b in best]
+    if any(type(value) not in (int, float) or not math.isfinite(value) for value in best_pps):
+        _fail(OsuError("best scores contain missing or invalid pp; refresh best scores"))
+    tbl = G.table(best_pps, prof["pp"], thr, values)
+    sync = read_json(P.BEST.with_name("best_sync.json")) or {}
     res = {"pp": prof["pp"], "rank": rank, "threshold": thr, "gap": round(thr - prof["pp"], 1),
            "threshold_fetched_at": entry.get("fetched_at") if entry else None,
-           "profile_date": prof["fetched_at"][:10], "table": tbl}
+           "profile_date": prof["fetched_at"][:10], "profile_fetched_at": prof["fetched_at"],
+           "best_fetched_at": sync.get("fetched_at"),
+           "fixed_residual_pp": round(prof["pp"] - G.weighted(sorted(best_pps, reverse=True)[:100]), 2),
+           "model": "top 100 only; fixed residual and threshold; distinct new scores",
+           "table": tbl}
     lines = [f"pp {prof['pp']:,.0f} | #{rank:,} = {thr:,.0f} | gap {res['gap']:,.0f} "
-             f"(profile {res['profile_date']})", "new play pp -> plays needed"]
+             f"(profile {res['profile_fetched_at']})",
+             f"best fetched: {res['best_fetched_at'] or 'unknown'}; threshold fetched: {res['threshold_fetched_at'] or 'unknown'}",
+             "scenario: top 100 only; residual and threshold held fixed", "new play pp -> plays needed"]
     lines += [f"  {t['play_pp']:>5g} -> {t['plays_needed'] if t['plays_needed'] is not None else f'not reached within {G.CAP} plays'}"
               for t in tbl]
     _out(res, json_out, "\n".join(lines))

@@ -12,17 +12,18 @@ def plays_needed(best_pps: list[float], total_pp: float, threshold: float,
                  new_pp: float, cap: int = CAP) -> int | None:
     """Number of distinct new plays of `new_pp` needed to reach threshold, else None.
 
-    Bonus pp (total minus weighted top-100 sum) is held constant. Each new play is
-    inserted in sorted position and the list is truncated to 100.
+    The residual (total minus weighted top-100 sum) is held constant. It includes
+    bonus pp, contributions below the top 100, and any snapshot mismatch. Each
+    new play is inserted in sorted position and the list is truncated to 100.
     """
     pps = sorted(best_pps, reverse=True)[:100]
-    bonus = total_pp - weighted(pps)
+    residual = total_pp - weighted(pps)
     cur = total_pp
     for n in range(cap + 1):
         if cur >= threshold:
             return n
         pps = sorted(pps + [new_pp], reverse=True)[:100]
-        new = bonus + weighted(pps)
+        new = residual + weighted(pps)
         if new <= cur + 1e-9:
             return None  # play too low to change anything
         cur = new

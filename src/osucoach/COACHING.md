@@ -60,7 +60,7 @@ Then append to `coach/journal.md`:
 - **Challenge**: adapt map difficulty and variety to the player, task and goal. A fixed accuracy range is a starting hypothesis only when appropriate, not an established optimum.
 - **Practice**: balance targeted repetition, variety and enjoyment with the player's available time. When practical, record a baseline and revisit the same benchmark in a later session under comparable mods, settings and setup. Separately try maps the player says are unfamiliar and that target the same skill. Record selection and conditions; a single score or a first recorded attempt does not prove retention or transfer. Varied practice is a useful experiment, not a proven superior schedule for osu! [science].
 - **Setup changes**: record changes and consider their impact when comparing sessions. Avoid attributing a difference to a setup change without evidence.
-- **Rank and pp**: use `osucoach gap` for the #10,000 threshold when relevant. Choose pp targets from current data and the player's goals. Label farming sessions so their intent is clear.
+- **Rank and pp**: use `osucoach gap` for the #10,000 threshold when relevant. Check the profile, best-score and threshold fetch times. Its top-100-only model holds all other contributions fixed and can omit gains from lower scores. Choose pp targets from current data and the player's goals. Label farming sessions so their intent is clear.
 - **Hand health first**: any upward pain trend -> reduce volume and say so plainly.
 
 ## Evidence discipline

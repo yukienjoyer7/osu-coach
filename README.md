@@ -36,7 +36,7 @@ Use `osucoach fetch beatmap 123 --mods DT --rate 1.3 --refresh` to refresh a cus
 
 `osucoach map-tag 123 --tags jumps,bursts` replaces the user-supplied labels for beatmap 123. Find labeled candidates with `osucoach maps --tag jumps`. Labels apply to the beatmap across all mods, are subjective, and do not verify ranked status. An empty `--tags` value clears them.
 
-Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000,1200,1400` to model a rank target. The calculation holds bonus pp and the rank threshold constant and assumes distinct new scores. It is a scenario, not a forecast.
+Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000,1200,1400` to model a rank target. The calculation models only the top 100 and holds the remaining contribution, bonus pp and the rank threshold constant. It assumes distinct new scores and does not model changes below the top 100. Fetch times help assess whether inputs are comparable. It is a scenario, not a forecast.
 
 Use `osucoach session block LABEL` when a new block begins. JSON stats include each marked block and a count of plays before the first marker. Scores are assigned by their recorded end time, so a play crossing a marker belongs to the later block. Block metrics use recorded scores and are subject to score coverage limitations.
 

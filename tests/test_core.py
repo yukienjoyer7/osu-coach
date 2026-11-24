@@ -145,6 +145,11 @@ def test_gap_reports_unreachable_scenario_and_invalid_input(tmp_path, monkeypatc
     result = runner.invoke(app, ["gap", "--pp", "100"])
     assert result.exit_code == 0
     assert "not reached within 300 plays" in result.output
+    result = runner.invoke(app, ["gap", "--pp", "100", "--json"])
+    scenario = json.loads(result.output)
+    assert scenario["best_fetched_at"] is None and scenario["threshold_fetched_at"] is None
+    assert scenario["profile_fetched_at"] == "2026-01-01T00:00:00Z"
+    assert "top 100 only" in scenario["model"] and isinstance(scenario["fixed_residual_pp"], float)
     for value in ("nan", "-1", "bad"):
         result = runner.invoke(app, ["gap", "--pp", value])
         assert result.exit_code != 0
