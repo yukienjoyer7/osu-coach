@@ -232,6 +232,27 @@ def test_gap_reports_unreachable_scenario_and_invalid_input(tmp_path, monkeypatc
     assert runner.invoke(app, ["gap", "--pp", "100"]).exit_code == 0
 
 
+def test_gap_identifies_conflicting_and_unknown_player_data(tmp_path, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "DATA", tmp_path)
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_path / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_path / "best.json")
+    write_json(F.profile_path(), {"user_id": 123, "pp": 8000, "fetched_at": "2026-01-01T00:00:00Z",
+                                  "rank_threshold_10k_pp": 9000})
+    write_json(P.BEST, [{"pp": 300, "user_id": 456}])
+    runner = CliRunner()
+    result = runner.invoke(app, ["gap", "--json"])
+    assert result.exit_code != 0 and "different users" in result.output
+
+    write_json(P.BEST, [{"pp": 300, "user_id": 123}, {"pp": 250}])
+    result = runner.invoke(app, ["gap", "--json"])
+    evidence = json.loads(result.output)["identity_evidence"]
+    assert evidence["profile_user_id"] == 123
+    assert evidence["best_scores_with_user_id"] == 1 and evidence["best_scores_total"] == 2
+    assert evidence["workspace_account"] is None
+
+
 # ---- mods ------------------------------------------------------------------
 def test_parse_mods():
     assert [m["acronym"] for m in M.parse_mods("HD,DT")] == ["HD", "DT"]

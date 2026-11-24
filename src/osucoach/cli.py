@@ -319,6 +319,18 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
     prof, best = F.latest_profile(), read_json(P.BEST)
     if not prof or best is None:
         _fail(OsuError("need profile and best: run `osucoach fetch profile` and `fetch best`"))
+    binding = A.binding()
+    binding_id = str(binding.get("user_id", "")) if binding else ""
+    profile_id = prof.get("user_id")
+    score_ids = [row.get("user_id") for row in best]
+    known_ids = {value for value in [profile_id, *score_ids] if type(value) is int and value > 0}
+    if binding_id.isdecimal() and int(binding_id) > 0:
+        known_ids.add(int(binding_id))
+    if len(known_ids) > 1:
+        _fail(OsuError("profile, best scores or workspace binding identify different users; refresh in the correct workspace"))
+    identity = {"profile_user_id": profile_id, "best_scores_with_user_id": sum(
+        type(value) is int and value > 0 for value in score_ids), "best_scores_total": len(best),
+        "workspace_account": binding}
     entry = prof.get("rank_thresholds", {}).get(str(rank))
     thr = entry["pp"] if entry else (prof.get("rank_threshold_10k_pp") if rank == 10000 else None)
     if thr is None:
@@ -335,6 +347,7 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
     tbl = G.table(best_pps, prof["pp"], thr, values)
     sync = read_json(P.BEST.with_name("best_sync.json")) or {}
     res = {"pp": prof["pp"], "rank": rank, "threshold": thr, "gap": round(thr - prof["pp"], 1),
+           "identity_evidence": identity,
            "threshold_fetched_at": entry.get("fetched_at") if entry else None,
            "profile_date": prof["fetched_at"][:10], "profile_fetched_at": prof["fetched_at"],
            "best_fetched_at": sync.get("fetched_at"),
@@ -344,6 +357,7 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
     lines = [f"pp {prof['pp']:,.0f} | #{rank:,} = {thr:,.0f} | gap {res['gap']:,.0f} "
              f"(profile {res['profile_fetched_at']})",
              f"best fetched: {res['best_fetched_at'] or 'unknown'}; threshold fetched: {res['threshold_fetched_at'] or 'unknown'}",
+             f"identity: profile {profile_id or 'unknown'}; best scores with user ID {identity['best_scores_with_user_id']}/{len(best)}",
              "scenario: top 100 only; residual and threshold held fixed", "new play pp -> plays needed"]
     lines += [f"  {t['play_pp']:>5g} -> {t['plays_needed'] if t['plays_needed'] is not None else f'not reached within {G.CAP} plays'}"
               for t in tbl]

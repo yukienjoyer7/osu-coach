@@ -38,6 +38,8 @@ coach/
 
 `account.json` binds future profile and score fetches in a workspace to a configured `OSU_USER_ID`. A different configured user is rejected; use a separate workspace for another player. `legacy_data_present` is true when profile, best, or session score files existed before binding. The binding does not identify those files. A missing binding also leaves provenance unknown. New score rows retain API `user_id` when supplied; null or absent remains unknown. Known numeric user mismatches are rejected before merging session scores. A binding is a guard against future configuration changes, not proof of the origin of legacy data.
 
+`gap` rejects conflicting known numeric player IDs across the profile, best scores and workspace binding. Its `identity_evidence` reports the profile ID, the number of best scores with numeric IDs, total best scores and the workspace binding. Missing IDs, a nonnumeric binding or legacy data do not prove shared provenance, and matching IDs do not establish snapshot freshness.
+
 ## profile/YYYY-MM-DD.json
 ```json
 {"fetched_at": "ISO8601", "pp": 8439.0, "global_rank": 18415, "country_rank": 352,
