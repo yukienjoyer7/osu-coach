@@ -6,17 +6,26 @@ import hashlib
 import json
 import re
 
+from .api import OsuError
+
 SPEED = {"DT": 1.5, "NC": 1.5, "HT": 0.75, "DC": 0.75}
 ALIAS = {"NC": "DT", "DC": "HT"}  # same star rating / stats as DT / HT
 
 
 def parse_mods(arg: str | None) -> list[dict]:
-    """'HD,DT' or 'HDDT' -> [{'acronym': 'HD'}, {'acronym': 'DT'}]."""
-    if not arg:
+    """Parse two-character acronyms without silently discarding malformed input."""
+    if arg is None or not arg.strip():
         return []
-    arg = arg.strip().upper()
-    parts = arg.split(",") if "," in arg else re.findall(r"..", arg)
-    return [{"acronym": p.strip()} for p in parts if p.strip() and p.strip() != "NM"]
+    text = arg.strip().upper()
+    if "," in text:
+        parts = [part.strip() for part in text.split(",")]
+        valid = all(re.fullmatch(r"[A-Z0-9]{2}", part) for part in parts)
+    else:
+        valid = bool(re.fullmatch(r"(?:[A-Z0-9]{2})+", text))
+        parts = [text[i:i + 2] for i in range(0, len(text), 2)]
+    if not valid or ("NM" in parts and len(parts) != 1) or len(set(parts)) != len(parts):
+        raise OsuError("--mods must contain distinct two-character acronyms, e.g. HD,DT or HDDT; NM must stand alone")
+    return [{"acronym": part} for part in parts if part != "NM"]
 
 
 def from_score(acronyms: list[str], settings: dict | None = None) -> list[dict]:

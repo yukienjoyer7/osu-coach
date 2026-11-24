@@ -173,6 +173,18 @@ def test_parse_mods():
     assert M.parse_mods("NM") == [] and M.parse_mods(None) == []
 
 
+@pytest.mark.parametrize("mods", ["HDD", "D", "HD,", ",DT", "HD,DTX", "HD DT", "NM,HD", "HDHD", "H!"])
+def test_invalid_mod_strings_fail_before_api_call(mods, monkeypatch):
+    from osucoach import cli
+
+    def unexpected_client():
+        raise AssertionError("invalid mods must not reach the API")
+    monkeypatch.setattr(cli, "_client", unexpected_client)
+    result = CliRunner().invoke(app, ["fetch", "beatmap", "11", "--mods", mods])
+    assert result.exit_code != 0
+    assert "two-character acronyms" in result.output
+
+
 def test_key_distinguishes_mods_and_normalizes_aliases():
     assert M.key(M.parse_mods("HD")) != M.key([])
     assert M.key(M.parse_mods("HDNC")) == M.key(M.parse_mods("HDDT"))

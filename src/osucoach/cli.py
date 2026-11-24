@@ -148,7 +148,7 @@ def fetch_beatmap(beatmap_id: int, mods: Optional[str] = typer.Option(None, "--m
                   refresh: bool = typer.Option(False, "--refresh", help="Refresh cached attributes."),
                   json_out: bool = JSON) -> None:
     """Mod-adjusted difficulty + map stats -> data/beatmaps/ID_MODS.json (cached)."""
-    selected = M.parse_mods(mods)
+    selected = _run(M.parse_mods, mods)
     if rate is not None:
         speed_mods = [mod for mod in selected if mod["acronym"] in M.SPEED]
         if not math.isfinite(rate) or rate <= 0 or len(speed_mods) != 1:
