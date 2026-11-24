@@ -698,6 +698,7 @@ def test_stats_basic():
     assert (s["plays"], s["passes"], s["pass_rate"]) == (4, 3, 75.0)
     assert s["acc_passed"] == 96.0 and s["span_min"] == 30.0
     assert s["avg_sr_passed"] == pytest.approx(5.67, abs=0.01) and s["avg_sr_failed"] == 5.0
+    assert s["avg_sr_passed_samples"] == 3 and s["avg_sr_failed_samples"] == 1
     assert s["first_half"]["plays"] == 2 and s["second_half"]["plays"] == 2
     assert s["first_20min"] is None  # session too short for 20 min windows
     assert s["maps"][0]["plays"] == 2 and s["maps"][0]["max_retry"] in (2,)
@@ -712,6 +713,9 @@ def test_accuracy_sample_count_excludes_failed_and_unknown_scores():
     summary = ST.compute(rows)
     assert summary["acc_passed"] == 98.0 and summary["acc_passed_samples"] == 1
     assert summary["maps"][0]["acc_passed_samples"] == 1
+    partial = ST.compute(rows, lambda row: 5.0 if row["score_id"] == 1 else None)
+    assert partial["avg_sr_passed_samples"] == 1
+    assert partial["avg_sr_failed_samples"] == 0 and partial["avg_sr_failed"] is None
 
 
 def test_stats_empty_and_render():

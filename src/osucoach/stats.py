@@ -73,10 +73,10 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     def avg_sr(group):
         vals = [sr_lookup(r) for r in group] if sr_lookup else []
         vals = [v for v in vals if v is not None]
-        return round(mean(vals), 2) if vals else None
+        return (round(mean(vals), 2) if vals else None, len(vals))
 
-    out["avg_sr_passed"] = avg_sr(passed)
-    out["avg_sr_failed"] = avg_sr([r for r in rows if not r["passed"]])
+    out["avg_sr_passed"], out["avg_sr_passed_samples"] = avg_sr(passed)
+    out["avg_sr_failed"], out["avg_sr_failed_samples"] = avg_sr([r for r in rows if not r["passed"]])
 
     half = len(rows) // 2
     out["first_half"] = _block(rows[:half or 1])

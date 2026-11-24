@@ -62,6 +62,7 @@ coach/
 - When the statistics dictionary is absent, those counts are null. Within a present dictionary, omitted hit results are treated as zero. Scores saved by older versions may contain zeros that cannot be distinguished from missing source statistics without refetching.
 - Session and map stats include `hit_results` with totals for scores that have all four counts, plus the number of scores covered and the total scores. Null totals mean no complete counts were available. These aggregates include fails and retries, which can have different played lengths. Miss counts do not identify aim or tapping causes.
 - `acc_passed` in session, block, window and map stats is the unweighted mean accuracy of passed scores with known accuracy. `acc_passed_samples` gives its denominator. Failed plays and passed scores with unknown accuracy are excluded.
+- `avg_sr_passed` and `avg_sr_failed` are unweighted means over recorded scores with cached star ratings. Their corresponding `_samples` fields give the number included. Missing or stale beatmap attributes can limit comparisons.
 
 ## beatmaps/<beatmap_id>_<mods>.json
 ```json
