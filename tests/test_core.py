@@ -1209,3 +1209,24 @@ def test_block_containment_excludes_post_session_grace_scores(tmp_data, monkeypa
     assert block["maps"][0]["fully_contained"]["score_ids"] == [1]
     result = CliRunner().invoke(app, ["stats", sess["session_id"], "--json"])
     assert json.loads(result.output)["blocks"][0]["fully_contained"]["score_ids"] == [1]
+
+
+def test_session_scores_command_exposes_raw_rows_and_missing_coverage(tmp_data):
+    from osucoach.store import write_json
+
+    sess = SS.start()
+    sid = sess["session_id"]
+    runner = CliRunner()
+    result = runner.invoke(app, ["scores", sid])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data["scores"] is None and data["scores_sync"] is None
+    assert data["started_at"] == sess["started_at"] and data["ended_at"] is None
+    score = {**_sc(12, 34, sess["started_at"]), "user_id": 123, "legacy_score_id": 7}
+    write_json(P.session_dir(sid) / "scores.json", [score])
+    write_json(P.session_dir(sid) / "scores_sync.json", {"returned_scores": 100})
+    result = runner.invoke(app, ["scores", sid])
+    data = json.loads(result.output)
+    assert data["scores"] == [score] and data["scores_sync"]["limit_reached_ever"] is True
+    write_json(P.session_dir(sid) / "scores.json", [])
+    assert json.loads(runner.invoke(app, ["scores", sid]).output)["scores"] == []

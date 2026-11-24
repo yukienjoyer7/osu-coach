@@ -8,6 +8,7 @@ from typing import Optional
 
 import typer
 
+from . import account as A
 from . import fetch as F
 from . import context as C
 from . import gap as G
@@ -238,6 +239,17 @@ def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
 def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
     """Show saved session scores and conditions for a beatmap as JSON."""
     typer.echo(json.dumps(H.map_history(beatmap_id), ensure_ascii=False, indent=2))
+
+
+@app.command("scores")
+def session_scores(session: Optional[str] = typer.Argument(None, help="Session id (default: current/last)")) -> None:
+    """Show saved session scores and their coverage metadata as JSON."""
+    sid = _run(SS.resolve, session)
+    sess = SS.load(sid)
+    result = {"session_id": sid, "started_at": sess.get("started_at"), "ended_at": sess.get("ended_at"),
+              "account": A.binding(), "scores_sync": F.recent_sync(sid),
+              "scores": read_json(P.session_dir(sid) / "scores.json")}
+    typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 @app.command("context")
