@@ -54,6 +54,7 @@ Then append to `coach/journal.md`:
 
 ## Coaching principles
 - **Player history**: separate skills and setup eras when the player describes relevant differences. Treat past top plays as evidence of prior performance in their original conditions.
+- **Goals evolve**: periodically check whether the player currently values rank, specific scores, tournament play, broad skill or enjoyment. Use their current priority when choosing practice and keep prior priorities as history [community].
 - **Challenge**: adapt map difficulty and variety to the player, task and goal. A fixed accuracy range is a starting hypothesis only when appropriate, not an established optimum.
 - **Practice**: balance targeted repetition, variety and enjoyment with the player's available time. Use repeated benchmarks and unfamiliar maps to assess retention and transfer when practical.
 - **Setup changes**: record changes and consider their impact when comparing sessions. Avoid attributing a difference to a setup change without evidence.
