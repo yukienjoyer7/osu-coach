@@ -299,6 +299,29 @@ def test_cli_uses_explicit_workspace(tmp_path):
     assert json.loads(result.stdout)["player"] == "- goal: test workspace\n"
 
 
+def test_context_previous_reviews_follow_selected_session(tmp_data, monkeypatch):
+    from osucoach import context
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    ids = []
+    for _ in range(4):
+        sess = SS.start()
+        ids.append(sess["session_id"])
+        SS.close(sess["session_id"])
+        clock += timedelta(minutes=1)
+    reviews = P.COACH / "reviews"
+    reviews.mkdir(parents=True)
+    (reviews / f"{ids[0]}.md").write_text("previous adjustment", encoding="utf-8")
+    previous = context.build(ids[2])["previous_reviews"]
+    assert previous == [
+        {"session_id": ids[0], "review": "previous adjustment"},
+        {"session_id": ids[1], "review": None},
+    ]
+
+
 # ---- stats -----------------------------------------------------------------------
 def test_stats_basic():
     rows = [_sc(1, 1, "2026-01-01T00:00:00Z", True, 0.96), _sc(2, 1, "2026-01-01T00:10:00Z", False),

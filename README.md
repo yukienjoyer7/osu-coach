@@ -21,7 +21,7 @@ osucoach session end        # then ask the agent: "post"
 
 See `plan.md` for the build plan and `DATA_CONTRACT.md` for schemas.
 
-`osucoach context [ID]` outputs saved player, profile, session, plan, review and score statistics as JSON for any tool-capable agent. It works offline and reports missing files as null. Profile fetch time and local file modification times help assess freshness, but do not prove complete score coverage. Fetch fresh data when needed.
+`osucoach context [ID]` outputs saved player, profile, session, plan, review, up to three previous session reviews and score statistics as JSON for any tool-capable agent. It works offline and reports missing files as null. Profile fetch time and local file modification times help assess freshness, but do not prove complete score coverage. Fetch fresh data when needed.
 
 Set `OSUCOACH_HOME` to an absolute workspace directory when the package is installed separately from the player's files. The CLI reads `coach/` and `.env` and writes `data/` under that directory. The default remains the repository root for editable installations. For example, on Linux or macOS use `export OSUCOACH_HOME=/path/to/workspace` before invoking the CLI. Keep the coaching instructions accessible to your agent in that workspace.
 

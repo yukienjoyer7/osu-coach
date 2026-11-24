@@ -38,6 +38,11 @@ def build(session_id=None):
         "current_session_id": session.current(),
         "plan": _text(paths.COACH / "plans" / f"{sid}.md") if sid else None,
         "review": _text(paths.COACH / "reviews" / f"{sid}.md") if sid else None,
+        "previous_reviews": [
+            {"session_id": previous_id,
+             "review": _text(paths.COACH / "reviews" / f"{previous_id}.md")}
+            for previous_id in [item for item in ids if sid and item < sid][-3:]
+        ],
         "scores_file_modified_at": None,
         "stats": None,
     }
