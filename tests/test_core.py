@@ -83,7 +83,8 @@ def test_map_search_encodes_query():
     assert params == {"m": ["0"], "s": ["ranked"], "q": [data["query"]]}
 
 
-def test_discover_returns_candidates_and_cursor_with_filter_caveats(monkeypatch):
+def test_discover_returns_candidates_and_cursor_with_filter_caveats(tmp_data, monkeypatch):
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
     from osucoach import cli
     class Client:
         def get(self, path, **params):
@@ -1344,7 +1345,8 @@ def test_map_history_identifies_duplicate_plays_across_sessions(tmp_data, monkey
     assert [len(item["scores"]) for item in result["sessions"]] == [1, 2]
 
 
-def test_discover_locally_filters_difficulties_and_counts_missing_fields():
+def test_discover_locally_filters_difficulties_and_counts_missing_fields(tmp_data, monkeypatch):
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
     from osucoach import maps
     class Client:
         def get(self, path, **params):
@@ -1360,3 +1362,29 @@ def test_discover_locally_filters_difficulties_and_counts_missing_fields():
     assert [item["beatmap_id"] for item in result["ranked_osu_candidates"]] == [11]
     assert result["incomplete_difficulties"] == 1 and result["sets_without_difficulties"] == 1
     assert len(result["beatmapsets"]) == 2
+
+
+def test_discover_reports_only_recorded_history_without_claiming_unplayed(tmp_data, monkeypatch):
+    from osucoach import maps
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    first = SS.start()
+    SS.close(first["session_id"])
+    clock += timedelta(minutes=1)
+    missing = SS.start()
+    recorded = _sc(1, 11, "2026-11-21T10:00:00Z")
+    write_json(P.session_dir(first["session_id"]) / "scores.json", [recorded])
+    write_json(P.BEST, [recorded])
+    class Client:
+        def get(self, path, **params):
+            return {"beatmapsets": [{"id": 1, "beatmaps": [
+                {"id": 11, "mode": "osu", "status": "ranked", "difficulty_rating": 5.5},
+                {"id": 12, "mode": "osu", "status": "ranked", "difficulty_rating": 5.6}]}]}
+    result = maps.discover(Client(), "")
+    assert [c["recorded_score_count"] for c in result["ranked_osu_candidates"]] == [1, 0]
+    assert result["recorded_history"]["missing_score_sessions"] == [missing["session_id"]]
+    assert result["recorded_history"]["best_file_missing"] is False
+    assert any("zero does not mean" in note for note in result["selection_limits"])

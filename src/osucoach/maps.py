@@ -2,7 +2,7 @@
 import json
 import math
 
-from . import fetch, paths, scores, session
+from . import account, fetch, paths, scores, session
 from .api import OsuError
 from .store import now_local, read_json, write_json
 
@@ -45,6 +45,25 @@ def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
     return sorted(candidates.values(), key=lambda item: (item["attributes"]["star_rating"], item["beatmap_id"]))
 
 
+def _recorded_scores():
+    """Index saved score IDs by beatmap; missing files are not evidence of unplayed maps."""
+    seen = {}
+    best = read_json(paths.BEST)
+    missing_sessions = []
+    sources = [best or []]
+    for sid in session.list_ids():
+        rows = read_json(paths.session_dir(sid) / "scores.json")
+        if rows is None:
+            missing_sessions.append(sid)
+        else:
+            sources.append(rows)
+    for rows in sources:
+        for row in rows:
+            if row.get("beatmap_id") is not None and row.get("score_id") is not None:
+                seen.setdefault(row["beatmap_id"], set()).add(row["score_id"])
+    return seen, best is None, missing_sessions
+
+
 def discover(client, query, cursor=None, min_sr=None, max_sr=None):
     """Search the upstream beatmapset endpoint; results are unverified candidates."""
     params = {"m": 0, "s": "ranked", "q": query}
@@ -55,6 +74,7 @@ def discover(client, query, cursor=None, min_sr=None, max_sr=None):
         raise OsuError("beatmap search returned an unexpected response")
     if response.get("error"):
         raise OsuError("beatmap search returned an error")
+    recorded, best_missing, missing_sessions = _recorded_scores()
     candidates = []
     sets_without_difficulties = 0
     incomplete_difficulties = 0
@@ -80,10 +100,13 @@ def discover(client, query, cursor=None, min_sr=None, max_sr=None):
                                "title": beatmapset.get("title"), "version": beatmap.get("version"),
                                "star_rating_nomod": rating, "mode": beatmap["mode"],
                                "status": beatmap["status"],
+                               "recorded_score_count": len(recorded.get(beatmap["id"], set())),
                                "url": f"https://osu.ppy.sh/beatmapsets/{beatmapset['id']}#osu/{beatmap['id']}"})
     return {"query": query, "fetched_at": now_local().isoformat(timespec="seconds"),
             "requested_mode": "osu", "requested_status": "ranked",
             "local_star_range": {"min": min_sr, "max": max_sr},
+            "recorded_history": {"account": account.binding(), "best_file_missing": best_missing,
+                                 "missing_score_sessions": missing_sessions},
             "ranked_osu_candidates": candidates,
             "sets_without_difficulties": sets_without_difficulties,
             "incomplete_difficulties": incomplete_difficulties,
@@ -92,5 +115,6 @@ def discover(client, query, cursor=None, min_sr=None, max_sr=None):
             "selection_limits": [
                 "Upstream filters may depend on search permissions; verify each difficulty and status.",
                 "Local candidates match returned mode, status and optional nomod star range only; query filters are not verified.",
-                "Results do not establish player familiarity, patterns, or mod-adjusted suitability.",
+                "Recorded score counts cover saved data only; zero does not mean a map is unfamiliar or unplayed.",
+                "Results do not establish patterns or mod-adjusted suitability.",
             ]}
