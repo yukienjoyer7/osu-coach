@@ -92,9 +92,15 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
         out["first_20min"] = out["last_20min"] = None
 
     groups: dict[tuple, list[dict]] = defaultdict(list)
+    consecutive_repeats = defaultdict(int)
+    previous_key = None
     for r in rows:
         settings = json.dumps(r.get("mod_settings") or {}, sort_keys=True, separators=(",", ":"))
-        groups[(r["beatmap_id"], tuple(r["mods"]), settings)].append(r)
+        key = (r["beatmap_id"], tuple(sorted(r["mods"])), settings)
+        if key == previous_key:
+            consecutive_repeats[key] += 1
+        groups[key].append(r)
+        previous_key = key
     maps = []
     for (bid, mods, settings), rs in groups.items():
         p = [x["pp"] for x in rs if x.get("pp") is not None]
@@ -103,6 +109,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
             "mods": list(mods), "mod_settings": json.loads(settings),
             "plays": len(rs), "passes": sum(x["passed"] for x in rs),
             "max_retry": max(x["retry_index"] or 0 for x in rs),
+            "consecutive_recorded_repeats": consecutive_repeats[(bid, mods, settings)],
             "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
             "acc_passed_samples": sum(row["passed"] and row.get("accuracy") is not None for row in rs),
             "hit_results": _hit_results(rs),
@@ -133,11 +140,11 @@ def render(session_id: str, s: dict) -> str:
             lines.append(f"{label:9}: {b['plays']:>3} plays, pass {_f(b['pass_rate'], '{}%')}, "
                          f"acc {_f(b['acc_passed'], '{}%')}")
     lines.append("")
-    lines.append(f"{'map':38} {'mods':6} {'plays':>5} {'pass':>4} {'retry':>5} {'acc%':>6} {'pp':>5}")
+    lines.append(f"{'map':38} {'mods':6} {'plays':>5} {'pass':>4} {'rept':>5} {'acc%':>6} {'pp':>5}")
     for m in s["maps"][:12]:
         name = f"{m['title']} [{m['version']}]"
         lines.append(f"{name[:38]:38} {''.join(m['mods'])[:6]:6} {m['plays']:>5} {m['passes']:>4} "
-                     f"{m['max_retry']:>5} {_f(m['acc_passed']):>6} {_f(m['best_pp'], '{:.0f}'):>5}")
+                     f"{m['consecutive_recorded_repeats']:>5} {_f(m['acc_passed']):>6} {_f(m['best_pp'], '{:.0f}'):>5}")
         if m.get("mod_settings"):
             lines.append(f"  settings: {json.dumps(m['mod_settings'], ensure_ascii=False, sort_keys=True)}")
     if len(s["maps"]) > 12:

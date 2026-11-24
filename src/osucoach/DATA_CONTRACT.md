@@ -58,7 +58,8 @@ coach/
  "pp": 0.0, "weight_pct": 100.0, "rank": "S",
  "retry_index": 1}
 ```
-- `retry_index`: Nth attempt of that beatmap within this session (compute from created_at order).
+- `retry_index`: Nth recorded attempt of that beatmap within this session, regardless of mods, computed from score end-time order. Map stats retain `max_retry` as the largest such index for compatibility; it is not a retry count.
+- Map stats also provide `consecutive_recorded_repeats`: the number of recorded scores immediately preceded by a score on the same beatmap with the same mods and settings. It ignores mod order, does not prove the player used the retry button, and cannot account for missing or unsubmitted attempts or intervening breaks.
 - `pp` may be null for fails/unranked; keep the row anyway. `weight_pct` is only set for best.json, null for session scores.
 - `created_at` is the score's `ended_at` (UTC). `map_max_combo` is null until attributes for the matching mod combination exist. Older saved scores may retain a value from a differently modded cache until scores are fetched again.
 - `started_at` is the API's score start time when available, otherwise null. Older saved scores may omit it.

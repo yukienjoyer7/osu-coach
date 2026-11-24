@@ -1073,3 +1073,22 @@ def test_recent_fetch_refuses_known_foreign_scores(tmp_data, monkeypatch):
 def test_score_mapping_preserves_api_user_id():
     assert S.map_score({**RAW, "user_id": 123})["user_id"] == 123
     assert S.map_score(RAW)["user_id"] is None
+
+
+def test_consecutive_repeats_respect_map_mods_and_intervening_plays():
+    rows = [
+        _sc(1, 10, "2026-01-01T00:01:00Z"),
+        _sc(2, 10, "2026-01-01T00:02:00Z"),
+        _sc(3, 10, "2026-01-01T00:03:00Z"),
+        _sc(4, 20, "2026-01-01T00:04:00Z"),
+        _sc(5, 10, "2026-01-01T00:05:00Z"),
+        _sc(6, 10, "2026-01-01T00:06:00Z"),
+    ]
+    rows[2]["mods"] = ["HD"]
+    S.add_retry_index(rows)
+    summary = ST.compute(rows)
+    groups = {(m["beatmap_id"], tuple(m["mods"])): m for m in summary["maps"]}
+    assert groups[(10, ())]["consecutive_recorded_repeats"] == 2
+    assert groups[(10, ("HD",))]["consecutive_recorded_repeats"] == 0
+    assert groups[(20, ())]["consecutive_recorded_repeats"] == 0
+    assert "rept" in ST.render("session", summary)
