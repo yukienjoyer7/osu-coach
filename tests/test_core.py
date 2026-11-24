@@ -762,6 +762,28 @@ def test_context_journal_does_not_include_future_or_undated_entries(tmp_data, mo
     assert result["journal_undated_sections_omitted"] == 1
 
 
+def test_context_selects_recent_journal_by_session_not_append_order(tmp_data, monkeypatch):
+    from osucoach import context
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    ids = []
+    for _ in range(5):
+        sess = SS.start()
+        ids.append(sess["session_id"])
+        SS.close(sess["session_id"])
+        clock += timedelta(minutes=1)
+    P.COACH.mkdir(parents=True, exist_ok=True)
+    (P.COACH / "journal.md").write_text(
+        "# Journal\n" + "".join(f"## {ids[i]} | focus: aim\nentry-{i}\n" for i in [1, 2, 3, 0]),
+        encoding="utf-8")
+    journal = context.build(ids[4])["recent_journal"]
+    assert "entry-0" not in journal
+    assert journal.index("entry-1") < journal.index("entry-2") < journal.index("entry-3")
+
+
 def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
     from osucoach import context
 

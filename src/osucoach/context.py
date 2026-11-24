@@ -57,8 +57,9 @@ def build(session_id=None):
             if not match:
                 omitted_undated += 1
             elif match.group(1) <= sid:
-                eligible.append(entry)
-        recent_journal = "".join(eligible[-3:]) or None
+                eligible.append((match.group(1), entry))
+        eligible.sort(key=lambda item: item[0])
+        recent_journal = "".join(entry for _, entry in eligible[-3:]) or None
     elif sid and journal:
         recent_journal = None
         omitted_undated = 1
