@@ -34,6 +34,13 @@ def _condition_key(row):
     return row["beatmap_id"], tuple(sorted(row["mods"])), settings
 
 
+def _contained(rows, start):
+    contained = [row for row in rows if row.get("started_at") and parse_ts(row["started_at"]) >= start]
+    return {**_block(contained), "passes": sum(row["passed"] for row in contained),
+            "score_ids": [row["score_id"] for row in contained],
+            "hit_results": _hit_results(contained)}
+
+
 def _block_maps(rows, start):
     groups = defaultdict(list)
     for row in rows:
@@ -48,6 +55,7 @@ def _block_maps(rows, start):
             "hit_results": _hit_results(group),
             "crossing_start": sum(parse_ts(row["started_at"]) < start for row in group if row.get("started_at")),
             "unknown_start": sum(not row.get("started_at") for row in group),
+            "fully_contained": _contained(group, start),
         })
     return summaries
 
@@ -67,6 +75,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
             unknown_start = sum(not row.get("started_at") for row in selected)
             summaries.append({**marker, **_block(selected),
                               "crossing_start": crossing, "unknown_start": unknown_start,
+                              "fully_contained": _contained(selected, start),
                               "maps": _block_maps(selected, start)})
         out["blocks"] = summaries
         out["plays_before_first_block"] = sum(

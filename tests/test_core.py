@@ -1172,3 +1172,9 @@ def test_block_maps_keep_mod_settings_and_unknown_start_separate():
     assert groups[0]["score_ids"] == [1] and groups[0]["unknown_start"] == 1
     assert groups[1]["score_ids"] == [2, 3] and groups[1]["crossing_start"] == 1
     assert groups[1]["passes"] == 1 and groups[1]["acc_passed"] == 98.0
+    assert groups[1]["fully_contained"]["score_ids"] == []
+    rows[1]["started_at"] = "2026-01-01T00:00:30Z"
+    focus = ST.compute(rows, blocks=block)["blocks"][0]
+    assert focus["fully_contained"]["score_ids"] == [2]
+    assert focus["fully_contained"]["acc_passed"] == 98.0
+    assert focus["maps"][1]["fully_contained"]["score_ids"] == [2]
