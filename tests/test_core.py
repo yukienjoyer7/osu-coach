@@ -57,6 +57,24 @@ def test_rank_threshold_requires_matching_rank(tmp_path, monkeypatch):
         F.fetch_threshold(Client(), 99)
 
 
+def test_gap_reports_unreachable_scenario_and_invalid_input(tmp_path, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_path / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_path / "best.json")
+    write_json(F.profile_path(), {"pp": 8000, "fetched_at": "2026-01-01T00:00:00Z",
+                                  "rank_threshold_10k_pp": 9000})
+    write_json(P.BEST, [{"pp": 300}] * 100)
+    runner = CliRunner()
+    result = runner.invoke(app, ["gap", "--pp", "100"])
+    assert result.exit_code == 0
+    assert "not reached within 300 plays" in result.output
+    for value in ("nan", "-1", "bad"):
+        result = runner.invoke(app, ["gap", "--pp", value])
+        assert result.exit_code != 0
+        assert "positive finite numbers" in result.output
+
+
 # ---- mods ------------------------------------------------------------------
 def test_parse_mods():
     assert [m["acronym"] for m in M.parse_mods("HD,DT")] == ["HD", "DT"]

@@ -1,5 +1,6 @@
 """Thin typer layer. Every command prints a short summary; --json prints machine output."""
 import json
+import math
 import sys
 from typing import Optional
 
@@ -148,14 +149,19 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
     thr = entry["pp"] if entry else (prof.get("rank_threshold_10k_pp") if rank == 10000 else None)
     if thr is None:
         _fail(OsuError(f"no threshold: run `osucoach fetch threshold --rank {rank}`"))
-    tbl = G.table([b["pp"] for b in best], prof["pp"], thr,
-                  [float(t) for t in targets.split(",")])
+    try:
+        values = [float(t) for t in targets.split(",")]
+        if not all(math.isfinite(value) and value > 0 for value in values):
+            raise ValueError
+    except ValueError:
+        _fail(OsuError("--pp must be a comma-separated list of positive finite numbers"))
+    tbl = G.table([b["pp"] for b in best], prof["pp"], thr, values)
     res = {"pp": prof["pp"], "rank": rank, "threshold": thr, "gap": round(thr - prof["pp"], 1),
            "threshold_fetched_at": entry.get("fetched_at") if entry else None,
            "profile_date": prof["fetched_at"][:10], "table": tbl}
     lines = [f"pp {prof['pp']:,.0f} | #{rank:,} = {thr:,.0f} | gap {res['gap']:,.0f} "
              f"(profile {res['profile_date']})", "new play pp -> plays needed"]
-    lines += [f"  {t['play_pp']:>5g} -> {t['plays_needed'] if t['plays_needed'] is not None else f'>{G.CAP}'}"
+    lines += [f"  {t['play_pp']:>5g} -> {t['plays_needed'] if t['plays_needed'] is not None else f'not reached within {G.CAP} plays'}"
               for t in tbl]
     _out(res, json_out, "\n".join(lines))
 
