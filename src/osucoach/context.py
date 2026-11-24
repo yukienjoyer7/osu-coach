@@ -69,6 +69,7 @@ def build(session_id=None):
         "scores_file_modified_at": None,
         "scores_sync": None,
         "overlapping_session_ids": [],
+        "overlapping_score_ids": {},
         "stats": None,
     }
     if sid:
@@ -86,6 +87,15 @@ def build(session_id=None):
                 result["overlapping_session_ids"].append(other_id)
         score_path = paths.session_dir(sid) / "scores.json"
         result["scores_file_modified_at"] = _file_time(score_path)
+        current_rows = read_json(score_path)
+        for other_id in result["overlapping_session_ids"]:
+            other_rows = read_json(paths.session_dir(other_id) / "scores.json")
+            if current_rows is None or other_rows is None:
+                result["overlapping_score_ids"][other_id] = None
+            else:
+                current_ids = {row["score_id"] for row in current_rows}
+                other_ids = {row["score_id"] for row in other_rows}
+                result["overlapping_score_ids"][other_id] = sorted(current_ids & other_ids)
         result["scores_sync"] = fetch.recent_sync(sid)
         result["stats"] = _session_stats(sid, current_session)
     return result

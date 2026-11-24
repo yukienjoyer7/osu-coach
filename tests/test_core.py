@@ -753,6 +753,15 @@ def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
     second = SS.start()
     assert context.build(first["session_id"])["overlapping_session_ids"] == [second["session_id"]]
     assert context.build(second["session_id"])["overlapping_session_ids"] == [first["session_id"]]
+    assert context.build(first["session_id"])["overlapping_score_ids"] == {second["session_id"]: None}
+    from osucoach.store import write_json
+    score = _sc(11, 99, "2026-11-21T10:12:30Z")
+    score["retry_index"] = 1
+    write_json(P.session_dir(first["session_id"]) / "scores.json", [score])
+    write_json(P.session_dir(second["session_id"]) / "scores.json", [])
+    assert context.build(first["session_id"])["overlapping_score_ids"] == {second["session_id"]: []}
+    write_json(P.session_dir(second["session_id"]) / "scores.json", [score])
+    assert context.build(second["session_id"])["overlapping_score_ids"] == {first["session_id"]: [11]}
 
 
 def test_map_history_keeps_conditions_and_missing_sessions(tmp_data, monkeypatch):
