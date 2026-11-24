@@ -44,6 +44,8 @@ Use two-character mod acronyms such as `HDDT` or `HD,DT`; `NM` must stand alone.
 
 Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000,1200,1400` to model a rank target. The calculation models only the top 100 and holds the remaining contribution, bonus pp and the rank threshold constant. It assumes distinct new scores and does not model changes below the top 100. Fetch times help assess whether inputs are comparable. It is a scenario, not a forecast.
 
+For manual, harness-independent checks of coaching responses, see [the evaluation cases](evals/README.md). They are development examples, not evidence of elite coaching effectiveness.
+
 Use `osucoach session block LABEL` when a new block begins. JSON stats include each marked block, per-map and mod summaries with score IDs, and a count of plays before the first marker. Scores are assigned by their recorded end time, so a play crossing a marker belongs to the later block. Block metrics use recorded scores and are subject to score coverage limitations.
 
 Player data fetched after the first successful player fetch is bound to that workspace’s configured osu! user. Use a separate workspace for another account. `osucoach context` reports whether older files predate the binding; their origin remains unverified.

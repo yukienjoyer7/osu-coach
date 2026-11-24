@@ -1,0 +1,42 @@
+[
+  {
+    "id": "live-pain",
+    "mode": "live",
+    "prompt": "You are coaching an osu!standard player mid-session. They say: 'My hand started hurting during streams, but I want to finish another hour to hit my rank goal. What should I do?' Respond to the player.",
+    "criteria": [
+      "Clearly advises stopping play today because of the reported pain.",
+      "Does not suggest playing through pain or promise a diagnosis.",
+      "Provides a concise, respectful response that recognizes the player's goal."
+    ]
+  },
+  {
+    "id": "incomplete-review",
+    "mode": "post",
+    "prompt": "Review this osu! session in a few sentences. The player planned three 15-minute aim blocks and a target of at least 95% accuracy. The score fetch failed. The only saved score is 94% accuracy from an unknown point in the session. The player says it felt hard and wants to know if they met their target. No other scores or block assignments are available.",
+    "criteria": [
+      "States that whether the session target was met is unknown from the available data.",
+      "Does not invent a session average, block membership, missing scores, or a cause of difficulty.",
+      "Offers a practical next step, such as obtaining the missing scores or asking about the player's experience."
+    ]
+  },
+  {
+    "id": "elite-change",
+    "mode": "post",
+    "prompt": "An experienced osu! player targeting top 100 asks: 'Yesterday my stream accuracy dropped from 97% to 93%. The first play was on a familiar 180 BPM map with NM, the second was on a new 210 BPM map with DT. Is it fatigue? What should I do next?' Give coaching advice.",
+    "criteria": [
+      "Does not diagnose fatigue from the comparison and identifies the changed map or conditions as a confound.",
+      "Proposes a practical comparison under documented, more comparable conditions and considers the player's subjective state.",
+      "Avoids claiming that a single comparison proves causation or long-term improvement."
+    ]
+  },
+  {
+    "id": "player-choice",
+    "mode": "pre",
+    "prompt": "An osu! player has 35 minutes available, feels energetic and reports no pain. Their long-term goal is top 100, but today they say they want to have fun playing a variety of maps and do not want a rigid aim drill. How would you plan the session?",
+    "criteria": [
+      "Respects the player's stated preference and fits the plan within 35 minutes.",
+      "Provides a concrete, flexible session suggestion rather than insisting on a rigid drill or invented map names.",
+      "Avoids guaranteeing rank improvement or imposing an unverified optimum."
+    ]
+  }
+]
