@@ -1352,7 +1352,8 @@ def test_discover_locally_filters_difficulties_and_counts_missing_fields(tmp_dat
         def get(self, path, **params):
             return {"beatmapsets": [
                 {"id": 1, "title": "set", "beatmaps": [
-                    {"id": 11, "mode": "osu", "status": "ranked", "difficulty_rating": 5.5},
+                    {"id": 11, "mode": "osu", "status": "ranked", "difficulty_rating": 5.5,
+                     "lazer_only": True, "total_length": 180},
                     {"id": 12, "mode": "taiko", "status": "ranked", "difficulty_rating": 5.5},
                     {"id": 13, "mode": "osu", "status": "pending", "difficulty_rating": 5.5},
                     {"id": 14, "mode": "osu", "status": "ranked", "difficulty_rating": 7},
@@ -1360,6 +1361,8 @@ def test_discover_locally_filters_difficulties_and_counts_missing_fields(tmp_dat
                 {"id": 2, "title": "missing difficulties"}]}
     result = maps.discover(Client(), "streams", min_sr=5, max_sr=6)
     assert [item["beatmap_id"] for item in result["ranked_osu_candidates"]] == [11]
+    assert result["ranked_osu_candidates"][0]["lazer_only"] is True
+    assert result["ranked_osu_candidates"][0]["total_length_s"] == 180
     assert result["incomplete_difficulties"] == 1 and result["sets_without_difficulties"] == 1
     assert len(result["beatmapsets"]) == 2
 

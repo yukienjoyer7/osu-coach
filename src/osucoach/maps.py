@@ -97,7 +97,9 @@ def discover(client, query, cursor=None, min_sr=None, max_sr=None):
                     or (max_sr is not None and rating > max_sr)):
                 continue
             candidates.append({"beatmap_id": beatmap["id"], "beatmapset_id": beatmapset["id"],
-                               "title": beatmapset.get("title"), "version": beatmap.get("version"),
+                               "title": beatmapset.get("title"), "artist": beatmapset.get("artist"),
+                               "creator": beatmapset.get("creator"), "version": beatmap.get("version"),
+                               "lazer_only": beatmap.get("lazer_only"), "total_length_s": beatmap.get("total_length"),
                                "star_rating_nomod": rating, "mode": beatmap["mode"],
                                "status": beatmap["status"],
                                "recorded_score_count": len(recorded.get(beatmap["id"], set())),
@@ -116,5 +118,5 @@ def discover(client, query, cursor=None, min_sr=None, max_sr=None):
                 "Upstream filters may depend on search permissions; verify each difficulty and status.",
                 "Local candidates match returned mode, status and optional nomod star range only; query filters are not verified.",
                 "Recorded score counts cover saved data only; zero does not mean a map is unfamiliar or unplayed.",
-                "Results do not establish patterns or mod-adjusted suitability.",
+                "Results do not establish patterns or mod-adjusted suitability; check lazer_only for client compatibility.",
             ]}
