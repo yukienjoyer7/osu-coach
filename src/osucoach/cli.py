@@ -179,10 +179,11 @@ def fetch_beatmaps(session: Optional[str] = typer.Option(None, "--session", help
     scores = read_json(path)
     if scores is None:
         _fail(OsuError(f"{path.name} missing; fetch it first"))
-    maps, api = _run(F.fetch_beatmaps_for, _client(), scores)
+    maps, api, errors = _run(F.fetch_beatmaps_for, _client(), scores)
     from .store import write_json
     write_json(path, scores)  # map_max_combo may now be filled
-    _out({"maps": maps, "fetched": api}, json_out, f"{maps} maps ({api} fetched, {maps - api} cached)")
+    _out({"maps": maps, "fetched": api, "errors": errors}, json_out,
+         f"{maps} maps ({api} fetched, {maps - api - len(errors)} cached, {len(errors)} unavailable)")
 
 
 # ---- gap -----------------------------------------------------------------
@@ -444,15 +445,15 @@ def session_end(fatigue: Optional[int] = typer.Option(None, "--fatigue", help="1
         return
     c = _client()
     scores = _run(F.fetch_recent, c, sid, sess)
-    maps, api = _run(F.fetch_beatmaps_for, c, scores)
+    maps, api, errors = _run(F.fetch_beatmaps_for, c, scores)
     from .store import write_json
     write_json(P.session_dir(sid) / "scores.json", scores)
     SS.save(sess)
     SS.close(sid)
     sync = F.recent_sync(sid)
     warning = " (recent score limit reached; coverage may be incomplete)" if sync and sync.get("limit_reached_ever") else ""
-    _out({"session_id": sid, "scores": len(scores), "maps": maps, "scores_sync": sync}, json_out,
-         f"session {sid} ended: {len(scores)} scores, {maps} maps ({api} fetched){warning}")
+    _out({"session_id": sid, "scores": len(scores), "maps": maps, "map_errors": errors, "scores_sync": sync}, json_out,
+         f"session {sid} ended: {len(scores)} scores, {maps} maps ({api} fetched, {len(errors)} unavailable){warning}")
 
 
 @session_app.command("update")

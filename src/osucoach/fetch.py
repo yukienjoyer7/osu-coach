@@ -6,10 +6,14 @@ from . import account
 from . import mods as M
 from . import paths as P
 from . import scores as S
-from .api import Client, OsuError
+from .api import Client, HttpError, OsuError
 from .store import now_local, parse_ts, read_json, write_json
 
 SESSION_GRACE = timedelta(minutes=5)
+
+
+class MapDataError(OsuError):
+    """The API returned unusable data for one beatmap."""
 
 
 # ---- profile / threshold -------------------------------------------------
@@ -186,15 +190,15 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
     if refresh or not _valid_map_meta(meta, beatmap_id):
         b = c.get(f"/beatmaps/{beatmap_id}")
         if not isinstance(b, dict):
-            raise OsuError(f"beatmap {beatmap_id} returned invalid metadata")
+            raise MapDataError(f"beatmap {beatmap_id} returned invalid metadata")
         meta = {field: b.get(field) for field in ("id", "cs", "ar", "accuracy", "bpm", "total_length",
                                                    "count_circles", "count_sliders", "count_spinners")}
         if not _valid_map_meta(meta, beatmap_id):
-            raise OsuError(f"beatmap {beatmap_id} returned invalid metadata")
+            raise MapDataError(f"beatmap {beatmap_id} returned invalid metadata")
     response = c.post(f"/beatmaps/{beatmap_id}/attributes", {"mods": norm, "ruleset": "osu"})
     a = response.get("attributes") if isinstance(response, dict) else None
     if not isinstance(a, dict) or _r(a.get("star_rating"), 3) is None:
-        raise OsuError(f"beatmap {beatmap_id} returned invalid difficulty attributes")
+        raise MapDataError(f"beatmap {beatmap_id} returned invalid difficulty attributes")
     adj = M.adjust(meta["cs"], meta["ar"], meta["accuracy"], meta["bpm"],
                    meta["total_length"], norm)
     data = {
@@ -219,19 +223,25 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
     return data, True
 
 
-def fetch_beatmaps_for(c: Client, scores: list[dict]) -> tuple[int, int]:
-    """Fetch every distinct (beatmap, mods) in scores. Returns (maps, maps_that_hit_the_api)."""
-    seen, calls = set(), 0
+def fetch_beatmaps_for(c: Client, scores: list[dict]) -> tuple[int, int, list[dict]]:
+    """Fetch distinct map/mod combinations, isolating missing or malformed maps."""
+    seen, calls, errors = set(), 0, []
     for sc in scores:
         mods = S.score_mods(sc)
         k = (sc["beatmap_id"], M.key(mods))
         if k in seen:
             continue
         seen.add(k)
-        _, called = fetch_beatmap(c, sc["beatmap_id"], mods)
+        try:
+            _, called = fetch_beatmap(c, sc["beatmap_id"], mods)
+        except (MapDataError, HttpError) as error:
+            if isinstance(error, HttpError) and error.status != 404:
+                raise
+            errors.append({"beatmap_id": sc["beatmap_id"], "mods": mods, "error": str(error)})
+            continue
         calls += called
     fill_map_max_combo(scores)
-    return len(seen), calls
+    return len(seen), calls, errors
 
 
 def fill_map_max_combo(scores: list[dict]) -> None:

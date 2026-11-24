@@ -580,7 +580,7 @@ def test_session_end_retry_preserves_time_and_feedback(tmp_data, monkeypatch):
     clock += timedelta(hours=1)
     monkeypatch.setattr(cli, "Client", lambda: object())
     monkeypatch.setattr(F, "fetch_recent", lambda client, sid, sess: [])
-    monkeypatch.setattr(F, "fetch_beatmaps_for", lambda client, scores: (0, 0))
+    monkeypatch.setattr(F, "fetch_beatmaps_for", lambda client, scores: (0, 0, []))
     result = runner.invoke(app, ["session", "end", "--json"])
     assert result.exit_code == 0, result.output
     assert SS.current() is None
@@ -1611,6 +1611,44 @@ def test_batch_reports_malformed_attributes_and_continues(tmp_data, monkeypatch)
     first, second = json.loads(result.output)["results"]
     assert first["attributes"] is None and "invalid difficulty attributes" in first["error"]
     assert second["attributes"]["star_rating"] == 5.2 and second["error"] is None
+
+
+def test_session_map_fetch_isolates_missing_and_malformed_maps(tmp_data, monkeypatch):
+    from osucoach.api import HttpError
+
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    rows = [_sc(1, 11, "2026-11-20T10:00:00Z"), _sc(2, 12, "2026-11-20T10:01:00Z"),
+            _sc(3, 13, "2026-11-20T10:02:00Z")]
+
+    def get_map(client, beatmap_id, mods):
+        if beatmap_id == 11:
+            raise HttpError("GET", "/beatmaps/11", 404)
+        if beatmap_id == 12:
+            raise F.MapDataError("beatmap 12 returned invalid difficulty attributes")
+        return {}, True
+
+    monkeypatch.setattr(F, "fetch_beatmap", get_map)
+    count, fetched, errors = F.fetch_beatmaps_for(object(), rows)
+    assert (count, fetched) == (3, 1)
+    assert [error["beatmap_id"] for error in errors] == [11, 12]
+    assert all(row["map_max_combo"] is None for row in rows)
+    monkeypatch.setattr(F, "fetch_beatmap", lambda *args: (_ for _ in ()).throw(HttpError("GET", "/beatmaps/11", 503)))
+    with pytest.raises(HttpError):
+        F.fetch_beatmaps_for(object(), rows)
+
+
+def test_session_end_closes_when_individual_map_is_unavailable(tmp_data, monkeypatch):
+    from osucoach import cli
+
+    session = SS.start()
+    error = {"beatmap_id": 11, "mods": [], "error": "not found"}
+    monkeypatch.setattr(cli, "_client", lambda: object())
+    monkeypatch.setattr(F, "fetch_recent", lambda *args: [_sc(1, 11, session["started_at"])])
+    monkeypatch.setattr(F, "fetch_beatmaps_for", lambda *args: (1, 0, [error]))
+    result = CliRunner().invoke(app, ["session", "end", "--json"])
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["map_errors"] == [error]
+    assert SS.current() is None and SS.load(session["session_id"])["ended_at"] is not None
 
 
 def test_invalid_cached_map_metadata_is_refetched(tmp_data, monkeypatch):

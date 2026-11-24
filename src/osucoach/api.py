@@ -18,6 +18,12 @@ class OsuError(Exception):
     """One-line, secret-free error for the CLI."""
 
 
+class HttpError(OsuError):
+    def __init__(self, method: str, path: str, status: int):
+        self.status = status
+        super().__init__(f"{method} {path} -> HTTP {status}")
+
+
 class Client:
     def __init__(self) -> None:
         load_dotenv(ENV_FILE)
@@ -76,7 +82,7 @@ class Client:
                 time.sleep(30)
                 continue
             if not 200 <= r.status_code < 300:
-                raise OsuError(f"{method} {path} -> HTTP {r.status_code}")
+                raise HttpError(method, path, r.status_code)
             try:
                 return r.json()
             except ValueError:
