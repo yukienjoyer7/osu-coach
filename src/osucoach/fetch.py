@@ -70,7 +70,7 @@ def fetch_best(c: Client) -> list[dict]:
     return scores
 
 
-def _recent_raw(c: Client) -> list[dict]:
+def _recent_raw(c: Client) -> tuple[list[dict], bool]:
     out: list[dict] = []
     for page in range(5):  # API caps at 100/page; recent covers ~24h
         chunk = c.get(f"/users/{c.user_id}/scores/recent", mode="osu",
@@ -78,7 +78,7 @@ def _recent_raw(c: Client) -> list[dict]:
         out += chunk
         if len(chunk) < 100:
             break
-    return out
+    return out, len(chunk) == 100
 
 
 def in_session(created_at: str, start, end) -> bool:
@@ -92,7 +92,8 @@ def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
     end = parse_ts(session["ended_at"]) if session.get("ended_at") else None
     path = P.session_dir(session_id) / "scores.json"
     merged = {s["score_id"]: s for s in read_json(path, [])}  # recent only spans 24h: keep old
-    for r in _recent_raw(c):
+    raw, page_limit_reached = _recent_raw(c)
+    for r in raw:
         sc = S.map_score(r)
         if sc["created_at"] and in_session(sc["created_at"], start, end):
             _save_meta(r)
@@ -100,6 +101,15 @@ def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
     scores = S.add_retry_index(list(merged.values()))
     fill_map_max_combo(scores)
     write_json(path, scores)
+    timestamps = [r.get("ended_at") or r.get("started_at") for r in raw]
+    timestamps = [t for t in timestamps if t]
+    write_json(P.session_dir(session_id) / "scores_sync.json", {
+        "fetched_at": now_local().isoformat(timespec="seconds"),
+        "returned_scores": len(raw),
+        "page_limit_reached": page_limit_reached,
+        "oldest_returned_at": min(timestamps, key=parse_ts) if timestamps else None,
+        "newest_returned_at": max(timestamps, key=parse_ts) if timestamps else None,
+    })
     return scores
 
 

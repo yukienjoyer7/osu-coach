@@ -127,6 +127,32 @@ def test_in_session_window():
     assert F.in_session("2030-01-01T00:00:00Z", start, None)  # open session
 
 
+def test_recent_sync_records_page_limit(tmp_data, monkeypatch):
+    from osucoach import context
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(F, "_save_meta", lambda raw: None)
+    monkeypatch.setattr(F, "fill_map_max_combo", lambda rows: None)
+    clock = datetime(2026, 11, 20, 9, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    sess = SS.start()
+
+    class Client:
+        user_id = "test"
+
+        def get(self, path, **params):
+            offset = params["offset"]
+            return [{**RAW, "id": offset + i} for i in range(100)]
+
+    rows = F.fetch_recent(Client(), sess["session_id"], sess)
+    sync = context.build(sess["session_id"])["scores_sync"]
+    assert len(rows) == 500
+    assert sync["page_limit_reached"] is True
+    assert sync["returned_scores"] == 500
+    assert sync["oldest_returned_at"] == RAW["ended_at"]
+
+
 @pytest.fixture
 def tmp_data(tmp_path, monkeypatch):
     monkeypatch.setattr(P, "DATA", tmp_path)

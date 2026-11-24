@@ -12,6 +12,7 @@ data/
   sessions/<session_id>/
     session.json                   # created/updated only via the CLI (see session.json below)
     scores.json                    # scores set during the session, incl. fails
+    scores_sync.json               # most recent successful recent-score request metadata
     replays/*.osr                  # optional in MVP
     replay_stats.json              # optional in MVP
 coach/
@@ -83,6 +84,8 @@ Values are mod-adjusted (DT changes AR/OD/BPM/length). Extra field `max_combo` (
 `after.duration_min` is computed at `session end`. Edit fields afterwards only with `osucoach session update`.
 `session end` saves the end time and feedback before syncing scores. If sync fails, the session remains current and retrying `session end` keeps the original end time and feedback. Run it again promptly to recover scores.
 A session's scores are those with `created_at` from `started_at` to `ended_at` + 5 min.
+
+`scores_sync.json` records `fetched_at`, the number of scores returned by the API, whether the five-page request limit was reached, and the oldest and newest returned timestamps. It describes the most recent request, while `scores.json` merges scores from prior requests. A full page limit indicates potential truncation. A smaller response also does not prove complete coverage because the API's recent history is limited and scores may be unavailable. Older sessions may lack this file.
 
 ## replay_stats.json (optional, one per replay)
 ```json

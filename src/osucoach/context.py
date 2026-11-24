@@ -44,12 +44,14 @@ def build(session_id=None):
             for previous_id in [item for item in ids if sid and item < sid][-3:]
         ],
         "scores_file_modified_at": None,
+        "scores_sync": None,
         "stats": None,
     }
     if sid:
         score_path = paths.session_dir(sid) / "scores.json"
         rows = read_json(score_path)
         result["scores_file_modified_at"] = _file_time(score_path)
+        result["scores_sync"] = read_json(paths.session_dir(sid) / "scores_sync.json")
         if rows is not None:
             def sr(row):
                 beatmap = read_json(fetch.beatmap_path(row["beatmap_id"], scores.score_mods(row)))
