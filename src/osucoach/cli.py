@@ -189,9 +189,11 @@ def session_end(fatigue: Optional[int] = typer.Option(None, "--fatigue", help="1
     sid = SS.current()
     if not sid:
         _fail(OsuError("no open session"))
-    sess = SS.stamp_end(SS.load(sid))
+    sess = SS.load(sid)
     _run(SS.apply_updates, sess, after=_after_opts(fatigue, pain, enjoyment, felt_hard, notes),
          followed_plan=followed_plan)
+    SS.stamp_end(sess)
+    SS.save(sess)
     c = _client()
     scores = _run(F.fetch_recent, c, sid, sess)
     maps, api = _run(F.fetch_beatmaps_for, c, scores)

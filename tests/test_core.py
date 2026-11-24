@@ -149,6 +149,36 @@ def test_session_lifecycle(tmp_data):
     assert SS.load(s["session_id"])["after"]["fatigue_1_5"] == 2
 
 
+def test_session_end_retry_preserves_time_and_feedback(tmp_data, monkeypatch):
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    session = SS.start()
+    clock += timedelta(minutes=45)
+    from osucoach import cli
+
+    def fail_client():
+        raise OsuError("offline")
+
+    monkeypatch.setattr(cli, "Client", fail_client)
+    runner = CliRunner()
+    result = runner.invoke(app, ["session", "end", "--fatigue", "3", "--notes", "hard jumps"])
+    assert result.exit_code != 0
+    saved = SS.load(session["session_id"])
+    assert saved["ended_at"] == clock.isoformat(timespec="seconds")
+    assert saved["after"]["duration_min"] == 45
+    assert saved["after"]["notes"] == "hard jumps"
+    assert SS.current() == session["session_id"]
+
+    clock += timedelta(hours=1)
+    monkeypatch.setattr(cli, "Client", lambda: object())
+    monkeypatch.setattr(F, "fetch_recent", lambda client, sid, sess: [])
+    monkeypatch.setattr(F, "fetch_beatmaps_for", lambda client, scores: (0, 0))
+    result = runner.invoke(app, ["session", "end", "--json"])
+    assert result.exit_code == 0, result.output
+    assert SS.current() is None
+    assert SS.load(session["session_id"]) == saved
+
+
 def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
     profile = P.COACH / "player.md"
     profile.parent.mkdir()

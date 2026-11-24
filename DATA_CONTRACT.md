@@ -81,6 +81,7 @@ Values are mod-adjusted (DT changes AR/OD/BPM/length). Extra field `max_combo` (
 `session start` reads `coach/player.md` and saves a setup snapshot. Edit the profile to change future sessions. For example, `- tablet area: 60 × 40 mm, center (75.5, 45) mm, rotation 0°` supplies dimensions, center coordinates and rotation. Blank setup fields are null. If the profile is missing, the CLI reuses the last recorded setup when available.
 `setup.changed_since_last` reflects differences from the previous setup. `--setup-changed` and `--setup-same` override the comparison. Unknown `before` and `after` fields are null.
 `after.duration_min` is computed at `session end`. Edit fields afterwards only with `osucoach session update`.
+`session end` saves the end time and feedback before syncing scores. If sync fails, the session remains current and retrying `session end` keeps the original end time and feedback. Run it again promptly to recover scores.
 A session's scores are those with `created_at` from `started_at` to `ended_at` + 5 min.
 
 ## replay_stats.json (optional, one per replay)

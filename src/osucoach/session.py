@@ -97,6 +97,8 @@ def start(before: dict | None = None, setup_changed: bool | None = None) -> dict
 
 def stamp_end(session: dict) -> dict:
     """Set ended_at and the computed duration (does not touch the current pointer)."""
+    if session.get("ended_at"):
+        return session
     end = now_local()
     session["ended_at"] = end.isoformat(timespec="seconds")
     mins = round((end - parse_ts(session["started_at"])).total_seconds() / 60)
