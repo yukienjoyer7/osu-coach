@@ -471,7 +471,7 @@ def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
         "area_mm": [60, 40], "area_center_mm": [75.5, 45],
         "area_offset_mm": None, "area_rotation_deg": 0,
         "driver": "OpenTabletDriver, Absolute Mode", "keypad": "Example keypad",
-        "fps": 480, "client": "lazer", "changed_since_last": False,
+        "fps": 480, "client": "lazer", "changed_since_last": None,
     }
     SS.close(first_session["session_id"])
 
@@ -519,6 +519,21 @@ def test_legacy_player_setup_and_missing_profile_fallback(tmp_data, monkeypatch)
         "changed_since_last": True,
     }
     assert SS.load(first["session_id"]) == first
+
+
+def test_setup_change_is_unknown_when_only_one_side_is_known(tmp_data, monkeypatch):
+    clock = datetime(2026, 11, 21, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    profile = P.COACH / "player.md"
+    profile.parent.mkdir()
+    profile.write_text("- input: tablet\n", encoding="utf-8")
+    first = SS.start()
+    assert first["setup"]["changed_since_last"] is None
+    SS.close(first["session_id"])
+    clock += timedelta(minutes=1)
+    profile.write_text("- input: tablet\n- fps: 480\n", encoding="utf-8")
+    second = SS.start()
+    assert second["setup"]["changed_since_last"] is None
 
 
 def test_apply_updates_validation():
