@@ -6,6 +6,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 import pytest
+import httpx
 from typer.testing import CliRunner
 
 from osucoach import fetch as F
@@ -17,6 +18,22 @@ from osucoach import session as SS
 from osucoach import stats as ST
 from osucoach.api import OsuError
 from osucoach.cli import app
+
+
+def test_token_network_failure_is_secret_free(monkeypatch):
+    from osucoach.api import Client
+
+    monkeypatch.setenv("OSU_CLIENT_ID", "1")
+    monkeypatch.setenv("OSU_CLIENT_SECRET", "test-secret")
+    client = Client()
+
+    def fail(*args, **kwargs):
+        raise httpx.ConnectError("test-secret")
+
+    monkeypatch.setattr(client._http, "post", fail)
+    with pytest.raises(OsuError, match="token network error") as error:
+        client.get("/test")
+    assert "test-secret" not in str(error.value)
 
 
 # ---- gap -------------------------------------------------------------------

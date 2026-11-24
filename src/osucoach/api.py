@@ -40,15 +40,24 @@ class Client:
     def _auth(self) -> str:
         if self._token:
             return self._token
-        r = self._http.post(TOKEN_URL, json={
-            "client_id": int(self.cid) if self.cid.isdigit() else self.cid,
-            "client_secret": self.secret,
-            "grant_type": "client_credentials",
-            "scope": "public",
-        })
+        try:
+            r = self._http.post(TOKEN_URL, json={
+                "client_id": int(self.cid) if self.cid.isdigit() else self.cid,
+                "client_secret": self.secret,
+                "grant_type": "client_credentials",
+                "scope": "public",
+            })
+        except httpx.HTTPError as e:
+            raise OsuError(f"token network error: {type(e).__name__}") from None
         if r.status_code != 200:
             raise OsuError(f"token request failed (HTTP {r.status_code}); check client id/secret")
-        self._token = r.json()["access_token"]
+        try:
+            token = r.json()["access_token"]
+            if not isinstance(token, str) or not token:
+                raise ValueError
+        except (ValueError, KeyError, TypeError):
+            raise OsuError("token response was invalid") from None
+        self._token = token
         return self._token
 
     def request(self, method: str, path: str, **kw):
