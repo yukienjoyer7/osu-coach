@@ -30,6 +30,16 @@
     ]
   },
   {
+    "id": "practice-intent",
+    "mode": "pre",
+    "prompt": "An experienced osu!standard player says: 'I want to improve aim for both difficult jump maps and tournament consistency. I have 45 minutes, no pain, and some maps I know well. What should I practice today and how would we know if it helped?' Suggest an actionable plan without inventing map names or results.",
+    "criteria": [
+      "Gives a feasible plan within 45 minutes that distinguishes exploring challenging jumps from practicing reliable execution, with room for player choice.",
+      "Suggests an observable, map-specific baseline or later comparison under comparable conditions, rather than treating one session as proof of learning.",
+      "Does not claim a fixed accuracy target is universally optimal or guarantee tournament success or rank gain."
+    ]
+  },
+  {
     "id": "practice-retention",
     "mode": "post",
     "prompt": "An osu! player practicing alternating patterns says: 'My first attempt on the same map was 91% and my fourth attempt was 97%, with the same mods. Did this drill permanently fix my alternating? What next?' They report no pain. Give a short review and a practical follow-up.",
