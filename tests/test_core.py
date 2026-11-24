@@ -360,8 +360,45 @@ def test_recent_sync_records_page_limit(tmp_data, monkeypatch):
     sync = context.build(sess["session_id"])["scores_sync"]
     assert len(rows) == 100
     assert sync["page_limit_reached"] is True
+    assert sync["limit_reached_ever"] is True
     assert sync["returned_scores"] == 100
     assert sync["oldest_returned_at"] == RAW["ended_at"]
+    client = Client()
+    monkeypatch.setattr(client, "get", lambda *args, **kwargs: [])
+    F.fetch_recent(client, sess["session_id"], sess)
+    later = F.recent_sync(sess["session_id"])
+    assert later["page_limit_reached"] is False and later["limit_reached_ever"] is True
+
+
+def test_old_full_sync_metadata_is_flagged(tmp_data):
+    from osucoach.store import write_json
+
+    sess = SS.start()
+    sid = sess["session_id"]
+    write_json(P.session_dir(sid) / "scores_sync.json",
+               {"returned_scores": 100, "page_limit_reached": False})
+    assert F.recent_sync(sid)["limit_reached_ever"] is True
+
+
+def test_recent_fetch_exposes_limit_warning(tmp_data, monkeypatch):
+    from osucoach import cli
+    from osucoach.store import write_json
+
+    sess = SS.start()
+    sid = sess["session_id"]
+    monkeypatch.setattr(cli, "_client", lambda: object())
+
+    def fetch(client, session_id, session):
+        write_json(P.session_dir(session_id) / "scores_sync.json",
+                   {"returned_scores": 100, "page_limit_reached": True})
+        return []
+
+    monkeypatch.setattr(F, "fetch_recent", fetch)
+    runner = CliRunner()
+    result = runner.invoke(app, ["fetch", "recent", "--session", sid])
+    assert result.exit_code == 0 and "coverage may be incomplete" in result.output
+    result = runner.invoke(app, ["fetch", "recent", "--session", sid, "--json"])
+    assert json.loads(result.output)["scores_sync"]["limit_reached_ever"] is True
 
 
 @pytest.fixture

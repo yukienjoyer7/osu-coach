@@ -102,6 +102,7 @@ Each block summary also counts assigned plays that started before the block (`cr
 A session's scores are those with `created_at` from `started_at` to `ended_at` + 5 min. If a new session starts within that grace period, the same score can appear in both sessions. Compare score IDs before combining statistics across sessions.
 
 `scores_sync.json` records `fetched_at`, the number of scores returned by the API, whether the recent-score limit was reached, and the oldest and newest returned timestamps. It describes the most recent request, while `scores.json` merges scores from prior requests. osu!web currently limits recent-score results to 100 total. A full response indicates potential truncation. A smaller response also does not prove complete coverage because the API's recent history is limited and scores may be unavailable. Older metadata may incorrectly report the limit as not reached after a full first page.
+`limit_reached_ever` remains true after an observed full response, including identifiable older metadata with at least 100 returned scores. It covers only recorded sync history and cannot recover unrecorded earlier gaps.
 
 First and last 20-minute statistics require at least 40 minutes between the earliest and latest recorded score timestamps. The first window excludes its endpoint and the last includes its start, preventing overlap at exactly 40 minutes. These windows follow recorded score end times, not session start and end.
 

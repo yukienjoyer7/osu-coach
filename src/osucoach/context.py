@@ -45,7 +45,7 @@ def build(session_id=None):
             {"session_id": previous_id,
              "review": _text(paths.COACH / "reviews" / f"{previous_id}.md"),
              "session": session.load(previous_id),
-             "scores_sync": read_json(paths.session_dir(previous_id) / "scores_sync.json")}
+             "scores_sync": fetch.recent_sync(previous_id)}
             for previous_id in [item for item in ids if sid and item < sid][-3:]
         ],
         "scores_file_modified_at": None,
@@ -69,7 +69,7 @@ def build(session_id=None):
         score_path = paths.session_dir(sid) / "scores.json"
         rows = read_json(score_path)
         result["scores_file_modified_at"] = _file_time(score_path)
-        result["scores_sync"] = read_json(paths.session_dir(sid) / "scores_sync.json")
+        result["scores_sync"] = fetch.recent_sync(sid)
         if rows is not None:
             def sr(row):
                 beatmap = read_json(fetch.beatmap_path(row["beatmap_id"], scores.score_mods(row)))

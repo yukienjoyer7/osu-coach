@@ -94,11 +94,21 @@ def in_session(created_at: str, start, end) -> bool:
     return t >= start and (end is None or t <= end + SESSION_GRACE)
 
 
+def recent_sync(session_id: str) -> dict | None:
+    sync = read_json(P.session_dir(session_id) / "scores_sync.json")
+    if sync is not None:
+        sync["limit_reached_ever"] = bool(sync.get("limit_reached_ever") or sync.get("page_limit_reached")
+                                          or sync.get("returned_scores", 0) >= 100)
+    return sync
+
+
 def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
     """Fetch recent scores inside the session window, merge with any saved, write scores.json."""
     start = parse_ts(session["started_at"])
     end = parse_ts(session["ended_at"]) if session.get("ended_at") else None
     path = P.session_dir(session_id) / "scores.json"
+    sync_path = P.session_dir(session_id) / "scores_sync.json"
+    previous_sync = recent_sync(session_id) or {}
     merged = {s["score_id"]: s for s in read_json(path, [])}  # recent only spans 24h: keep old
     raw, page_limit_reached = _recent_raw(c)
     for r in raw:
@@ -111,10 +121,13 @@ def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
     write_json(path, scores)
     timestamps = [r.get("ended_at") or r.get("started_at") for r in raw]
     timestamps = [t for t in timestamps if t]
-    write_json(P.session_dir(session_id) / "scores_sync.json", {
+    write_json(sync_path, {
         "fetched_at": now_local().isoformat(timespec="seconds"),
         "returned_scores": len(raw),
         "page_limit_reached": page_limit_reached,
+        "limit_reached_ever": bool(page_limit_reached or previous_sync.get("limit_reached_ever")
+                                   or previous_sync.get("page_limit_reached")
+                                   or previous_sync.get("returned_scores", 0) >= 100),
         "oldest_returned_at": min(timestamps, key=parse_ts) if timestamps else None,
         "newest_returned_at": max(timestamps, key=parse_ts) if timestamps else None,
     })

@@ -109,8 +109,10 @@ def fetch_recent(session: Optional[str] = typer.Option(None, "--session", help="
     """Scores (incl. fails) of a session -> sessions/<id>/scores.json."""
     sid = _run(SS.resolve, session)
     scores = _run(F.fetch_recent, _client(), sid, SS.load(sid))
-    _out({"session_id": sid, "scores": len(scores)}, json_out,
-         f"{sid}: {len(scores)} scores saved")
+    sync = F.recent_sync(sid)
+    warning = " (recent score limit reached; coverage may be incomplete)" if sync and sync.get("limit_reached_ever") else ""
+    _out({"session_id": sid, "scores": len(scores), "scores_sync": sync}, json_out,
+         f"{sid}: {len(scores)} scores saved{warning}")
 
 
 @fetch_app.command("beatmap")
@@ -316,8 +318,10 @@ def session_end(fatigue: Optional[int] = typer.Option(None, "--fatigue", help="1
     write_json(P.session_dir(sid) / "scores.json", scores)
     SS.save(sess)
     SS.close(sid)
-    _out({"session_id": sid, "scores": len(scores), "maps": maps}, json_out,
-         f"session {sid} ended: {len(scores)} scores, {maps} maps ({api} fetched)")
+    sync = F.recent_sync(sid)
+    warning = " (recent score limit reached; coverage may be incomplete)" if sync and sync.get("limit_reached_ever") else ""
+    _out({"session_id": sid, "scores": len(scores), "maps": maps, "scores_sync": sync}, json_out,
+         f"session {sid} ended: {len(scores)} scores, {maps} maps ({api} fetched){warning}")
 
 
 @session_app.command("update")
