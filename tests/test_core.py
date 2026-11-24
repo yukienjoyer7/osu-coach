@@ -1138,3 +1138,12 @@ def test_consecutive_repeats_respect_map_mods_and_intervening_plays():
     assert groups[(10, ("HD",))]["consecutive_recorded_repeats"] == 0
     assert groups[(20, ())]["consecutive_recorded_repeats"] == 0
     assert "rept" in ST.render("session", summary)
+
+
+def test_score_mapping_preserves_source_identifiers_without_inference():
+    known = S.map_score({**RAW, "legacy_score_id": 12345, "build_id": None})
+    assert known["legacy_score_id"] == 12345 and known["build_id"] is None
+    current = S.map_score({**RAW, "legacy_score_id": None, "build_id": 800})
+    assert current["legacy_score_id"] is None and current["build_id"] == 800
+    unknown = S.map_score(RAW)
+    assert unknown["legacy_score_id"] is None and unknown["build_id"] is None
