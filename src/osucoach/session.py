@@ -94,13 +94,11 @@ def start(before: dict | None = None, setup_changed: bool | None = None) -> dict
     setup.update(previous_setup if player_setup is None else player_setup)
     comparable = [(setup[key], previous_setup.get(key)) for key in SETUP_FIELDS
                   if setup[key] is not None and previous_setup.get(key) is not None]
-    unknown = any((setup[key] is None) != (previous_setup.get(key) is None) for key in SETUP_FIELDS)
     if any(current != previous for current, previous in comparable):
         setup["changed_since_last"] = True
-    elif not previous_setup or not comparable or unknown:
-        setup["changed_since_last"] = None
     else:
-        setup["changed_since_last"] = False
+        # Matching recorded fields cannot rule out unrecorded or stale setup changes.
+        setup["changed_since_last"] = None
     sess = {
         "session_id": sid,
         "started_at": now.isoformat(timespec="seconds"),

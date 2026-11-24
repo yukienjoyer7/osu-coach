@@ -704,7 +704,10 @@ def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
 
     started_at += timedelta(minutes=1)
     third = SS.start()
-    assert third["setup"]["changed_since_last"] is False
+    assert third["setup"]["changed_since_last"] is None
+    SS.close(third["session_id"])
+    started_at += timedelta(minutes=1)
+    assert SS.start(setup_changed=False)["setup"]["changed_since_last"] is False
 
 
 def test_legacy_player_setup_and_missing_profile_fallback(tmp_data, monkeypatch):
