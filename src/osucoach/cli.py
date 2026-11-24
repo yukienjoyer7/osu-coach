@@ -401,6 +401,17 @@ def session_block(label: str = typer.Argument(..., help="Name of the block begin
     _out(marker, json_out, f"{sid}: block {marker['label']} started")
 
 
+@session_app.command("observe")
+def session_observe(text: str = typer.Argument(..., help="Player observation to record"),
+                    json_out: bool = JSON) -> None:
+    """Record a player observation during the open session."""
+    sid = SS.current()
+    if not sid:
+        _fail(OsuError("no open session"))
+    observation = _run(SS.add_observation, SS.load(sid), text)
+    _out(observation, json_out, f"{sid}: observation recorded")
+
+
 def _after_opts(fatigue, pain, enjoyment, felt_hard, notes) -> dict:
     return {"fatigue_1_5": fatigue, "hand_pain_0_10": pain, "enjoyment_1_5": enjoyment,
             "felt_hard": felt_hard, "notes": notes}

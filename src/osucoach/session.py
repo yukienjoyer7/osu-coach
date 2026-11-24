@@ -143,6 +143,19 @@ def mark_block(session: dict, label: str) -> dict:
     return marker
 
 
+def add_observation(session: dict, text: str) -> dict:
+    """Record a player observation with the time it was reported, not when it occurred."""
+    text = text.strip()
+    if not text:
+        raise OsuError("observation cannot be empty")
+    if session.get("ended_at"):
+        raise OsuError("session has ended; use session update for retrospective notes")
+    observation = {"reported_at": now_local().isoformat(timespec="seconds"), "text": text}
+    session.setdefault("observations", []).append(observation)
+    save(session)
+    return observation
+
+
 def close(session_id: str) -> None:
     if current() == session_id:
         P.CURRENT.unlink()

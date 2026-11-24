@@ -762,6 +762,29 @@ def test_setup_change_is_unknown_when_only_one_side_is_known(tmp_data, monkeypat
     assert second["setup"]["changed_since_last"] is None
 
 
+def test_live_observations_preserve_reports_and_recording_time(tmp_data, monkeypatch):
+    from osucoach import context
+
+    clock = datetime(2026, 11, 21, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    session = SS.start()
+    runner = CliRunner()
+    first = runner.invoke(app, ["session", "observe", "  streams felt tense  ", "--json"])
+    assert first.exit_code == 0, first.output
+    assert json.loads(first.output) == {"reported_at": clock.isoformat(timespec="seconds"),
+                                        "text": "streams felt tense"}
+    clock += timedelta(minutes=5)
+    assert runner.invoke(app, ["session", "observe", "aim felt better"]).exit_code == 0
+    assert runner.invoke(app, ["session", "observe", "   "]).exit_code != 0
+    observations = context.build(session["session_id"])["session"]["observations"]
+    assert [item["text"] for item in observations] == ["streams felt tense", "aim felt better"]
+    assert observations[1]["reported_at"] == clock.isoformat(timespec="seconds")
+    session = SS.load(session["session_id"])
+    session["ended_at"] = clock.isoformat(timespec="seconds")
+    SS.save(session)
+    assert runner.invoke(app, ["session", "observe", "too late"]).exit_code != 0
+
+
 def test_apply_updates_validation():
     s = {"before": {}, "after": {}, "setup": {}}
     with pytest.raises(OsuError):

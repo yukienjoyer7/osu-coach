@@ -29,13 +29,14 @@ Write `coach/plans/<id>.md`:
 Triggered when a session is open and the user asks something.
 - Run `osucoach fetch recent --session <id>` then `osucoach stats <id> --json`. If fetching fails, say current scores are unavailable, use saved evidence only with its sync time and limits, and ask the player what just happened when needed. Do not delay a response to reported pain.
 - Answer in 3-5 lines. One actionable thing.
+- When the player shares a relevant observation, use `osucoach session observe "..."` to record their words or a clearly identified summary. Its timestamp is when it was recorded, not necessarily when the experience occurred. Do not infer a diagnosis from the report.
 - Use only this session's scores plus player.md and the current plan.
 - Do not rewrite the plan unless asked.
 - Compare early and late performance only when the maps and conditions are comparable. Check `ordering_evidence` and score coverage; tied or uncertain timestamps can make the order and half assignment ambiguous. A change alone cannot establish fatigue. Ask how the player feels and suggest a break when appropriate.
 - If the user mentions pain, tell them to stop for today.
 
 ### post: review the session
-Inputs: session.json, saved scores, beatmaps/, replay_stats.json if present, the plan, `osucoach stats <id> --json`. If the session was closed offline or the latest sync predates its end, fetch recent scores promptly when possible. If fetching fails, review the player's description and available saved evidence, explicitly mark missing results as unknown, and avoid inventing metrics. Use `osucoach scores <id>` to inspect the recorded scores and coverage metadata without reading data files directly.
+Inputs: session.json, including any recorded observations, saved scores, beatmaps/, replay_stats.json if present, the plan, `osucoach stats <id> --json`. If the session was closed offline or the latest sync predates its end, fetch recent scores promptly when possible. If fetching fails, review the player's description and available saved evidence, explicitly mark missing results as unknown, and avoid inventing metrics. Use `osucoach scores <id>` to inspect the recorded scores and coverage metadata without reading data files directly.
 If fatigue, enjoyment, pain or what felt hard is missing, ask the player for the missing values in one line and record their answers with `osucoach session update <id> ...`.
 Write `coach/reviews/<id>.md`:
 - Plan vs actual: followed? metrics hit?
