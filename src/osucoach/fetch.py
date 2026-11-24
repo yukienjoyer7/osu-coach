@@ -83,14 +83,10 @@ def fetch_best(c: Client) -> list[dict]:
 
 
 def _recent_raw(c: Client) -> tuple[list[dict], bool]:
-    out: list[dict] = []
-    for page in range(5):  # API caps at 100/page; recent covers ~24h
-        chunk = c.get(f"/users/{c.user_id}/scores/recent", mode="osu",
-                      include_fails=1, limit=100, offset=page * 100)
-        out += chunk
-        if len(chunk) < 100:
-            break
-    return out, len(chunk) == 100
+    # osu!web currently caps recent scores at 100 total, including pagination.
+    rows = c.get(f"/users/{c.user_id}/scores/recent", mode="osu",
+                 include_fails=1, limit=100, offset=0)
+    return rows, len(rows) >= 100
 
 
 def in_session(created_at: str, start, end) -> bool:

@@ -353,13 +353,14 @@ def test_recent_sync_records_page_limit(tmp_data, monkeypatch):
 
         def get(self, path, **params):
             offset = params["offset"]
+            assert offset == 0
             return [{**RAW, "id": offset + i} for i in range(100)]
 
     rows = F.fetch_recent(Client(), sess["session_id"], sess)
     sync = context.build(sess["session_id"])["scores_sync"]
-    assert len(rows) == 500
+    assert len(rows) == 100
     assert sync["page_limit_reached"] is True
-    assert sync["returned_scores"] == 500
+    assert sync["returned_scores"] == 100
     assert sync["oldest_returned_at"] == RAW["ended_at"]
 
 
