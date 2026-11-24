@@ -21,7 +21,7 @@ Write `coach/plans/<id>.md`:
 - **Map criteria per block**: star range, BPM, AR, length, mods, pattern type. Use cached attributes as selection aids, consider their fetch time and verify pattern type and ranked status. Star rating alone cannot establish a player's skill or why a map is difficult for them. Suggest 2-3 example maps only if confident they exist and are ranked.
 - **Retry guidance**: agree a reasonable switching point with the player, adjusted to the purpose of the block.
 - **Success metric**: 1-2 measurable targets (pass rate, acc on focus maps, misses per map). When useful, choose a small map-specific target with the player using `osucoach history BEATMAP_ID` and a comparable recorded baseline [community]. If none exists, establish one before setting a performance target. A first recorded score is not necessarily a first-ever play.
-- **Hypothesis tag**: `H-<short-name>`, from player.md or a new one.
+- **Hypothesis**: use `H-<short-name>` from player.md or a new one. State what the player expects, what observation would support or challenge it, and a comparable later check when practical. Treat it as provisional.
 
 ### live: mid-session question
 Triggered when a session is open and the user asks something.
@@ -42,11 +42,12 @@ Write `coach/reviews/<id>.md`:
 - Compare with the last 3 sessions when conditions and coverage permit. Check their plans, reported experience and score summaries in `osucoach context`; missing statistics are unknown. One bad session is noise, not a trend.
 - 1-3 adjustments for next time, each tagged `[data]`, `[science]` or `[community]`.
 
-Then append to `coach/journal.md`:
+Use `unknown` when a target cannot be evaluated from the recorded evidence. Then append to `coach/journal.md`:
 ```
 ## <session_id> | focus: <skill> | H-<tag>
 - metrics: ...
-- verdict: hit | partial | miss
+- hypothesis evidence and limitations: ...
+- verdict: hit | partial | miss | unknown
 - subjective: fatigue x, enjoyment y, pain z
 - setup changed: yes/no/unknown (what, if known)
 - next: ...

@@ -738,6 +738,30 @@ def test_context_previous_reviews_follow_selected_session(tmp_data, monkeypatch)
     assert previous[0]["scores_sync"] is None
 
 
+def test_context_journal_does_not_include_future_or_undated_entries(tmp_data, monkeypatch):
+    from osucoach import context
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    ids = []
+    for _ in range(3):
+        sess = SS.start()
+        ids.append(sess["session_id"])
+        SS.close(sess["session_id"])
+        clock += timedelta(minutes=1)
+    P.COACH.mkdir(parents=True, exist_ok=True)
+    (P.COACH / "journal.md").write_text(
+        f"# Journal\n## {ids[0]} | focus: aim\nold\n"
+        f"## {ids[1]} | focus: aim\nselected\n"
+        f"## notes\nunknown date\n## {ids[2]} | focus: aim\nfuture\n", encoding="utf-8")
+    result = context.build(ids[1])
+    assert "old" in result["recent_journal"] and "selected" in result["recent_journal"]
+    assert "future" not in result["recent_journal"] and "unknown date" not in result["recent_journal"]
+    assert result["journal_undated_sections_omitted"] == 1
+
+
 def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
     from osucoach import context
 

@@ -49,12 +49,27 @@ def build(session_id=None):
     journal = _text(paths.COACH / "journal.md")
     entries = re.split(r"(?m)(?=^## )", journal) if journal else []
     sections = [entry for entry in entries if entry.startswith("## ")]
-    recent_journal = "".join(sections[-3:]) if sections else journal
+    omitted_undated = 0
+    if sid and sections:
+        eligible = []
+        for entry in sections:
+            match = re.match(r"## (\d{4}-\d{2}-\d{2}_\d{4})(?:\s|\||$)", entry)
+            if not match:
+                omitted_undated += 1
+            elif match.group(1) <= sid:
+                eligible.append(entry)
+        recent_journal = "".join(eligible[-3:]) or None
+    elif sid and journal:
+        recent_journal = None
+        omitted_undated = 1
+    else:
+        recent_journal = "".join(sections[-3:]) if sections else journal
     result = {
         "schema_version": 1,
         "account": account.binding(),
         "player": _text(paths.COACH / "player.md"),
         "recent_journal": recent_journal,
+        "journal_undated_sections_omitted": omitted_undated,
         "profile": profile,
         "best": read_json(paths.BEST),
         "best_sync": read_json(paths.BEST.with_name("best_sync.json")),
