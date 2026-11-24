@@ -97,6 +97,8 @@ A session's scores are those with `created_at` from `started_at` to `ended_at` +
 
 `scores_sync.json` records `fetched_at`, the number of scores returned by the API, whether the five-page request limit was reached, and the oldest and newest returned timestamps. It describes the most recent request, while `scores.json` merges scores from prior requests. A full page limit indicates potential truncation. A smaller response also does not prove complete coverage because the API's recent history is limited and scores may be unavailable. Older sessions may lack this file.
 
+First and last 20-minute statistics require at least 40 minutes between the earliest and latest recorded score timestamps. The first window excludes its endpoint and the last includes its start, preventing overlap at exactly 40 minutes. These windows follow recorded score end times, not session start and end.
+
 Stats expose `first_recorded_attempts` and `later_recorded_attempts`, grouped by beatmap ID within the saved session scores regardless of mods. These are first recorded attempts in that session, not necessarily first-ever or sightread plays. Missing scores can change the grouping. They describe performance under different potentially non-comparable conditions and do not establish learning or transfer.
 
 ## replay_stats.json (optional, one per replay)

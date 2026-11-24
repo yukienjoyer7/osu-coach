@@ -616,6 +616,21 @@ def test_stats_empty_and_render():
     assert "no plays" in ST.render("x", {"plays": 0})
 
 
+def test_twenty_minute_windows_do_not_overlap_or_use_rounded_span():
+    rows = S.add_retry_index([
+        _sc(1, 1, "2026-01-01T00:00:00Z"),
+        _sc(2, 2, "2026-01-01T00:20:00Z"),
+        _sc(3, 3, "2026-01-01T00:40:00Z"),
+    ])
+    summary = ST.compute(rows)
+    assert summary["first_20min"]["plays"] == 1
+    assert summary["last_20min"]["plays"] == 2
+    rows[-1]["created_at"] = "2026-01-01T00:39:59Z"
+    summary = ST.compute(rows)
+    assert summary["span_min"] == 40.0
+    assert summary["first_20min"] is None and summary["last_20min"] is None
+
+
 def test_map_stats_separate_custom_mod_settings():
     rows = [_sc(1, 11, "2026-01-01T00:00:00Z", acc=0.98),
             _sc(2, 11, "2026-01-01T00:10:00Z", acc=0.90)]

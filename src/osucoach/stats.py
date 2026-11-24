@@ -79,8 +79,8 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
 
     # first vs last 20 minutes (only meaningful if the session is long enough)
     w = WINDOW_MIN * 60
-    if out["span_min"] >= 2 * WINDOW_MIN:
-        early = [r for r in rows if (parse_ts(r["created_at"]) - first).total_seconds() <= w]
+    if (last - first).total_seconds() >= 2 * w:
+        early = [r for r in rows if (parse_ts(r["created_at"]) - first).total_seconds() < w]
         late = [r for r in rows if (last - parse_ts(r["created_at"])).total_seconds() <= w]
         out["first_20min"], out["last_20min"] = _block(early), _block(late)
     else:
