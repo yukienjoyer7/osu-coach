@@ -88,7 +88,7 @@ Optional `blocks` is an ordered array of `{ "label": "focus", "started_at": "ISO
 `session end` saves the end time and feedback before syncing scores. If sync fails, the session remains current and retrying `session end` keeps the original end time and feedback. Run it again promptly to recover scores.
 `session end --offline` closes the saved session without fetching. Sync it later with `fetch recent --session ID` and `fetch beatmaps --session ID`. Existing scores and sync metadata, if any, are retained and may be incomplete.
 `stats` returns an error when `scores.json` is missing. An existing empty array reports zero recorded plays, subject to the same coverage limitations as any fetched data.
-A session's scores are those with `created_at` from `started_at` to `ended_at` + 5 min.
+A session's scores are those with `created_at` from `started_at` to `ended_at` + 5 min. If a new session starts within that grace period, the same score can appear in both sessions. Compare score IDs before combining statistics across sessions.
 
 `scores_sync.json` records `fetched_at`, the number of scores returned by the API, whether the five-page request limit was reached, and the oldest and newest returned timestamps. It describes the most recent request, while `scores.json` merges scores from prior requests. A full page limit indicates potential truncation. A smaller response also does not prove complete coverage because the API's recent history is limited and scores may be unavailable. Older sessions may lack this file.
 

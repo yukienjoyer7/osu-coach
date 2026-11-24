@@ -450,6 +450,24 @@ def test_context_previous_reviews_follow_selected_session(tmp_data, monkeypatch)
     ]
 
 
+def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
+    from osucoach import context
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    first = SS.start()
+    clock += timedelta(minutes=10)
+    SS.stamp_end(first)
+    SS.save(first)
+    SS.close(first["session_id"])
+    clock += timedelta(minutes=2)
+    second = SS.start()
+    assert context.build(first["session_id"])["overlapping_session_ids"] == [second["session_id"]]
+    assert context.build(second["session_id"])["overlapping_session_ids"] == [first["session_id"]]
+
+
 # ---- stats -----------------------------------------------------------------------
 def test_stats_basic():
     rows = [_sc(1, 1, "2026-01-01T00:00:00Z", True, 0.96), _sc(2, 1, "2026-01-01T00:10:00Z", False),

@@ -1,8 +1,8 @@
 """Offline context for an agent taking over a coaching session."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from . import fetch, paths, scores, session, stats
-from .store import read_json
+from .store import parse_ts, read_json
 
 
 def _text(path):
@@ -45,9 +45,22 @@ def build(session_id=None):
         ],
         "scores_file_modified_at": None,
         "scores_sync": None,
+        "overlapping_session_ids": [],
         "stats": None,
     }
     if sid:
+        current_session = result["session"]
+        start = parse_ts(current_session["started_at"])
+        end = parse_ts(current_session["ended_at"]) if current_session.get("ended_at") else None
+        for other_id in ids:
+            if other_id == sid:
+                continue
+            other = session.load(other_id)
+            other_start = parse_ts(other["started_at"])
+            other_end = parse_ts(other["ended_at"]) if other.get("ended_at") else None
+            if ((end is None or other_start <= end + timedelta(minutes=5))
+                    and (other_end is None or start <= other_end + timedelta(minutes=5))):
+                result["overlapping_session_ids"].append(other_id)
         score_path = paths.session_dir(sid) / "scores.json"
         rows = read_json(score_path)
         result["scores_file_modified_at"] = _file_time(score_path)
