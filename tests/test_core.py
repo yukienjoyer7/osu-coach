@@ -1408,3 +1408,30 @@ def test_discover_filters_player_tags_without_claiming_pattern(tmp_data, monkeyp
     assert [item["beatmap_id"] for item in result["ranked_osu_candidates"]] == [11]
     assert result["ranked_osu_candidates"][0]["user_tags"] == ["bursts"]
     assert any("subjective" in item for item in result["selection_limits"])
+
+
+def test_map_attributes_batch_preserves_successes_and_errors(monkeypatch):
+    from osucoach import cli
+    monkeypatch.setattr(cli, "_client", lambda: object())
+    calls = []
+    def fetch(client, beatmap_id, mods, refresh):
+        calls.append((beatmap_id, mods, refresh))
+        if beatmap_id == 12:
+            raise OsuError("map unavailable")
+        return {"star_rating": 5.5, "mods": ["DT"]}, True
+    monkeypatch.setattr(F, "fetch_beatmap", fetch)
+    result = CliRunner().invoke(app, ["map-attributes", "11,12,11", "--mods", "DT", "--rate", "1.3"])
+    assert result.exit_code == 0, result.output
+    output = json.loads(result.output)
+    assert [row["beatmap_id"] for row in output["results"]] == [11, 12]
+    assert output["results"][0]["attributes"]["star_rating"] == 5.5
+    assert output["results"][1]["attributes"] is None and output["results"][1]["error"] == "map unavailable"
+    assert calls[0][1] == [{"acronym": "DT", "settings": {"speed_change": 1.3}}]
+
+
+def test_map_attributes_invalid_batch_fails_before_client(monkeypatch):
+    from osucoach import cli
+    monkeypatch.setattr(cli, "_client", lambda: (_ for _ in ()).throw(AssertionError("unexpected client")))
+    for ids in ("1,,2", "-1", "0", ",".join(str(i) for i in range(1, 27))):
+        result = CliRunner().invoke(app, ["map-attributes", "--", ids])
+        assert result.exit_code != 0 and "positive comma-separated" in result.output

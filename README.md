@@ -36,6 +36,8 @@ See `plan.md` for the build plan. Run `osucoach schema` for the data contract, i
 
 `osucoach map-search 'stars>=5 stars<6 bpm>=170 bpm<=210'` builds a link to the official ranked osu!standard beatmap listing for discovering additional maps. The website filters base map attributes, so verify individual difficulties, mods and pattern suitability before recommending them.
 
+Use `osucoach map-attributes 123,456 --mods DT --rate 1.3` to fetch or reuse attributes for up to 25 candidate difficulties. Results identify errors per map and do not establish ranked status or pattern type.
+
 Use two-character mod acronyms such as `HDDT` or `HD,DT`; `NM` must stand alone. Use `osucoach fetch beatmap 123 --mods DT --rate 1.3 --refresh` to refresh a custom-rate difficulty cache. Difficulty Adjust values in the standard 0–10 range can be specified with `--mods DA --ar 9 --od 8 --cs 4`. Extended-limit settings are not supported by these options.
 
 `osucoach map-tag 123 --tags jumps,bursts` replaces the user-supplied labels for beatmap 123. Find labeled candidates with `osucoach maps --tag jumps`. Labels apply to the beatmap across all mods, are subjective, and do not verify ranked status. An empty `--tags` value clears them.

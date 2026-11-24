@@ -231,6 +231,37 @@ def discover(query: str = typer.Argument("", help="osu! website search query"),
     typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
+@app.command("map-attributes")
+def map_attributes(beatmap_ids: str = typer.Argument(..., help="Comma-separated beatmap IDs, up to 25"),
+                   mods: Optional[str] = typer.Option(None, "--mods", help="e.g. HD,DT"),
+                   rate: Optional[float] = typer.Option(None, "--rate", help="Custom DT/NC/HT/DC rate"),
+                   refresh: bool = typer.Option(False, "--refresh", help="Refresh cached attributes")) -> None:
+    """Fetch comparable mod-adjusted attributes for a small set of candidates."""
+    parts = [part.strip() for part in beatmap_ids.split(",")]
+    if not parts or len(parts) > 25 or any(not part.isascii() or not part.isdecimal() or int(part) < 1 for part in parts):
+        _fail(OsuError("provide 1 to 25 positive comma-separated beatmap IDs"))
+    ids = list(dict.fromkeys(int(part) for part in parts))
+    selected = _run(M.parse_mods, mods)
+    if rate is not None:
+        speed_mods = [mod for mod in selected if mod["acronym"] in M.SPEED]
+        if not math.isfinite(rate) or rate <= 0 or len(speed_mods) != 1:
+            _fail(OsuError("--rate requires a positive finite value and exactly one DT, NC, HT or DC mod"))
+        speed_mods[0]["settings"] = {"speed_change": rate}
+    client = _client()
+    results = []
+    for beatmap_id in ids:
+        try:
+            attributes, fetched = F.fetch_beatmap(client, beatmap_id, selected, refresh)
+        except OsuError as exc:
+            results.append({"beatmap_id": beatmap_id, "attributes": None, "error": str(exc)})
+        else:
+            results.append({"beatmap_id": beatmap_id, "attributes": attributes, "fetched": fetched, "error": None})
+    typer.echo(json.dumps({"results": results, "selection_limits": [
+        "Attributes do not establish ranked status, pattern type or player familiarity.",
+        "BPM is map-level tempo and total length includes breaks; verify the relevant section.",
+    ]}, ensure_ascii=False, indent=2))
+
+
 @app.command("maps")
 def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
          max_sr: Optional[float] = typer.Option(None, "--max-sr", min=0),
