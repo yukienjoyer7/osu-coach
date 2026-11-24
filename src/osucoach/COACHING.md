@@ -29,7 +29,7 @@ Write `coach/plans/<id>.md`:
 Triggered when a session is open and the user asks something.
 - Run `osucoach fetch recent --session <id>` then `osucoach stats <id> --json`. If fetching fails, say current scores are unavailable, use saved evidence only with its sync time and limits, and ask the player what just happened when needed. Do not delay a response to reported pain.
 - Answer in 3-5 lines. One actionable thing.
-- When the player shares a relevant observation, use `osucoach session observe "..."` to record their words or a clearly identified summary. Its timestamp is when it was recorded, not necessarily when the experience occurred. Do not infer a diagnosis from the report.
+- When the player shares a relevant observation, use `osucoach session observe "..."` to record their words or a clearly identified summary. Add `--beatmap ID` only when the relevant map is identified. Its timestamp is when it was recorded, not necessarily when the experience occurred. Do not infer a diagnosis from the report.
 - Use only this session's scores plus player.md and the current plan.
 - Do not rewrite the plan unless asked.
 - Compare early and late performance only when the maps and conditions are comparable. Check `ordering_evidence` and score coverage; tied or uncertain timestamps can make the order and half assignment ambiguous. A change alone cannot establish fatigue. Ask how the player feels and suggest a break when appropriate.

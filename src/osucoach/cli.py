@@ -403,12 +403,14 @@ def session_block(label: str = typer.Argument(..., help="Name of the block begin
 
 @session_app.command("observe")
 def session_observe(text: str = typer.Argument(..., help="Player observation to record"),
+                    beatmap: Optional[int] = typer.Option(None, "--beatmap", min=1,
+                                                          help="Map ID only when the player identifies it."),
                     json_out: bool = JSON) -> None:
     """Record a player observation during the open session."""
     sid = SS.current()
     if not sid:
         _fail(OsuError("no open session"))
-    observation = _run(SS.add_observation, SS.load(sid), text)
+    observation = _run(SS.add_observation, SS.load(sid), text, beatmap)
     _out(observation, json_out, f"{sid}: observation recorded")
 
 

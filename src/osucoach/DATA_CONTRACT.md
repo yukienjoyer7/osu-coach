@@ -4,6 +4,8 @@ The fetcher writes; the coach only reads `data/` and writes `coach/`.
 
 During an open session, `session observe TEXT` appends a player observation to `session.json` as `{ "reported_at": "timestamp", "text": "..." }`. `context` exposes these observations as part of the session, including previous sessions. The timestamp is when it was recorded and does not establish when the reported experience occurred, which block caused it, or a diagnosis. The text is a report, not a validated measurement. Older sessions may omit `observations`; after closing a session, use `session update --notes` for retrospective notes.
 
+`session observe TEXT --beatmap ID` optionally links a report to a map explicitly identified by the player. `history ID` returns matching reports in `map_observations`, even if that session has no score file. An absent report does not mean no difficulty, and the link alone does not establish the relevant play, mods, timing or cause.
+
 `osucoach context` returns the resolved absolute `workspace` path. Coaching files and generated plans/reviews are relative to it, which may differ from the process working directory. The path does not expose credential contents.
 
 ```

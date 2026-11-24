@@ -769,16 +769,21 @@ def test_live_observations_preserve_reports_and_recording_time(tmp_data, monkeyp
     monkeypatch.setattr(SS, "now_local", lambda: clock)
     session = SS.start()
     runner = CliRunner()
-    first = runner.invoke(app, ["session", "observe", "  streams felt tense  ", "--json"])
+    first = runner.invoke(app, ["session", "observe", "  streams felt tense  ", "--beatmap", "99", "--json"])
     assert first.exit_code == 0, first.output
     assert json.loads(first.output) == {"reported_at": clock.isoformat(timespec="seconds"),
-                                        "text": "streams felt tense"}
+                                        "text": "streams felt tense", "beatmap_id": 99}
     clock += timedelta(minutes=5)
     assert runner.invoke(app, ["session", "observe", "aim felt better"]).exit_code == 0
     assert runner.invoke(app, ["session", "observe", "   "]).exit_code != 0
     observations = context.build(session["session_id"])["session"]["observations"]
     assert [item["text"] for item in observations] == ["streams felt tense", "aim felt better"]
     assert observations[1]["reported_at"] == clock.isoformat(timespec="seconds")
+    history = json.loads(runner.invoke(app, ["history", "99"]).output)
+    assert history["missing_score_sessions"] == [session["session_id"]]
+    assert history["map_observations"] == [{"session_id": session["session_id"],
+                                             "observations": [observations[0]]}]
+    assert json.loads(runner.invoke(app, ["history", "100"]).output)["map_observations"] == []
     session = SS.load(session["session_id"])
     session["ended_at"] = clock.isoformat(timespec="seconds")
     SS.save(session)

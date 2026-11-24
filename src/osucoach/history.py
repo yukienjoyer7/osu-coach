@@ -5,8 +5,13 @@ from .store import parse_ts, read_json
 
 def map_history(beatmap_id: int) -> dict:
     entries = []
+    map_observations = []
     missing_sessions = []
     for sid in session.list_ids():
+        sess = session.load(sid)
+        observations = [item for item in sess.get("observations", []) if item.get("beatmap_id") == beatmap_id]
+        if observations:
+            map_observations.append({"session_id": sid, "observations": observations})
         score_path = paths.session_dir(sid) / "scores.json"
         rows = read_json(score_path)
         if rows is None:
@@ -14,7 +19,6 @@ def map_history(beatmap_id: int) -> dict:
             continue
         matches = [row for row in rows if row.get("beatmap_id") == beatmap_id]
         if matches:
-            sess = session.load(sid)
             entries.append({
                 "session_id": sid,
                 "session_started_at": sess.get("started_at"),
@@ -38,6 +42,7 @@ def map_history(beatmap_id: int) -> dict:
     duplicates = None if best_matches is None else sorted(
         session_ids & {row["score_id"] for row in best_matches})
     return {"beatmap_id": beatmap_id, "account": account.binding(), "sessions": entries,
+            "map_observations": map_observations,
             "missing_score_sessions": missing_sessions, "best_scores": best_matches,
             "best_sync": read_json(paths.BEST.with_name("best_sync.json")),
             "unique_recorded_session_score_count": len(session_ids),
