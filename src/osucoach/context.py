@@ -1,5 +1,6 @@
 """Offline context for an agent taking over a coaching session."""
 from datetime import datetime, timedelta, timezone
+import re
 
 from . import fetch, paths, scores, session, stats
 from .store import parse_ts, read_json
@@ -25,8 +26,9 @@ def build(session_id=None):
     sid = session.resolve(session_id) if session_id else session.current() or (ids[-1] if ids else None)
     profile = fetch.latest_profile()
     journal = _text(paths.COACH / "journal.md")
-    entries = journal.split("\n## ") if journal else []
-    recent_journal = "\n## ".join(entries[-3:]) if entries else None
+    entries = re.split(r"(?m)(?=^## )", journal) if journal else []
+    sections = [entry for entry in entries if entry.startswith("## ")]
+    recent_journal = "".join(sections[-3:]) if sections else journal
     result = {
         "schema_version": 1,
         "player": _text(paths.COACH / "player.md"),

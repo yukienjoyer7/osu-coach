@@ -456,6 +456,20 @@ def test_context_distinguishes_missing_and_empty_scores(tmp_data, monkeypatch):
     assert recorded["current_session_id"] == sid
 
 
+def test_context_keeps_recent_journal_headings(tmp_data, monkeypatch):
+    from osucoach import context
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    P.COACH.mkdir()
+    (P.COACH / "journal.md").write_text(
+        "# Journal\n\n## first\n- old\n\n## second\n- two\n\n"
+        "## third\n- three\n\n## fourth\n- four\n", encoding="utf-8")
+    assert context.build()["recent_journal"] == (
+        "## second\n- two\n\n## third\n- three\n\n## fourth\n- four\n"
+    )
+
+
 def test_cli_uses_explicit_workspace(tmp_path):
     workspace = tmp_path / "player workspace"
     (workspace / "coach").mkdir(parents=True)
