@@ -964,3 +964,22 @@ def test_context_prior_sessions_show_plans_and_coverage(tmp_data, monkeypatch):
     assert prior["stats"]["plays"] == 0 and prior["scores_sync"]["limit_reached_ever"]
     assert missing["session_id"] == second["session_id"] and missing["stats"] is None
     assert missing["plan"] is None and missing["scores_sync"] is None
+
+
+def test_difficulty_adjust_null_settings_keep_map_values(tmp_path, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEATMAPS", tmp_path / "beatmaps")
+    monkeypatch.setattr(P, "META_DIR", tmp_path / "meta")
+    write_json(P.META_DIR / "11.json", {"cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
+               "total_length": 100, "count_circles": 1, "count_sliders": 2, "count_spinners": 0})
+    mods = [{"acronym": "DA", "settings": {"circle_size": None, "approach_rate": 0,
+                                             "overall_difficulty": None}}]
+
+    class Client:
+        def post(self, path, body):
+            assert body["mods"] == mods
+            return {"attributes": {"star_rating": 5, "max_combo": 10}}
+
+    data, called = F.fetch_beatmap(Client(), 11, mods)
+    assert called and (data["cs"], data["ar"], data["od"]) == (4, 0, 8)

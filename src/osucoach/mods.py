@@ -83,9 +83,9 @@ def adjust(cs: float, ar: float, od: float, bpm: float, length_s: float,
         cs, ar, od = min(cs * 1.3, 10), min(ar * 1.4, 10), min(od * 1.4, 10)
     if "DA" in acr:
         s = acr["DA"]
-        cs = s.get("circle_size", cs)
-        ar = s.get("approach_rate", ar)
-        od = s.get("overall_difficulty", od)
+        cs = s["circle_size"] if s.get("circle_size") is not None else cs
+        ar = s["approach_rate"] if s.get("approach_rate") is not None else ar
+        od = s["overall_difficulty"] if s.get("overall_difficulty") is not None else od
     if {"WU", "WD", "AS"} & acr.keys():
         return {"cs": round(cs, 2), "ar": None, "od": None, "bpm": None, "length_s": None}
     r = rate(mods)
