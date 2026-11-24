@@ -39,6 +39,14 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     if not rows:
         return out
     passed = [r for r in rows if r["passed"]]
+    seen = set()
+    first_attempts, later_attempts = [], []
+    for row in rows:
+        target = later_attempts if row["beatmap_id"] in seen else first_attempts
+        target.append(row)
+        seen.add(row["beatmap_id"])
+    out["first_recorded_attempts"] = _block(first_attempts)
+    out["later_recorded_attempts"] = _block(later_attempts)
     out["passes"] = len(passed)
     out["pass_rate"] = _pass_rate(rows)
     out["acc_passed"] = _acc(rows)

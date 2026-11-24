@@ -447,6 +447,8 @@ def test_stats_basic():
     assert s["first_half"]["plays"] == 2 and s["second_half"]["plays"] == 2
     assert s["first_20min"] is None  # session too short for 20 min windows
     assert s["maps"][0]["plays"] == 2 and s["maps"][0]["max_retry"] in (2,)
+    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "acc_passed": 97.0}
+    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "acc_passed": 94.0}
 
 
 def test_stats_empty_and_render():
