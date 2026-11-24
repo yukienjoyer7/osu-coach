@@ -1,6 +1,6 @@
 # osu-coach
 
-Agent-in-repo osu!standard coach. The `osucoach` CLI fetches data from the osu! API v2. Agents can use `AGENTS.md` and the shared `COACHING.md` playbook to coach the player. The Claude skill points to the same playbook.
+Agent-in-repo osu!standard coach. The `osucoach` CLI fetches data from the osu! API v2. Agents can use `AGENTS.md` and the shared coaching playbook to coach the player. Run `osucoach guide` to print the playbook, including from an installed package. The Claude skill points to the same playbook.
 
 ## Setup
 ```

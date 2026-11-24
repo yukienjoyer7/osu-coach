@@ -36,6 +36,13 @@ def test_token_network_failure_is_secret_free(monkeypatch):
     assert "test-secret" not in str(error.value)
 
 
+def test_guide_exposes_coaching_rules():
+    result = CliRunner().invoke(app, ["guide"])
+    assert result.exit_code == 0, result.output
+    assert "Never read or print `.env`" in result.output
+    assert "## Evidence discipline" in result.output
+
+
 def test_unranked_player_and_empty_best_are_supported(monkeypatch):
     from osucoach import cli
 

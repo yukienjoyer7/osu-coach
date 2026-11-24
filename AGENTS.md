@@ -7,6 +7,7 @@ Data schemas: `DATA_CONTRACT.md`.
 ## Tools (run in shell)
 ```
 osucoach auth check
+osucoach guide
 osucoach session start | end | current | block LABEL | update [ID]
 osucoach fetch profile | best | threshold | recent [--session ID] | beatmap ID [--mods X] | beatmaps [--session ID]
 osucoach stats [ID]

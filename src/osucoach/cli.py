@@ -2,6 +2,7 @@
 import json
 import math
 import sys
+from importlib.resources import files
 from typing import Optional
 
 import typer
@@ -139,6 +140,12 @@ def fetch_beatmaps(session: Optional[str] = typer.Option(None, "--session", help
 
 
 # ---- gap -----------------------------------------------------------------
+@app.command("guide")
+def guide() -> None:
+    """Print the coaching playbook bundled with the installed package."""
+    typer.echo(files("osucoach").joinpath("COACHING.md").read_text(encoding="utf-8"))
+
+
 @app.command("maps")
 def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
          max_sr: Optional[float] = typer.Option(None, "--max-sr", min=0),
