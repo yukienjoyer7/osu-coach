@@ -34,14 +34,22 @@ def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
                    for field, low, high in filters):
                 continue
             settings = score.get("mod_settings") or {}
-            key = (score["beatmap_id"], tuple(score["mods"]), json.dumps(settings, sort_keys=True))
-            candidates[key] = {
-                "beatmap_id": score["beatmap_id"], "title": score.get("title"),
-                "version": score.get("version"), "mods": score["mods"],
-                "mod_settings": settings, "attributes": attributes,
-                "user_tags": tags,
-                "ranked_status": None, "pattern_type": None,
-            }
+            key = (score["beatmap_id"], tuple(sorted(score["mods"])), json.dumps(settings, sort_keys=True))
+            if key not in candidates:
+                candidates[key] = {
+                    "beatmap_id": score["beatmap_id"], "title": score.get("title"),
+                    "version": score.get("version"), "mods": score["mods"],
+                    "mod_settings": settings, "attributes": attributes,
+                    "user_tags": tags,
+                    "ranked_status": None, "pattern_type": None,
+                    "recorded_score_ids": set(),
+                }
+            score_id = score.get("score_id")
+            if type(score_id) is int:
+                candidates[key]["recorded_score_ids"].add(score_id)
+    for candidate in candidates.values():
+        candidate["recorded_score_ids"] = sorted(candidate["recorded_score_ids"])
+        candidate["recorded_score_count"] = len(candidate["recorded_score_ids"])
     return sorted(candidates.values(), key=lambda item: (item["attributes"]["star_rating"], item["beatmap_id"]))
 
 

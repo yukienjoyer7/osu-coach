@@ -978,6 +978,7 @@ def test_maps_filter_recorded_cached_attributes(tmp_data, monkeypatch):
     maps = json.loads(result.output)["maps"]
     assert len(maps) == 1 and maps[0]["beatmap_id"] == 99
     assert maps[0]["mod_settings"]["DT"]["speed_change"] == 1.3
+    assert maps[0]["recorded_score_ids"] == [1] and maps[0]["recorded_score_count"] == 1
     assert maps[0]["ranked_status"] is None and maps[0]["pattern_type"] is None
     assert runner.invoke(app, ["maps", "--min-sr", "7", "--max-sr", "6"]).exit_code != 0
     assert len(json.loads(runner.invoke(app, ["maps", "--min-ar", "9", "--max-length", "120"]).output)["maps"]) == 1
@@ -990,6 +991,22 @@ def test_maps_filter_recorded_cached_attributes(tmp_data, monkeypatch):
     assert json.loads(runner.invoke(app, ["maps", "--tag", "streams"]).output)["maps"] == []
     assert runner.invoke(app, ["map-tag", "99", "--tags", ""]).exit_code == 0
     assert json.loads(runner.invoke(app, ["maps", "--tag", "jumps"]).output)["maps"] == []
+
+
+def test_maps_count_distinct_scores_across_mod_order(tmp_data, monkeypatch):
+    from osucoach import maps
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    first = _sc(1, 99, "2026-11-21T10:01:00Z")
+    second = _sc(2, 99, "2026-11-21T10:02:00Z")
+    first["mods"], second["mods"] = ["HD", "DT"], ["DT", "HD"]
+    write_json(P.BEST, [first, second, first])
+    write_json(F.beatmap_path(99, S.score_mods(first)), {"star_rating": 6.5})
+    result = maps.find()
+    assert len(result) == 1
+    assert result[0]["recorded_score_ids"] == [1, 2] and result[0]["recorded_score_count"] == 2
 
 
 # ---- stats -----------------------------------------------------------------------
