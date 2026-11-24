@@ -1,5 +1,6 @@
 """Session summary numbers. Pure functions over scores.json rows (plus a map lookup)."""
 from collections import defaultdict
+import json
 from statistics import mean
 
 from .store import parse_ts
@@ -79,13 +80,15 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
 
     groups: dict[tuple, list[dict]] = defaultdict(list)
     for r in rows:
-        groups[(r["beatmap_id"], tuple(r["mods"]))].append(r)
+        settings = json.dumps(r.get("mod_settings") or {}, sort_keys=True, separators=(",", ":"))
+        groups[(r["beatmap_id"], tuple(r["mods"]), settings)].append(r)
     maps = []
-    for (bid, mods), rs in groups.items():
+    for (bid, mods, settings), rs in groups.items():
         p = [x["pp"] for x in rs if x.get("pp") is not None]
         maps.append({
             "beatmap_id": bid, "title": rs[0]["title"], "version": rs[0]["version"],
-            "mods": list(mods), "plays": len(rs), "passes": sum(x["passed"] for x in rs),
+            "mods": list(mods), "mod_settings": json.loads(settings),
+            "plays": len(rs), "passes": sum(x["passed"] for x in rs),
             "max_retry": max(x["retry_index"] or 0 for x in rs),
             "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
             "sr": sr_lookup(rs[0]) if sr_lookup else None,
@@ -119,6 +122,8 @@ def render(session_id: str, s: dict) -> str:
         name = f"{m['title']} [{m['version']}]"
         lines.append(f"{name[:38]:38} {''.join(m['mods'])[:6]:6} {m['plays']:>5} {m['passes']:>4} "
                      f"{m['max_retry']:>5} {_f(m['acc_passed']):>6} {_f(m['best_pp'], '{:.0f}'):>5}")
+        if m.get("mod_settings"):
+            lines.append(f"  settings: {json.dumps(m['mod_settings'], ensure_ascii=False, sort_keys=True)}")
     if len(s["maps"]) > 12:
         lines.append(f"... +{len(s['maps']) - 12} more maps (use --json)")
     return "\n".join(lines)

@@ -512,6 +512,19 @@ def test_stats_empty_and_render():
     assert "no plays" in ST.render("x", {"plays": 0})
 
 
+def test_map_stats_separate_custom_mod_settings():
+    rows = [_sc(1, 11, "2026-01-01T00:00:00Z", acc=0.98),
+            _sc(2, 11, "2026-01-01T00:10:00Z", acc=0.90)]
+    for row, speed in zip(rows, (1.3, 1.5)):
+        row["mods"] = ["DT"]
+        row["mod_settings"] = {"DT": {"speed_change": speed}}
+    S.add_retry_index(rows)
+    summary = ST.compute(rows, lambda row: row["mod_settings"]["DT"]["speed_change"])
+    assert [(m["mod_settings"]["DT"]["speed_change"], m["acc_passed"], m["sr"])
+            for m in summary["maps"]] == [(1.3, 98.0, 1.3), (1.5, 90.0, 1.5)]
+    assert '"speed_change": 1.3' in ST.render("test", summary)
+
+
 def test_session_blocks_assign_end_times(tmp_data, monkeypatch):
     clock = datetime(2026, 1, 1, tzinfo=timezone.utc)
     monkeypatch.setattr(SS, "now_local", lambda: clock)
