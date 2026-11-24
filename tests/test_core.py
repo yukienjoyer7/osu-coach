@@ -150,6 +150,17 @@ def test_retry_index_counts_per_map_in_time_order():
     assert [(r["score_id"], r["retry_index"]) for r in out] == [(1, 1), (2, 1), (3, 2), (4, 3)]
 
 
+def test_mixed_offsets_are_ordered_by_instant():
+    rows = [_sc(2, 1, "2026-01-01T01:10:00+01:00", acc=0.90),
+            _sc(1, 1, "2026-01-01T00:00:00Z", acc=0.98)]
+    indexed = S.add_retry_index(rows)
+    assert [(r["score_id"], r["retry_index"]) for r in indexed] == [(1, 1), (2, 2)]
+    summary = ST.compute(list(reversed(indexed)))
+    assert summary["span_min"] == 10
+    assert summary["first_half"]["acc_passed"] == 98.0
+    assert summary["second_half"]["acc_passed"] == 90.0
+
+
 # ---- session window ------------------------------------------------------------
 def test_in_session_window():
     from osucoach.store import parse_ts

@@ -2,6 +2,7 @@
 from collections import defaultdict
 
 from . import mods as M
+from .store import parse_ts
 
 
 def map_score(s: dict) -> dict:
@@ -47,7 +48,7 @@ def beatmap_meta(s: dict) -> dict | None:
 
 def add_retry_index(scores: list[dict]) -> list[dict]:
     """Sort by created_at and number attempts per beatmap (1 = first attempt)."""
-    scores.sort(key=lambda x: (x["created_at"], x["score_id"]))
+    scores.sort(key=lambda x: (parse_ts(x["created_at"]), x["score_id"]))
     seen: dict[int, int] = defaultdict(int)
     for sc in scores:
         seen[sc["beatmap_id"]] += 1

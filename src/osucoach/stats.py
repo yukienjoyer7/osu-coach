@@ -22,7 +22,7 @@ def _block(rows: list[dict]) -> dict:
 
 def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
     """sr_lookup(score) -> star rating (mod adjusted) or None."""
-    rows = sorted(scores, key=lambda r: (r["created_at"], r["score_id"]))
+    rows = sorted(scores, key=lambda r: (parse_ts(r["created_at"]), r["score_id"]))
     out: dict = {"plays": len(rows)}
     if blocks:
         summaries = []
