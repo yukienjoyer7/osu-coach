@@ -131,7 +131,9 @@ def _r(v, nd):
 
 
 def beatmap_path(beatmap_id: int, mods: list[dict]):
-    return P.BEATMAPS / f"{beatmap_id}_{M.key(mods)}.json"
+    canonical = P.BEATMAPS / f"{beatmap_id}_{M.key(mods)}.json"
+    legacy = P.BEATMAPS / f"{beatmap_id}_{M.key(mods, legacy=True)}.json"
+    return legacy if not canonical.exists() and legacy.exists() else canonical
 
 
 def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = False) -> tuple[dict, bool]:

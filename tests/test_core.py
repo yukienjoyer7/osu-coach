@@ -160,6 +160,20 @@ def test_custom_rate_gets_own_key():
     assert M.key(M.from_score(["DT"], {"DT": {"speed_change": 1.5}})) == "DT"
 
 
+def test_numeric_mod_keys_and_legacy_cache(tmp_path, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEATMAPS", tmp_path)
+    int_mods = M.from_score(["DA"], {"DA": {"approach_rate": 9}})
+    float_mods = M.from_score(["DA"], {"DA": {"approach_rate": 9.0}})
+    assert M.key(int_mods) == M.key(float_mods)
+    assert M.key(M.from_score(["DT"], {"DT": {"speed_change": 1.3000001}})) != M.key(
+        M.from_score(["DT"], {"DT": {"speed_change": 1.3}}))
+    old = tmp_path / f"11_{M.key(float_mods, legacy=True)}.json"
+    write_json(old, {"star_rating": 5})
+    assert F.beatmap_path(11, float_mods) == old
+
+
 def test_refresh_beatmap_replaces_cached_attributes(tmp_path, monkeypatch):
     from osucoach.store import write_json
 

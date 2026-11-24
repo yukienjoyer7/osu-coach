@@ -39,14 +39,16 @@ def normalize(mods: list[dict]) -> list[dict]:
     return sorted(out, key=lambda m: m["acronym"])
 
 
-def key(mods: list[dict]) -> str:
+def key(mods: list[dict], legacy: bool = False) -> str:
     """Filename-safe cache key for a normalised mod list: 'NM', 'DT', 'DT1.3', 'EZDT'."""
     n = normalize(mods)
     if not n:
         return "NM"
     parts = []
     for m in n:
-        extra = "".join(f"-{k[:2]}{v}" for k, v in sorted((m.get("settings") or {}).items()))
+        settings = sorted((m.get("settings") or {}).items())
+        extra = "".join(f"-{k[:2]}{int(v) if not legacy and isinstance(v, float) and v.is_integer() else v}"
+                        for k, v in settings)
         parts.append(m["acronym"] + extra)
     return "".join(parts)
 
