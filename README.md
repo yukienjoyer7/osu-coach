@@ -4,7 +4,7 @@ Agent-in-repo osu!standard coach. The `osucoach` CLI fetches data from the osu! 
 
 ## Setup
 ```
-cp .env.example .env        # fill OSU_CLIENT_ID / OSU_CLIENT_SECRET / OSU_USER_ID
+cp .env.example .env        # fill credentials and numeric osu! user ID
 cp coach/player.example.md coach/player.md      # then edit; personal, gitignored
 cp coach/journal.example.md coach/journal.md
 python -m venv .venv

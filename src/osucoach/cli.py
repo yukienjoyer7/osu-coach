@@ -91,6 +91,7 @@ def init(json_out: bool = JSON) -> None:
 def auth_check(json_out: bool = JSON) -> None:
     """Token works; print user + pp."""
     c = _client()
+    _run(A.check, c.user_id)
     u = _run(c.get, f"/users/{c.user_id}/osu")
     st = u["statistics"]
     _out({"username": u["username"], "pp": st["pp"], "global_rank": st["global_rank"]}, json_out,

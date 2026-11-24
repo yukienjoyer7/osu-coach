@@ -12,6 +12,8 @@ def check(user_id):
     user_id = str(user_id or "").strip()
     if not user_id:
         raise OsuError("OSU_USER_ID is missing; configure the player account")
+    if not user_id.isascii() or not user_id.isdecimal() or int(user_id) < 1:
+        raise OsuError("OSU_USER_ID must be a positive numeric osu! user ID")
     saved = binding()
     if saved and saved.get("user_id") != user_id:
         raise OsuError("workspace is bound to another osu! user; use a separate OSUCOACH_HOME")

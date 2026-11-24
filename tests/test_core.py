@@ -140,7 +140,7 @@ def test_best_fetch_time_is_separate_from_file_modification(tmp_path, monkeypatc
     monkeypatch.setattr(F, "now_local", lambda: datetime(2026, 1, 1, tzinfo=timezone.utc))
 
     class Client:
-        user_id = "test"
+        user_id = "123"
 
         def get(self, path, **params):
             return []
@@ -480,7 +480,7 @@ def test_recent_sync_records_page_limit(tmp_data, monkeypatch):
     sess = SS.start()
 
     class Client:
-        user_id = "test"
+        user_id = "123"
 
         def get(self, path, **params):
             offset = params["offset"]
@@ -625,7 +625,7 @@ def test_complete_cli_session_handoff_with_simulated_api(tmp_data, monkeypatch):
     raw = {**RAW, "started_at": "2026-11-20T09:03:00Z", "ended_at": "2026-11-20T09:05:00Z"}
 
     class Client:
-        user_id = "test"
+        user_id = "123"
 
         def get(self, path, **params):
             return [raw]
@@ -1284,6 +1284,21 @@ def test_account_binding_rejects_changed_user_and_marks_legacy_data(tmp_data, mo
     with pytest.raises(OsuError, match="bound to another"):
         F.fetch_best(Client())
     assert P.BEST.read_text(encoding="utf-8") == before
+
+
+@pytest.mark.parametrize("user_id", ["name", "0", "-5", "１２３", "1/other"])
+def test_player_fetch_rejects_non_numeric_identity_before_request(tmp_data, user_id):
+    from osucoach import account
+
+    class Client:
+        def get(self, *args, **kwargs):
+            raise AssertionError("invalid identity must not reach the API")
+
+    client = Client()
+    client.user_id = user_id
+    with pytest.raises(OsuError, match="positive numeric"):
+        F.fetch_best(client)
+    assert account.binding() is None
 
 
 def test_recent_fetch_refuses_known_foreign_scores(tmp_data, monkeypatch):
