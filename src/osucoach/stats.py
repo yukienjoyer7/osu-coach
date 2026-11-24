@@ -34,14 +34,15 @@ def _condition_key(row):
     return row["beatmap_id"], tuple(sorted(row["mods"])), settings
 
 
-def _contained(rows, start):
-    contained = [row for row in rows if row.get("started_at") and parse_ts(row["started_at"]) >= start]
+def _contained(rows, start, session_end):
+    contained = [row for row in rows if row.get("started_at") and parse_ts(row["started_at"]) >= start
+                 and (session_end is None or parse_ts(row["created_at"]) <= session_end)]
     return {**_block(contained), "passes": sum(row["passed"] for row in contained),
             "score_ids": [row["score_id"] for row in contained],
             "hit_results": _hit_results(contained)}
 
 
-def _block_maps(rows, start):
+def _block_maps(rows, start, session_end):
     groups = defaultdict(list)
     for row in rows:
         groups[_condition_key(row)].append(row)
@@ -55,16 +56,19 @@ def _block_maps(rows, start):
             "hit_results": _hit_results(group),
             "crossing_start": sum(parse_ts(row["started_at"]) < start for row in group if row.get("started_at")),
             "unknown_start": sum(not row.get("started_at") for row in group),
-            "fully_contained": _contained(group, start),
+            "after_session_end": (sum(parse_ts(row["created_at"]) > session_end for row in group)
+                                  if session_end is not None else None),
+            "fully_contained": _contained(group, start, session_end),
         })
     return summaries
 
 
-def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
+def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=None) -> dict:
     """sr_lookup(score) -> star rating (mod adjusted) or None."""
     rows = sorted(scores, key=lambda r: (parse_ts(r["created_at"]), r["score_id"]))
     out: dict = {"plays": len(rows)}
     if blocks:
+        session_end = parse_ts(session_ended_at) if session_ended_at else None
         summaries = []
         for i, marker in enumerate(blocks):
             start = parse_ts(marker["started_at"])
@@ -75,8 +79,10 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None) -> dict:
             unknown_start = sum(not row.get("started_at") for row in selected)
             summaries.append({**marker, **_block(selected),
                               "crossing_start": crossing, "unknown_start": unknown_start,
-                              "fully_contained": _contained(selected, start),
-                              "maps": _block_maps(selected, start)})
+                              "after_session_end": (sum(parse_ts(row["created_at"]) > session_end for row in selected)
+                                                    if session_end is not None else None),
+                              "fully_contained": _contained(selected, start, session_end),
+                              "maps": _block_maps(selected, start, session_end)})
         out["blocks"] = summaries
         out["plays_before_first_block"] = sum(
             parse_ts(row["created_at"]) < parse_ts(blocks[0]["started_at"]) for row in rows

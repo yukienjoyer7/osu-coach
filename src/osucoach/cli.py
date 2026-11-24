@@ -402,6 +402,7 @@ def stats(session: Optional[str] = typer.Argument(None, help="Session id (defaul
         d = read_json(F.beatmap_path(sc["beatmap_id"], S.score_mods(sc)))
         return d["star_rating"] if d else None
 
-    res = ST.compute(scores, sr, SS.load(sid).get("blocks"))
+    sess = SS.load(sid)
+    res = ST.compute(scores, sr, sess.get("blocks"), sess.get("ended_at"))
     res["session_id"] = sid
     _out(res, json_out, ST.render(sid, res))

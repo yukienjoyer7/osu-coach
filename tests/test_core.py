@@ -1178,3 +1178,34 @@ def test_block_maps_keep_mod_settings_and_unknown_start_separate():
     assert focus["fully_contained"]["score_ids"] == [2]
     assert focus["fully_contained"]["acc_passed"] == 98.0
     assert focus["maps"][1]["fully_contained"]["score_ids"] == [2]
+
+
+def test_block_containment_excludes_post_session_grace_scores(tmp_data, monkeypatch):
+    from osucoach import context
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    clock = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    sess = SS.start()
+    clock += timedelta(minutes=1)
+    SS.mark_block(sess, "focus")
+    clock += timedelta(minutes=9)
+    SS.stamp_end(sess)
+    SS.save(sess)
+    rows = S.add_retry_index([
+        _sc(1, 10, "2026-01-01T00:10:00Z"),
+        _sc(2, 10, "2026-01-01T00:11:00Z"),
+    ])
+    rows[0]["started_at"] = "2026-01-01T00:09:00Z"
+    rows[1]["started_at"] = "2026-01-01T00:09:30Z"
+    write_json(P.session_dir(sess["session_id"]) / "scores.json", rows)
+    block = context.build(sess["session_id"])["stats"]["blocks"][0]
+    assert block["plays"] == 2 and block["after_session_end"] == 1
+    assert block["fully_contained"]["score_ids"] == [1]
+    assert block["maps"][0]["after_session_end"] == 1
+    assert block["maps"][0]["fully_contained"]["score_ids"] == [1]
+    result = CliRunner().invoke(app, ["stats", sess["session_id"], "--json"])
+    assert json.loads(result.output)["blocks"][0]["fully_contained"]["score_ids"] == [1]
