@@ -140,9 +140,7 @@ def _r(v, nd):
 
 
 def beatmap_path(beatmap_id: int, mods: list[dict]):
-    canonical = P.BEATMAPS / f"{beatmap_id}_{M.key(mods)}.json"
-    legacy = P.BEATMAPS / f"{beatmap_id}_{M.key(mods, legacy=True)}.json"
-    return legacy if not canonical.exists() and legacy.exists() else canonical
+    return P.BEATMAPS / f"{beatmap_id}_{M.key(mods)}.json"
 
 
 def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = False) -> tuple[dict, bool]:
@@ -169,6 +167,7 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
         "beatmap_id": beatmap_id,
         "fetched_at": now_local().isoformat(timespec="seconds"),
         "mods": [m["acronym"] for m in norm],
+        "mod_settings": {m["acronym"]: m["settings"] for m in norm if m.get("settings")},
         "star_rating": round(a["star_rating"], 3),
         # some maps come back with only star_rating + max_combo 0: keep the rest null
         "aim": _r(a.get("aim_difficulty"), 3),
@@ -202,13 +201,7 @@ def fetch_beatmaps_for(c: Client, scores: list[dict]) -> tuple[int, int]:
 
 
 def fill_map_max_combo(scores: list[dict]) -> None:
-    """Set map_max_combo from any cached beatmap file of that map (mod independent)."""
-    if not P.BEATMAPS.exists():
-        return
+    """Use only attributes calculated for the score's recorded mod combination."""
     for sc in scores:
-        if sc.get("map_max_combo") is None:
-            for f in P.BEATMAPS.glob(f"{sc['beatmap_id']}_*.json"):
-                d = read_json(f)
-                if d and d.get("max_combo"):
-                    sc["map_max_combo"] = d["max_combo"]
-                    break
+        data = read_json(beatmap_path(sc["beatmap_id"], S.score_mods(sc)))
+        sc["map_max_combo"] = data.get("max_combo") if data else None

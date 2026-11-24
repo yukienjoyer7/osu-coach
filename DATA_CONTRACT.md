@@ -8,7 +8,7 @@ data/
   best.json                        # top 100, refreshed each fetch
   best_sync.json                   # timestamp and count of last successful best-score fetch
   map_tags/<beatmap_id>.json       # user-supplied, mod-independent labels
-  beatmaps/<beatmap_id>_<mods>.json   # <mods> = difficulty-affecting mods only: NM, DT, HR, DTHR, DT-sp1.3 (NC=DT, DC=HT; HD/FL/etc ignored)
+  beatmaps/<beatmap_id>_<mods>.json   # cache key for the full mod combination and settings (NC=DT, DC=HT)
   beatmaps/_meta/<beatmap_id>.json    # raw nomod CS/AR/OD/BPM/length/counts captured from score objects (cache)
   current_session                  # id of the open session, absent when none
   sessions/<session_id>/
@@ -55,7 +55,7 @@ coach/
 ```
 - `retry_index`: Nth attempt of that beatmap within this session (compute from created_at order).
 - `pp` may be null for fails/unranked; keep the row anyway. `weight_pct` is only set for best.json, null for session scores.
-- `created_at` is the score's `ended_at` (UTC). `map_max_combo` is null until the beatmap file exists.
+- `created_at` is the score's `ended_at` (UTC). `map_max_combo` is null until attributes for the matching mod combination exist. Older saved scores may retain a value from a differently modded cache until scores are fetched again.
 - `started_at` is the API's score start time when available, otherwise null. Older saved scores may omit it.
 - `mod_settings` (optional): present only when a mod has settings, e.g. `{"DT": {"speed_change": 1.3}}`.
 - Lazer score format: `n300/n100/n50/miss` = `statistics.great/ok/meh/miss`.
@@ -72,9 +72,9 @@ coach/
  "n_circles": 0, "n_sliders": 0, "n_spinners": 0}
 ```
 Values are mod-adjusted (DT changes AR/OD/BPM/length). Extra field `max_combo` (null if unknown).
-New attribute files include `fetched_at`. Older files may omit it. `fetch beatmap ID --mods X --refresh` requests fresh map metadata and difficulty attributes for that mod combination. Other cached mod combinations retain their previous values until refreshed. Algorithm changes can make old cached ratings stale.
+New attribute files include `fetched_at` and `mod_settings`. The versioned cache key distinguishes all supplied mods and settings, because visual and other mods can affect difficulty. Older modded cache files used incomplete keys and are not used by the current lookup; fetch attributes again to populate them. Nomod files remain usable. Older files may omit it. `fetch beatmap ID --mods X --refresh` requests fresh map metadata and difficulty attributes for that mod combination. Other cached mod combinations retain their previous values until refreshed. Algorithm changes can make old cached ratings stale.
 `aim`, `speed`, `slider_factor`, `speed_note_count` are null for maps where the API returns only star rating.
-`cs/ar/od/bpm/length_s` are computed by us from the nomod map stats (`mods.adjust`), not returned by the API.
+`cs/ar/od/bpm/length_s` are computed by us from the nomod map stats (`mods.adjust`), not returned by the API. The adjustment handles EZ, HR, DA and constant DT/HT rates only; other mods or settings may make these estimates inaccurate.
 
 ## session.json
 ```json

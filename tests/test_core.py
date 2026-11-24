@@ -160,16 +160,16 @@ def test_parse_mods():
     assert M.parse_mods("NM") == [] and M.parse_mods(None) == []
 
 
-def test_key_ignores_non_difficulty_mods_and_aliases():
-    assert M.key(M.parse_mods("HD")) == "NM"
-    assert M.key(M.parse_mods("HDNC")) == "DT"
-    assert M.key(M.parse_mods("HR,DT")) == M.key(M.parse_mods("DTHR")) == "DTHR"
+def test_key_distinguishes_mods_and_normalizes_aliases():
+    assert M.key(M.parse_mods("HD")) != M.key([])
+    assert M.key(M.parse_mods("HDNC")) == M.key(M.parse_mods("HDDT"))
+    assert M.key(M.parse_mods("HR,DT")) == M.key(M.parse_mods("DTHR"))
 
 
 def test_custom_rate_gets_own_key():
     m = M.from_score(["DT"], {"DT": {"speed_change": 1.3}})
-    assert M.key(m) == "DT-sp1.3"
-    assert M.key(M.from_score(["DT"], {"DT": {"speed_change": 1.5}})) == "DT"
+    assert M.key(m) != M.key(M.parse_mods("DT"))
+    assert M.key(M.from_score(["DT"], {"DT": {"speed_change": 1.5}})) == M.key(M.parse_mods("DT"))
 
 
 def test_numeric_mod_keys_and_legacy_cache(tmp_path, monkeypatch):
@@ -181,9 +181,9 @@ def test_numeric_mod_keys_and_legacy_cache(tmp_path, monkeypatch):
     assert M.key(int_mods) == M.key(float_mods)
     assert M.key(M.from_score(["DT"], {"DT": {"speed_change": 1.3000001}})) != M.key(
         M.from_score(["DT"], {"DT": {"speed_change": 1.3}}))
-    old = tmp_path / f"11_{M.key(float_mods, legacy=True)}.json"
+    old = tmp_path / "11_DA-ap9.0.json"
     write_json(old, {"star_rating": 5})
-    assert F.beatmap_path(11, float_mods) == old
+    assert F.beatmap_path(11, float_mods) != old
 
 
 def test_refresh_beatmap_replaces_cached_attributes(tmp_path, monkeypatch):
@@ -225,7 +225,7 @@ def test_cli_refreshes_custom_rate(monkeypatch):
     runner = CliRunner()
     result = runner.invoke(app, ["fetch", "beatmap", "11", "--mods", "DT", "--rate", "1.3", "--refresh"])
     assert result.exit_code == 0, result.output
-    assert M.key(calls[0][1]) == "DT-sp1.3" and calls[0][2] is True
+    assert calls[0][1] == M.from_score(["DT"], {"DT": {"speed_change": 1.3}}) and calls[0][2] is True
     assert runner.invoke(app, ["fetch", "beatmap", "11", "--rate", "1.3"]).exit_code != 0
     assert runner.invoke(app, ["fetch", "beatmap", "11", "--mods", "DT", "--rate", "nan"]).exit_code != 0
 
@@ -898,3 +898,28 @@ def test_session_blocks_assign_end_times(tmp_data, monkeypatch):
     assert result["blocks"][0]["unknown_start"] == 1
     assert result["blocks"][1]["crossing_start"] == 1
     assert runner.invoke(app, ["session", "block", "same second"]).exit_code != 0
+
+
+def test_beatmap_fetch_keeps_all_mods_and_settings(tmp_path, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEATMAPS", tmp_path / "beatmaps")
+    monkeypatch.setattr(P, "META_DIR", tmp_path / "meta")
+    write_json(P.META_DIR / "11.json", {"cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
+               "total_length": 100, "count_circles": 1, "count_sliders": 2, "count_spinners": 0})
+    mods = [{"acronym": "HD"}, {"acronym": "FL", "settings": {"size_multiplier": 0.8}}]
+
+    class Client:
+        def post(self, path, body):
+            self.body = body
+            return {"attributes": {"star_rating": 6, "max_combo": 12}}
+
+    client = Client()
+    data, called = F.fetch_beatmap(client, 11, mods)
+    assert called and {str(m) for m in client.body["mods"]} == {
+        "HD", str({"acronym": "FL", "settings": {"size_multiplier": 0.8}})}
+    assert data["mod_settings"]["FL"]["size_multiplier"] == 0.8
+    assert F.beatmap_path(11, mods) != F.beatmap_path(11, [{"acronym": "HD"}])
+    score = {"beatmap_id": 11, "mods": ["HD"], "map_max_combo": 999}
+    F.fill_map_max_combo([score])
+    assert score["map_max_combo"] is None

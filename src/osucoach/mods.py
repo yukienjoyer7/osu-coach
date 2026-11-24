@@ -2,12 +2,12 @@
 
 A mod is a dict {"acronym": "DT", "settings": {...}} (settings optional).
 """
+import hashlib
+import json
 import re
 
 SPEED = {"DT": 1.5, "NC": 1.5, "HT": 0.75, "DC": 0.75}
 ALIAS = {"NC": "DT", "DC": "HT"}  # same star rating / stats as DT / HT
-DIFF_AFFECTING = {"EZ", "HR", "DT", "HT", "DA"}
-KEEP_SETTINGS = {"speed_change", "circle_size", "approach_rate", "overall_difficulty"}
 
 
 def parse_mods(arg: str | None) -> list[dict]:
@@ -26,31 +26,33 @@ def from_score(acronyms: list[str], settings: dict | None = None) -> list[dict]:
 
 
 def normalize(mods: list[dict]) -> list[dict]:
-    """Keep only difficulty-affecting mods, map NC->DT and DC->HT, sort by acronym."""
+    """Preserve mods and settings for API difficulty calculations and cache identity."""
     out = []
     for m in mods:
         a = ALIAS.get(m["acronym"], m["acronym"])
-        if a not in DIFF_AFFECTING:
-            continue
-        s = {k: v for k, v in (m.get("settings") or {}).items() if k in KEEP_SETTINGS}
-        if "speed_change" in s and s["speed_change"] == SPEED.get(m["acronym"]):
-            s.pop("speed_change")  # default rate, not a custom one
-        out.append({"acronym": a, **({"settings": s} if s else {})})
-    return sorted(out, key=lambda m: m["acronym"])
+        settings = dict(m.get("settings") or {})
+        if settings.get("speed_change") == SPEED.get(m["acronym"]) and "speed_change" in settings:
+            settings.pop("speed_change")
+        out.append({"acronym": a, **({"settings": settings} if settings else {})})
+    return sorted(out, key=lambda m: (m["acronym"], json.dumps(m.get("settings", {}), sort_keys=True)))
 
 
-def key(mods: list[dict], legacy: bool = False) -> str:
-    """Filename-safe cache key for a normalised mod list: 'NM', 'DT', 'DT1.3', 'EZDT'."""
-    n = normalize(mods)
-    if not n:
+def key(mods: list[dict]) -> str:
+    """Stable cache key for the complete normalized mod combination and settings."""
+    normalized = normalize(mods)
+    if not normalized:
         return "NM"
-    parts = []
-    for m in n:
-        settings = sorted((m.get("settings") or {}).items())
-        extra = "".join(f"-{k[:2]}{int(v) if not legacy and isinstance(v, float) and v.is_integer() else v}"
-                        for k, v in settings)
-        parts.append(m["acronym"] + extra)
-    return "".join(parts)
+    # A versioned digest avoids collisions between settings and old incomplete keys.
+    def canonical(value):
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, dict):
+            return {k: canonical(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [canonical(v) for v in value]
+        return value
+    encoded = json.dumps(canonical(normalized), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return "v2-" + hashlib.sha256(encoded.encode()).hexdigest()[:24]
 
 
 def rate(mods: list[dict]) -> float:
