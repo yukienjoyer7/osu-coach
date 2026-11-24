@@ -114,10 +114,17 @@ def fetch_recent(session: Optional[str] = typer.Option(None, "--session", help="
 
 @fetch_app.command("beatmap")
 def fetch_beatmap(beatmap_id: int, mods: Optional[str] = typer.Option(None, "--mods", help="e.g. HD,DT"),
+                  rate: Optional[float] = typer.Option(None, "--rate", help="Custom DT/NC/HT/DC speed multiplier."),
                   refresh: bool = typer.Option(False, "--refresh", help="Refresh cached attributes."),
                   json_out: bool = JSON) -> None:
     """Mod-adjusted difficulty + map stats -> data/beatmaps/ID_MODS.json (cached)."""
-    d, called = _run(F.fetch_beatmap, _client(), beatmap_id, M.parse_mods(mods), refresh)
+    selected = M.parse_mods(mods)
+    if rate is not None:
+        speed_mods = [mod for mod in selected if mod["acronym"] in M.SPEED]
+        if not math.isfinite(rate) or rate <= 0 or len(speed_mods) != 1:
+            _fail(OsuError("--rate requires a positive finite value and exactly one DT, NC, HT or DC mod"))
+        speed_mods[0]["settings"] = {"speed_change": rate}
+    d, called = _run(F.fetch_beatmap, _client(), beatmap_id, selected, refresh)
     _out(d, json_out, f"{beatmap_id} {''.join(d['mods']) or 'NM'}: {d['star_rating']}* "
                       f"AR{d['ar']} OD{d['od']} CS{d['cs']} {d['bpm']}bpm "
                       f"{'(fetched)' if called else '(cached)'}")

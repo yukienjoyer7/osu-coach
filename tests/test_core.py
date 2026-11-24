@@ -185,6 +185,25 @@ def test_refresh_beatmap_replaces_cached_attributes(tmp_path, monkeypatch):
     assert F.fetch_beatmap(Client(), 11, [])[0] == refreshed
 
 
+def test_cli_refreshes_custom_rate(monkeypatch):
+    from osucoach import cli
+
+    calls = []
+    monkeypatch.setattr(cli, "_client", lambda: object())
+
+    def fetch(client, beatmap_id, mods, refresh):
+        calls.append((beatmap_id, mods, refresh))
+        return {"mods": ["DT"], "star_rating": 5, "ar": 9, "od": 8, "cs": 4, "bpm": 200}, True
+
+    monkeypatch.setattr(F, "fetch_beatmap", fetch)
+    runner = CliRunner()
+    result = runner.invoke(app, ["fetch", "beatmap", "11", "--mods", "DT", "--rate", "1.3", "--refresh"])
+    assert result.exit_code == 0, result.output
+    assert M.key(calls[0][1]) == "DT-sp1.3" and calls[0][2] is True
+    assert runner.invoke(app, ["fetch", "beatmap", "11", "--rate", "1.3"]).exit_code != 0
+    assert runner.invoke(app, ["fetch", "beatmap", "11", "--mods", "DT", "--rate", "nan"]).exit_code != 0
+
+
 def test_adjust_dt_matches_known_values():
     # AR8.2 + DT = ~9.8, OD8.2 + DT = ~9.91
     a = M.adjust(3.8, 8.2, 8.2, 135, 209, M.parse_mods("DT"))

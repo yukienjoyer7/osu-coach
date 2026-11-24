@@ -30,6 +30,8 @@ See `plan.md` for the build plan and `DATA_CONTRACT.md` for schemas.
 
 `osucoach maps --min-sr 5 --max-sr 6 --min-bpm 170 --max-bpm 210 --min-ar 9 --max-length 180` finds recorded maps with cached attributes. Length is in seconds. Results only cover stored scores with cached map attributes. Pattern type and ranked status are unknown and must be verified separately.
 
+Use `osucoach fetch beatmap 123 --mods DT --rate 1.3 --refresh` to refresh a custom-rate difficulty cache. Custom Difficulty Adjust settings are not specified by this command.
+
 `osucoach map-tag 123 --tags jumps,bursts` replaces the user-supplied labels for beatmap 123. Find labeled candidates with `osucoach maps --tag jumps`. Labels apply to the beatmap across all mods, are subjective, and do not verify ranked status. An empty `--tags` value clears them.
 
 Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000,1200,1400` to model a rank target. The calculation holds bonus pp and the rank threshold constant and assumes distinct new scores. It is a scenario, not a forecast.
