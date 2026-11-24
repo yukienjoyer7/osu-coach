@@ -22,7 +22,7 @@ osucoach session end        # then ask the agent: "post"
 
 If the API is unavailable, `osucoach session end --offline` saves feedback and closes the session without fetching. Once connected, run `osucoach fetch recent --session ID` followed by `osucoach fetch beatmaps --session ID`. Fetch promptly because the API retains only a limited recent history.
 
-See `plan.md` for the build plan and `DATA_CONTRACT.md` for schemas.
+See `plan.md` for the build plan. Run `osucoach schema` for the data contract, including from an installed package.
 
 `osucoach context [ID]` outputs saved player, profile, session, plan, review, up to three previous sessions with plans, reviews, conditions, score statistics and sync metadata as JSON for any tool-capable agent. It works offline and reports missing files as null. Profile fetch time and local file modification times help assess freshness, but do not prove complete score coverage. Fetch fresh data when needed.
 

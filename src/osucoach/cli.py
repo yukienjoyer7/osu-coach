@@ -191,6 +191,12 @@ def guide() -> None:
     typer.echo(files("osucoach").joinpath("COACHING.md").read_text(encoding="utf-8"))
 
 
+@app.command("schema")
+def schema() -> None:
+    """Print the data contract bundled with the installed package."""
+    typer.echo(files("osucoach").joinpath("DATA_CONTRACT.md").read_text(encoding="utf-8"))
+
+
 @app.command("map-tag")
 def map_tag(beatmap_id: int = typer.Argument(..., min=1),
             tags: str = typer.Option(..., "--tags", help="Comma-separated labels; empty clears them.")) -> None:

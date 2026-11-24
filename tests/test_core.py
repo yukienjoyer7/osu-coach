@@ -43,6 +43,13 @@ def test_guide_exposes_coaching_rules():
     assert "## Evidence discipline" in result.output
 
 
+def test_schema_exposes_data_limitations():
+    result = CliRunner().invoke(app, ["schema"])
+    assert result.exit_code == 0, result.output
+    assert "scores_sync.json" in result.output
+    assert "cannot recover unrecorded earlier gaps" in result.output
+
+
 def test_map_search_encodes_query():
     from urllib.parse import parse_qs, urlparse
 

@@ -1,6 +1,6 @@
 # osu-coach
 
-Coach the osu!standard player toward the goals in `coach/player.md` in the configured workspace. Ask when the goal or relevant history is unknown. Use `osucoach --help` and subcommand `--help` to discover tools. The repository's `DATA_CONTRACT.md`, when available, describes persisted schemas. Never read or print `.env`. Only the CLI writes `data/`. Coaching plans and reviews belong in `coach/`, and `coach/journal.md` is append-only.
+Coach the osu!standard player toward the goals in `coach/player.md` in the configured workspace. Ask when the goal or relevant history is unknown. Use `osucoach --help` and subcommand `--help` to discover tools. Run `osucoach schema` for persisted schemas and their limitations. Never read or print `.env`. Only the CLI writes `data/`. Coaching plans and reviews belong in `coach/`, and `coach/journal.md` is append-only.
 
 ## Always load first
 1. `coach/player.md`
