@@ -1009,6 +1009,20 @@ def test_maps_count_distinct_scores_across_mod_order(tmp_data, monkeypatch):
     assert result[0]["recorded_score_ids"] == [1, 2] and result[0]["recorded_score_count"] == 2
 
 
+def test_maps_reports_missing_history_and_account_provenance(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    write_json(P.DATA / "account.json", {"user_id": "123", "legacy_data_present": True})
+    session = SS.start()
+    result = CliRunner().invoke(app, ["maps"])
+    assert result.exit_code == 0, result.output
+    history = json.loads(result.output)["recorded_history"]
+    assert history["account"]["legacy_data_present"] is True
+    assert history["best_file_missing"] and history["best_sync"] is None
+    assert history["missing_score_sessions"] == [session["session_id"]]
+
+
 # ---- stats -----------------------------------------------------------------------
 def test_stats_basic():
     rows = [_sc(1, 1, "2026-01-01T00:00:00Z", True, 0.96), _sc(2, 1, "2026-01-01T00:10:00Z", False),

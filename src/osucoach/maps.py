@@ -72,6 +72,17 @@ def _recorded_scores():
     return seen, best is None, missing_sessions
 
 
+def recorded_history_info(best_missing, missing_sessions):
+    return {"account": account.binding(), "best_file_missing": best_missing,
+            "best_sync": read_json(paths.BEST.with_name("best_sync.json")),
+            "missing_score_sessions": missing_sessions}
+
+
+def recorded_history():
+    _, best_missing, missing_sessions = _recorded_scores()
+    return recorded_history_info(best_missing, missing_sessions)
+
+
 def discover(client, query, cursor=None, min_sr=None, max_sr=None, tag=None):
     """Search the upstream beatmapset endpoint; results are unverified candidates."""
     params = {"m": 0, "s": "ranked", "q": query}
@@ -119,8 +130,7 @@ def discover(client, query, cursor=None, min_sr=None, max_sr=None, tag=None):
     return {"query": query, "fetched_at": now_local().isoformat(timespec="seconds"),
             "requested_mode": "osu", "requested_status": "ranked",
             "local_star_range": {"min": min_sr, "max": max_sr}, "local_user_tag": tag,
-            "recorded_history": {"account": account.binding(), "best_file_missing": best_missing,
-                                 "missing_score_sessions": missing_sessions},
+            "recorded_history": recorded_history_info(best_missing, missing_sessions),
             "ranked_osu_candidates": candidates,
             "sets_without_difficulties": sets_without_difficulties,
             "incomplete_difficulties": incomplete_difficulties,
