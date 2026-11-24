@@ -2,7 +2,7 @@
 
 The fetcher writes; the coach only reads `data/` and writes `coach/`.
 
-`session end --json` includes `map_errors` for beatmaps that return HTTP 404 or invalid metadata/attributes; the session closes with the scores retained and those map attributes unavailable. `fetch beatmaps --json` reports the same failures in `errors`. Network errors and other HTTP errors still fail the command for retry. A missing attribute is unknown, not a zero difficulty or proof the map is unplayable.
+`session end --json` includes `map_errors` for beatmaps that return HTTP 404 or invalid metadata/attributes; the session closes with the scores retained and those map attributes unavailable. `fetch beatmaps --json` reports the same failures in `errors`. A completed session map pass is saved as `map_sync.json` and exposed in current and previous `context` entries; it contains the completion time, score-sync timestamp at that pass, map and fetch counts, and errors. A later successful pass replaces it. A null record means no completed pass was recorded, not necessarily that attributes are absent. Compare its score-sync reference with the current score sync and inspect the results; even matching timestamps do not prove complete score coverage. Network errors and other HTTP errors still fail the command for retry and do not replace the last completed map pass. A missing attribute is unknown, not a zero difficulty or proof the map is unplayable.
 
 During an open session, `session observe TEXT` appends a player observation to `session.json` as `{ "reported_at": "timestamp", "text": "..." }`. `context` exposes these observations as part of the session, including previous sessions. The timestamp is when it was recorded and does not establish when the reported experience occurred, which block caused it, or a diagnosis. The text is a report, not a validated measurement. Older sessions may omit `observations`; after closing a session, use `session update --notes` for retrospective notes.
 
@@ -24,6 +24,7 @@ data/
     session.json                   # created/updated only via the CLI (see session.json below)
     scores.json                    # scores set during the session, incl. fails
     scores_sync.json               # most recent successful recent-score request metadata
+    map_sync.json                  # most recent completed session map pass, including per-map errors
     replays/*.osr                  # optional in MVP
     replay_stats.json              # optional in MVP
 coach/

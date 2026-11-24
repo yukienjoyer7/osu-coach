@@ -120,6 +120,16 @@ def recent_sync(session_id: str) -> dict | None:
     return sync
 
 
+def save_map_sync(session_id: str, map_count: int, fetched: int, errors: list[dict]) -> dict:
+    """Record the last completed map pass and its score-sync reference."""
+    score_sync = recent_sync(session_id) or {}
+    result = {"completed_at": now_local().isoformat(timespec="seconds"),
+              "scores_sync_fetched_at": score_sync.get("fetched_at"),
+              "maps": map_count, "fetched": fetched, "errors": errors}
+    write_json(P.session_dir(session_id) / "map_sync.json", result)
+    return result
+
+
 def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
     """Fetch recent scores inside the session window, merge with any saved, write scores.json."""
     start = parse_ts(session["started_at"])

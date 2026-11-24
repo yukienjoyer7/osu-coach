@@ -173,7 +173,8 @@ def fetch_beatmaps(session: Optional[str] = typer.Option(None, "--session", help
                    json_out: bool = JSON) -> None:
     """Fetch beatmap files for every score in best.json (or a session)."""
     if session:
-        path = P.session_dir(_run(SS.resolve, session)) / "scores.json"
+        sid = _run(SS.resolve, session)
+        path = P.session_dir(sid) / "scores.json"
     else:
         path = P.BEST
     scores = read_json(path)
@@ -182,6 +183,8 @@ def fetch_beatmaps(session: Optional[str] = typer.Option(None, "--session", help
     maps, api, errors = _run(F.fetch_beatmaps_for, _client(), scores)
     from .store import write_json
     write_json(path, scores)  # map_max_combo may now be filled
+    if session:
+        F.save_map_sync(sid, maps, api, errors)
     _out({"maps": maps, "fetched": api, "errors": errors}, json_out,
          f"{maps} maps ({api} fetched, {maps - api - len(errors)} cached, {len(errors)} unavailable)")
 
@@ -448,6 +451,7 @@ def session_end(fatigue: Optional[int] = typer.Option(None, "--fatigue", help="1
     maps, api, errors = _run(F.fetch_beatmaps_for, c, scores)
     from .store import write_json
     write_json(P.session_dir(sid) / "scores.json", scores)
+    F.save_map_sync(sid, maps, api, errors)
     SS.save(sess)
     SS.close(sid)
     sync = F.recent_sync(sid)

@@ -1639,16 +1639,24 @@ def test_session_map_fetch_isolates_missing_and_malformed_maps(tmp_data, monkeyp
 
 def test_session_end_closes_when_individual_map_is_unavailable(tmp_data, monkeypatch):
     from osucoach import cli
+    from osucoach import context
 
     session = SS.start()
     error = {"beatmap_id": 11, "mods": [], "error": "not found"}
     monkeypatch.setattr(cli, "_client", lambda: object())
-    monkeypatch.setattr(F, "fetch_recent", lambda *args: [_sc(1, 11, session["started_at"])])
+    monkeypatch.setattr(F, "fetch_recent", lambda *args: S.add_retry_index([_sc(1, 11, session["started_at"])]))
     monkeypatch.setattr(F, "fetch_beatmaps_for", lambda *args: (1, 0, [error]))
     result = CliRunner().invoke(app, ["session", "end", "--json"])
     assert result.exit_code == 0, result.output
     assert json.loads(result.output)["map_errors"] == [error]
     assert SS.current() is None and SS.load(session["session_id"])["ended_at"] is not None
+    saved = context.build(session["session_id"])["map_sync"]
+    assert saved["errors"] == [error] and saved["maps"] == 1 and saved["fetched"] == 0
+    monkeypatch.setattr(F, "fetch_beatmaps_for", lambda *args: (1, 1, []))
+    retry = CliRunner().invoke(app, ["fetch", "beatmaps", "--session", session["session_id"], "--json"])
+    assert retry.exit_code == 0, retry.output
+    saved = context.build(session["session_id"])["map_sync"]
+    assert saved["errors"] == [] and saved["fetched"] == 1
 
 
 def test_invalid_cached_map_metadata_is_refetched(tmp_data, monkeypatch):
