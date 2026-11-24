@@ -25,6 +25,10 @@ def parse_mods(arg: str | None) -> list[dict]:
         parts = [text[i:i + 2] for i in range(0, len(text), 2)]
     if not valid or ("NM" in parts and len(parts) != 1) or len(set(parts)) != len(parts):
         raise OsuError("--mods must contain distinct two-character acronyms, e.g. HD,DT or HDDT; NM must stand alone")
+    selected = set(parts)
+    if (len(selected & {"DT", "NC", "HT", "DC", "WU", "WD", "AS"}) > 1 or
+            len(selected & {"EZ", "HR", "DA"}) > 1):
+        raise OsuError("--mods contains incompatible speed or difficulty adjustment mods")
     return [{"acronym": part} for part in parts if part != "NM"]
 
 

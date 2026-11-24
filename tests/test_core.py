@@ -260,6 +260,12 @@ def test_parse_mods():
     assert M.parse_mods("NM") == [] and M.parse_mods(None) == []
 
 
+@pytest.mark.parametrize("mods", ["DTHT", "DTNC", "HTDC", "DTWU", "HRDA", "EZHR", "EZDA"])
+def test_parse_mods_rejects_known_incompatible_combinations(mods):
+    with pytest.raises(OsuError, match="incompatible"):
+        M.parse_mods(mods)
+
+
 @pytest.mark.parametrize("mods", ["HDD", "D", "HD,", ",DT", "HD,DTX", "HD DT", "NM,HD", "HDHD", "H!"])
 def test_invalid_mod_strings_fail_before_api_call(mods, monkeypatch):
     from osucoach import cli

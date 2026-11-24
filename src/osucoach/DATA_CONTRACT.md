@@ -88,6 +88,8 @@ New attribute files include `fetched_at` and `mod_settings`. The versioned cache
 `aim`, `speed`, `slider_factor`, `speed_note_count` are null for maps where the API returns only star rating.
 `cs/ar/od/bpm/length_s` are computed by us from the nomod map stats (`mods.adjust`), not returned by the attributes API. BPM is a map-level tempo value and does not establish local tempo or tapping rate; beatmaps may change tempo. Total length includes breaks and does not establish continuous strain. The adjustment handles EZ, HR, DA and constant DT/HT rates only; other mods or settings may make these estimates inaccurate. Variable-speed mods WU, WD and AS have null AR, OD, BPM and length because a single rate does not describe the play. Older caches for these combinations are ignored.
 
+Manual mod input rejects combinations with multiple speed-changing mods or more than one of EZ, HR and DA. This is a partial compatibility check, not a complete list of incompatible mods or a guarantee that a combination is playable or ranked. Recorded score mods are preserved as reported by the API.
+
 ## session.json
 ```json
 {"session_id": "2026-11-21_2000",
