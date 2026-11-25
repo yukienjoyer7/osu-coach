@@ -439,6 +439,16 @@ def test_map_score_distinguishes_missing_statistics_from_sparse_counts():
     assert (sparse["n300"], sparse["n100"], sparse["n50"], sparse["miss"]) == (100, 0, 0, 0)
 
 
+def test_map_score_preserves_additional_raw_hit_results():
+    statistics = {"great": 100, "slider_tail_hit": 5, "large_tick_miss": 2}
+    maximum = {"great": 101, "slider_tail_hit": 8}
+    score = S.map_score({**RAW, "statistics": statistics, "maximum_statistics": maximum})
+    assert score["raw_statistics"] == statistics and score["raw_maximum_statistics"] == maximum
+    assert score["raw_statistics"] is not statistics
+    assert S.map_score({**RAW, "statistics": None, "maximum_statistics": None})["raw_statistics"] is None
+    assert S.map_score({**RAW, "statistics": {}, "maximum_statistics": {}})["raw_maximum_statistics"] == {}
+
+
 @pytest.mark.parametrize("invalid", [None, -1, True, 1.5, "2"])
 def test_invalid_hit_counts_remain_unknown_and_do_not_break_totals(invalid):
     from osucoach import stats

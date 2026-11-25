@@ -38,6 +38,9 @@ def map_score(s: dict) -> dict:
         "total_score": s.get("total_score"),
         "classic_total_score": s.get("classic_total_score"),
         "legacy_total_score": s.get("legacy_total_score"),
+        "raw_statistics": dict(st) if isinstance(st, dict) else None,
+        "raw_maximum_statistics": (dict(s["maximum_statistics"])
+                                   if isinstance(s.get("maximum_statistics"), dict) else None),
         "n300": _hit_count(st, "great"),
         "n100": _hit_count(st, "ok"),
         "n50": _hit_count(st, "meh"),
