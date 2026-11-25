@@ -965,6 +965,23 @@ def test_observation_perspective_is_explicit_and_invalid_kind_does_not_write(tmp
     assert len(saved) == 1 and saved[0]["kind"] == "coach-note"
 
 
+def test_observation_map_time_range_requires_identified_target(tmp_data):
+    sess = SS.start()
+    runner = CliRunner()
+    base = ["session", "observe", "the ending felt rushed"]
+    for options in (["--map-start-ms", "30000", "--map-end-ms", "35000"],
+                    ["--beatmap", "11", "--map-start-ms", "30000"],
+                    ["--score", "5", "--map-start-ms", "35000", "--map-end-ms", "30000"]):
+        assert runner.invoke(app, base + options).exit_code != 0
+    assert not SS.load(sess["session_id"]).get("observations")
+    recorded = runner.invoke(app, base + ["--beatmap", "11", "--score", "5", "--map-start-ms", "30000",
+                                            "--map-end-ms", "35000", "--json"])
+    assert recorded.exit_code == 0, recorded.output
+    assert json.loads(recorded.output)["map_time_range_ms"] == {"start": 30000, "end_exclusive": 35000}
+    history = json.loads(runner.invoke(app, ["history", "11"]).output)
+    assert history["map_observations"][0]["observations"][0]["map_time_range_ms"]["start"] == 30000
+
+
 def test_invalid_feedback_is_rejected_without_partial_updates(tmp_data):
     runner = CliRunner()
     rejected = runner.invoke(app, ["session", "start", "--pain", "11"])

@@ -146,7 +146,8 @@ def mark_block(session: dict, label: str) -> dict:
 
 
 def add_observation(session: dict, text: str, beatmap_id: int | None = None,
-                    score_id: int | None = None, kind: str = "player-report") -> dict:
+                    score_id: int | None = None, kind: str = "player-report",
+                    map_start_ms: int | None = None, map_end_ms: int | None = None) -> dict:
     """Record a player observation with the time it was reported, not when it occurred."""
     text = text.strip()
     if not text:
@@ -157,12 +158,18 @@ def add_observation(session: dict, text: str, beatmap_id: int | None = None,
         raise OsuError("score ID must be a positive integer")
     if kind not in ("player-report", "coach-note"):
         raise OsuError("observation kind must be player-report or coach-note")
+    if map_start_ms is not None or map_end_ms is not None:
+        if (type(map_start_ms) is not int or type(map_end_ms) is not int or map_start_ms < 0
+                or map_end_ms <= map_start_ms or (beatmap_id is None and score_id is None)):
+            raise OsuError("map time range requires a map or score ID, a non-negative start and a later end")
     observation = {"reported_at": now_local().isoformat(timespec="seconds"), "text": text,
                    "recorded_after_session": bool(session.get("ended_at")), "kind": kind}
     if beatmap_id is not None:
         observation["beatmap_id"] = beatmap_id
     if score_id is not None:
         observation["score_id"] = score_id
+    if map_start_ms is not None:
+        observation["map_time_range_ms"] = {"start": map_start_ms, "end_exclusive": map_end_ms}
     session.setdefault("observations", []).append(observation)
     save(session)
     return observation
