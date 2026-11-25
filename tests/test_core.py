@@ -1352,6 +1352,19 @@ def test_missing_mods_do_not_become_known_nomod_attributes(tmp_data, monkeypatch
     assert F.fetch_beatmaps_for(Client(), [missing])[2][0]["mods"] is None
 
 
+@pytest.mark.parametrize("mods", [
+    [{"acronym": "DT"}, {"acronym": "DT", "settings": {"speed_change": 1.2}}],
+    [{"acronym": "DT", "settings": {"speed_change": 0}}],
+    [{"acronym": "DT", "settings": {"speed_change": None}}],
+    [{"acronym": "DT", "settings": {"speed_change": "fast"}}],
+    [{"acronym": "DA", "settings": {"approach_rate": float("nan")}}],
+    [{"acronym": "bad acronym"}],
+])
+def test_malformed_score_mod_lists_remain_unknown(mods):
+    mapped = S.map_score({**RAW, "mods": mods})
+    assert mapped["mods_known"] is False and mapped["mods"] == []
+
+
 def test_unknown_pass_status_is_not_a_failure():
     raw = {**RAW, "passed": None}
     assert S.map_score(raw)["passed"] is None

@@ -1,5 +1,7 @@
 """Score mapping: the ONLY place that knows the osu! API score shape (lazer format)."""
 from collections import defaultdict
+import math
+import re
 
 from . import mods as M
 from .store import parse_ts
@@ -17,13 +19,39 @@ def _boolean(source, key):
     return value if type(value) is bool else None
 
 
+def _usable_mods(value):
+    if not isinstance(value, list):
+        return False
+    names = set()
+    for mod in value:
+        if not isinstance(mod, dict) or not isinstance(mod.get("acronym"), str):
+            return False
+        name = mod["acronym"]
+        if not re.fullmatch(r"[A-Z0-9]{2,8}", name) or name in names:
+            return False
+        names.add(name)
+        settings = mod.get("settings")
+        if settings is not None and not isinstance(settings, dict):
+            return False
+        settings = settings or {}
+        numeric = ("speed_change",) if name in M.SPEED else ()
+        if name == "DA":
+            numeric = ("circle_size", "approach_rate", "overall_difficulty")
+        for key in numeric:
+            setting = settings.get(key)
+            if key == "speed_change" and key in settings and setting is None:
+                return False
+            if setting is not None and (type(setting) not in (int, float) or not math.isfinite(setting)
+                                        or (key == "speed_change" and setting <= 0)):
+                return False
+    return True
+
+
 def map_score(s: dict) -> dict:
     bm = s.get("beatmap") or {}
     st = s.get("statistics")
     raw_mods = s.get("mods")
-    mods_known = (isinstance(raw_mods, list) and all(
-        isinstance(m, dict) and isinstance(m.get("acronym"), str) and bool(m["acronym"])
-        and (m.get("settings") is None or isinstance(m["settings"], dict)) for m in raw_mods))
+    mods_known = _usable_mods(raw_mods)
     mods = [m["acronym"] for m in raw_mods] if mods_known else []
     settings = {m["acronym"]: m["settings"] for m in raw_mods if m.get("settings")} if mods_known else {}
     w = s.get("weight") or {}
