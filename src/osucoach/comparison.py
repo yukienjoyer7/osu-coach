@@ -34,7 +34,7 @@ def _boundary(score, sess):
             "score_times_ordered": ordered, "fully_contained": contained}
 
 
-def _score(session_id, score_id):
+def score_record(session_id, score_id):
     if session_id == "best":
         rows = read_json(paths.BEST)
         if rows is None:
@@ -91,7 +91,7 @@ def _checksum(score):
 
 
 def compare(first_session, first_score, second_session, second_score):
-    first, second = _score(first_session, first_score), _score(second_session, second_score)
+    first, second = score_record(first_session, first_score), score_record(second_session, second_score)
     a, b = first["score"], second["score"]
     setup_a, setup_b = first["setup"] or {}, second["setup"] or {}
     checks = {

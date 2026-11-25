@@ -117,3 +117,31 @@ def test_beat_relative_onset_gaps_require_unambiguous_timing(tmp_path):
     for timing in (base + "0,400,4,1,0,100,1,0\n", base + "1100,400,4,1,0,100,1,0\n", base + "bad\n"):
         path.write_text(MAP.replace("[HitObjects]", timing + "[HitObjects]"), encoding="utf-8")
         assert inspect(path, 1000, 1400)["onsets"][1]["previous_onset_gap_beats"] is None
+
+
+def test_map_section_compares_declared_map_and_fetch_time_checksum(tmp_path, monkeypatch):
+    from osucoach import paths
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(paths, "BEST", tmp_path / "best.json")
+    path = tmp_path / "map.osu"
+    path.write_text(MAP, encoding="utf-8")
+    checksum = hashlib.md5(path.read_bytes()).hexdigest()
+    score = {"score_id": 77, "beatmap_id": 123, "beatmap_checksum": checksum.upper()}
+    write_json(paths.BEST, [score])
+    args = ["map-section", str(path), "--start-ms", "1000", "--end-ms", "1400",
+            "--session", "best", "--score", "77"]
+    response = CliRunner().invoke(app, args)
+    assert response.exit_code == 0, response.output
+    evidence = json.loads(response.output)["score_evidence"]
+    assert evidence["declared_beatmap_matches_saved_score"] is True
+    assert evidence["file_matches_fetch_time_checksum"] is True
+    write_json(paths.BEST, [{**score, "beatmap_id": 99, "beatmap_checksum": "b" * 32}])
+    evidence = json.loads(CliRunner().invoke(app, args).output)["score_evidence"]
+    assert evidence["declared_beatmap_matches_saved_score"] is False
+    assert evidence["file_matches_fetch_time_checksum"] is False
+    write_json(paths.BEST, [{**score, "beatmap_checksum": None}])
+    assert json.loads(CliRunner().invoke(app, args).output)["score_evidence"]["file_matches_fetch_time_checksum"] is None
+    assert CliRunner().invoke(app, args[:-2]).exit_code != 0
+    write_json(paths.BEST, [score, score])
+    assert CliRunner().invoke(app, args).exit_code != 0

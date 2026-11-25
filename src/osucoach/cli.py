@@ -341,9 +341,17 @@ def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
 def map_section(path: str = typer.Argument(..., help="Local .osu file"),
                 start_ms: int = typer.Option(..., "--start-ms", min=0, help="Inclusive map time"),
                 end_ms: int = typer.Option(..., "--end-ms", min=0, help="Exclusive map time"),
-                rate: float = typer.Option(1.0, "--rate", help="Constant playback rate")) -> None:
+                rate: float = typer.Option(1.0, "--rate", help="Constant playback rate"),
+                session: Optional[str] = typer.Option(None, "--session", help="Saved session ID or best"),
+                score: Optional[int] = typer.Option(None, "--score", min=1, help="Saved score ID")) -> None:
     """Inspect object onsets in a chosen local map section as JSON."""
     result = _run(MS.inspect, path, start_ms, end_ms, rate)
+    if (session is None) != (score is None):
+        _fail(OsuError("provide both --session and --score to compare saved map metadata"))
+    result["score_evidence"] = None
+    if session is not None:
+        saved = _run(CMP.score_record, session, score)
+        result["score_evidence"] = MS.score_evidence(result, saved)
     typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 

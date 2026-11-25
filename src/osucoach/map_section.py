@@ -1,6 +1,7 @@
 """Inspect explicitly selected hit-object onsets in a local osu!standard map."""
 import hashlib
 import math
+import re
 from bisect import bisect_left, bisect_right
 from pathlib import Path
 
@@ -15,6 +16,20 @@ def _coordinate(value):
     if not math.isfinite(number) or abs(number) > 1_000_000:
         raise ValueError
     return number
+
+
+def score_evidence(section, saved):
+    score = saved["score"]
+    score_map = score.get("beatmap_id")
+    declared_map = section.get("declared_beatmap_id")
+    checksum = score.get("beatmap_checksum")
+    checksum_valid = isinstance(checksum, str) and re.fullmatch(r"[0-9a-fA-F]{32}", checksum)
+    return {"source": saved["source"], "session_id": saved["session_id"], "score_id": score.get("score_id"),
+            "score_retrieved_at": score.get("retrieved_at"), "scores_sync": saved["scores_sync"],
+            "declared_beatmap_matches_saved_score": (declared_map == score_map
+                if type(declared_map) is int and type(score_map) is int else None),
+            "file_matches_fetch_time_checksum": (section["file_md5"] == checksum.lower()
+                                                  if checksum_valid else None)}
 
 
 def inspect(path, start_ms, end_ms, rate=1.0):
@@ -125,6 +140,7 @@ def inspect(path, start_ms, end_ms, rate=1.0):
                        "previous_file_circle_position_distance_osu_px": distance})
         previous = obj
     return {"file_md5": hashlib.md5(raw).hexdigest(), "file_sha256": hashlib.sha256(raw).hexdigest(),
+            "score_evidence": None,
             "declared_beatmap_id": declared_id, "section_map_time_ms": {"start": start_ms, "end_exclusive": end_ms},
             "constant_rate": rate, "input_was_unordered": unordered,
             "timing": {"section_present": saw_timing, "invalid_lines": invalid_timing_lines,
