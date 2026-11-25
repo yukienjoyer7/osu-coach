@@ -34,6 +34,8 @@ When a score has a known mod list, one DT/NC/HT/DC mod, and an explicit finite p
 
 `previous_onset_gap_beats` divides the raw gap between adjacent selected object starts by the single applicable raw beat length. It is null without an unambiguous usable timing point, when a timing change occurs between the starts, or if timing lines are malformed. It is rounded to four decimals and is unchanged by a constant rate. The value does not establish a tapping pattern, required inputs or a player's performance.
 
+`boundary_context` contains raw object onsets at the nearest timestamp before the selected window and at the nearest timestamp at or after its exclusive end. Tied onsets are retained, with independent truncation flags. These are starts, not object durations: they do not establish whether an earlier slider or spinner overlaps the window. Gaps in `onsets` are computed only between selected objects, so the first selected onset has no preceding gap even when boundary context exists.
+
 The latest profile is selected by its offset-aware `fetched_at` instant, not the local-date filename. Profiles with missing or unusable timestamps have unknown freshness and are excluded from selection when a timestamped profile exists. If none has a usable timestamp, the last filename is used as a legacy fallback; it is not proof of freshness. Incorrect clocks can still misorder snapshots.
 
 Rank threshold fetches update the selected profile, and profile refreshes carry forward previously saved thresholds with their original fetch times. A carried threshold is not a current ranking: refresh it when needed and inspect its own timestamp independently of the profile timestamp.

@@ -129,7 +129,12 @@ def inspect(path, start_ms, end_ms, rate=1.0):
     before = [item for item in timing_points if item["map_time_ms"] <= start_ms]
     initial = [item for item in before if item["map_time_ms"] == before[-1]["map_time_ms"]] if before else []
     changes = [item for item in timing_points if start_ms < item["map_time_ms"] < end_ms]
-    selected = [obj for obj in objects if start_ms <= obj["map_time_ms"] < end_ms]
+    object_times = [obj["map_time_ms"] for obj in objects]
+    first = bisect_left(object_times, start_ms)
+    after = bisect_left(object_times, end_ms)
+    selected = objects[first:after]
+    preceding = (objects[bisect_left(object_times, object_times[first - 1]):first] if first else [])
+    following = (objects[after:bisect_right(object_times, object_times[after])] if after < len(objects) else [])
     output = []
     previous = None
     for obj in selected[:MAX_OUTPUT_OBJECTS]:
@@ -164,9 +169,14 @@ def inspect(path, start_ms, end_ms, rate=1.0):
                        "changes": changes[:MAX_OUTPUT_OBJECTS], "changes_truncated": len(changes) > MAX_OUTPUT_OBJECTS},
             "selected_object_count": len(selected), "returned_object_count": len(output),
             "truncated": len(selected) > len(output), "onsets": output,
+            "boundary_context": {"preceding_onsets": preceding[:MAX_OUTPUT_OBJECTS],
+                                 "preceding_truncated": len(preceding) > MAX_OUTPUT_OBJECTS,
+                                 "following_onsets": following[:MAX_OUTPUT_OBJECTS],
+                                 "following_truncated": len(following) > MAX_OUTPUT_OBJECTS},
             "limitations": [
                 "Local file identity and declared beatmap ID are not verified against an API score or historical map version.",
                 "Object times describe starts, not actual taps, replay judgements or slider ends.",
+                "Boundary onsets are neighboring starts; they do not establish whether an earlier object overlaps the section.",
                 "Timing entries are raw uninherited points, not verified client timing; simultaneous or malformed points can be ambiguous.",
                 "Map BPM does not establish tapping subdivision, speed or player ability.",
                 "Beat-relative gaps describe adjacent object starts, not necessarily taps or a recognized rhythm pattern.",

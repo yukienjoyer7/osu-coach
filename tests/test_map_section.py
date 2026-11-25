@@ -82,6 +82,23 @@ def test_map_section_preserves_raw_fractional_positions_and_times(tmp_path):
     assert result["onsets"][1]["previous_onset_gap_ms"] == 100.25
 
 
+def test_section_boundary_context_preserves_ties_and_exclusive_end(tmp_path):
+    path = tmp_path / "map.osu"
+    path.write_text(MAP.replace("0,0,1000,1,0,0:0:0:0:",
+                                "0,0,1000,1,0,0:0:0:0:\n5,5,1000,1,0,0:0:0:0:"), encoding="utf-8")
+    result = inspect(path, 1050, 1200)
+    boundary = result["boundary_context"]
+    assert len(boundary["preceding_onsets"]) == 2
+    assert all(item["map_time_ms"] == 1000 for item in boundary["preceding_onsets"])
+    assert boundary["following_onsets"][0]["map_time_ms"] == 1200
+    assert not boundary["preceding_truncated"] and not boundary["following_truncated"]
+    assert result["onsets"][0]["previous_onset_gap_ms"] is None
+    empty = inspect(path, 2000, 3000)
+    assert empty["selected_object_count"] == 0
+    assert empty["boundary_context"]["preceding_onsets"][0]["type"] == "spinner"
+    assert empty["boundary_context"]["following_onsets"] == []
+
+
 def test_map_section_timing_points_preserve_changes_and_ambiguity(tmp_path):
     path = tmp_path / "map.osu"
     timing = ("[TimingPoints]\n0,500,4,1,0,100,1,0\n"
