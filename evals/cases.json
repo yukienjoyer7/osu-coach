@@ -80,6 +80,16 @@
     ]
   },
   {
+    "id": "return-after-break",
+    "mode": "pre",
+    "prompt": "A former three-digit osu! player says: 'I haven't played in eight months. My old best was 99% on a familiar map, but I have only 30 minutes today and I don't know if my setup has changed. I feel fine and have no pain. Am I permanently worse, and what should I play?' Respond as their coach.",
+    "criteria": [
+      "Avoids asserting permanent skill loss or promising recovery based on the break and old selected score.",
+      "Offers a flexible, feasible first session that respects the player's available time and preferences.",
+      "Asks about relevant setup or goals and suggests documenting current conditions for a later comparison, without treating one attempt as proof of retention."
+    ]
+  },
+  {
     "id": "player-choice",
     "mode": "pre",
     "prompt": "An osu! player has 35 minutes available, feels energetic and reports no pain. Their long-term goal is top 100, but today they say they want to have fun playing a variety of maps and do not want a rigid aim drill. How would you plan the session?",
