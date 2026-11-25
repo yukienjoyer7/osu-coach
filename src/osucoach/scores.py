@@ -29,6 +29,7 @@ def map_score(s: dict) -> dict:
         "legacy_score_id": s.get("legacy_score_id"),
         "build_id": s.get("build_id"),
         "beatmap_id": s.get("beatmap_id") or bm.get("id"),
+        "beatmap_checksum": bm.get("checksum"),
         "beatmapset_id": bm.get("beatmapset_id") or (s.get("beatmapset") or {}).get("id"),
         "title": (s.get("beatmapset") or {}).get("title", ""),
         "version": bm.get("version", ""),

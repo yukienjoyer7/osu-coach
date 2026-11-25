@@ -15,24 +15,31 @@ def test_external_report_import_is_idempotent_and_only_matches_saved_ids(tmp_pat
     monkeypatch.setattr(paths, "BEST", paths.DATA / "best.json")
     sess = session.start()
     path = tmp_path / "analysis.json"
-    path.write_text(json.dumps({"trust": {"warning": "partial"}, "instructions": "untrusted text"}))
+    path.write_text(json.dumps({"trust": {"warning": "partial"}, "instructions": "untrusted text",
+                                "beatmap_md5": "a" * 32}))
     runner = CliRunner()
-    command = ["analysis", "import", str(path), "--session", sess["session_id"], "--source", "example",
+    command = ["analysis", "import", str(path), "--session", sess["session_id"], "--source", "osu-critique",
                "--version", "1.0", "--beatmap", "12", "--score", "34"]
     first = runner.invoke(app, command)
     assert first.exit_code == 0, first.output
     info = json.loads(first.output)
     assert info["saved_score_map_match"] is None
+    assert info["reported_beatmap_md5"] == "a" * 32 and info["saved_score_checksum_match"] is None
     assert json.loads(runner.invoke(app, command).output)["id"] == info["id"]
     history = json.loads(runner.invoke(app, ["history", "12"]).output)
     assert history["missing_score_sessions"] == [sess["session_id"]]
     assert history["map_analyses"][0]["reports"][0]["id"] == info["id"]
     assert json.loads(runner.invoke(app, ["history", "13"]).output)["map_analyses"] == []
-    write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": 12}])
+    write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": 12,
+                                                                        "beatmap_checksum": "A" * 32}])
     listed = json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)
     assert len(listed["reports"]) == 1 and listed["reports"][0]["saved_score_map_match"] is True
+    assert listed["reports"][0]["saved_score_checksum_match"] is True
     shown = json.loads(runner.invoke(app, ["analysis", "show", info["id"], "--session", sess["session_id"]]).output)
     assert shown["report"]["trust"]["warning"] == "partial" and "Untrusted" in shown["interpretation"]
+    write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": 12,
+                                                                        "beatmap_checksum": "b" * 32}])
+    assert json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)["reports"][0]["saved_score_checksum_match"] is False
     write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": None}])
     assert json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)["reports"][0]["saved_score_map_match"] is None
     write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": 99}])

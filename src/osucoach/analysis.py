@@ -60,11 +60,23 @@ def metadata(entry, session_id):
     rows = read_json(paths.session_dir(session_id) / "scores.json")
     score_id = entry.get("score_id")
     match = None
+    checksum_match = None
+    reported_md5 = None
+    report = entry.get("report")
+    if entry.get("source", "").casefold() == "osu-critique" and isinstance(report, dict):
+        candidate = report.get("beatmap_md5")
+        if isinstance(candidate, str) and re.fullmatch(r"[0-9a-fA-F]{32}", candidate):
+            reported_md5 = candidate.lower()
     if rows is not None and score_id is not None:
         matching = [row for row in rows if row.get("score_id") == score_id]
         if matching and type(matching[0].get("beatmap_id")) is int:
             match = matching[0]["beatmap_id"] == entry["beatmap_id"]
-    return {key: value for key, value in entry.items() if key != "report"} | {"saved_score_map_match": match}
+            checksum = matching[0].get("beatmap_checksum")
+            if match and reported_md5 and isinstance(checksum, str) and re.fullmatch(r"[0-9a-fA-F]{32}", checksum):
+                checksum_match = checksum.lower() == reported_md5
+    return ({key: value for key, value in entry.items() if key != "report"} |
+            {"saved_score_map_match": match, "reported_beatmap_md5": reported_md5,
+             "saved_score_checksum_match": checksum_match})
 
 
 def list_reports(session_id):

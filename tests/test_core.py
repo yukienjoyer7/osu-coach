@@ -442,6 +442,7 @@ def test_map_score_lazer_format():
     assert sc["title"] == "Song" and sc["version"] == "Insane" and sc["beatmapset_id"] == 7
     assert S.map_score({**RAW, "started_at": "2026-11-20T09:58:00Z"})["started_at"] == "2026-11-20T09:58:00Z"
     assert S.map_score({**RAW, "ended_at": None, "started_at": "2026-11-20T09:58:00Z"})["started_at"] is None
+    assert S.map_score({**RAW, "beatmap": {**RAW["beatmap"], "checksum": "a" * 32}})["beatmap_checksum"] == "a" * 32
 
 
 def test_map_score_fail_without_pp_or_weight():
