@@ -80,3 +80,26 @@ def test_map_section_preserves_raw_fractional_positions_and_times(tmp_path):
     assert result["onsets"][1]["map_time_ms"] == 1100.25
     assert result["onsets"][1]["x"] == 3.5
     assert result["onsets"][1]["previous_onset_gap_ms"] == 100.25
+
+
+def test_map_section_timing_points_preserve_changes_and_ambiguity(tmp_path):
+    path = tmp_path / "map.osu"
+    timing = ("[TimingPoints]\n0,500,4,1,0,100,1,0\n"
+              "1000,400,4,1,0,100,1,0\n1000,300,4,1,0,100,1,0\n"
+              "1100,NaN,4,1,0,100,0,0\n1200,600,4,1,0,100,1,0\n")
+    path.write_text(MAP.replace("[HitObjects]", timing + "[HitObjects]"), encoding="utf-8")
+    result = inspect(path, 1000, 1400, 1.5)["timing"]
+    assert result["section_present"] is True and result["invalid_lines"] == 0
+    assert [item["bpm"] for item in result["initial_candidates"]] == [150, 200]
+    assert [item["playback_bpm"] for item in result["initial_candidates"]] == [225, 300]
+    assert result["changes"][0]["map_time_ms"] == 1200
+    path.write_text(MAP.replace("[HitObjects]", timing + "bad-line\n[HitObjects]"), encoding="utf-8")
+    incomplete = inspect(path, 1000, 1400)["timing"]
+    assert incomplete["invalid_lines"] == 1 and incomplete["initial_candidates"] is None
+
+
+def test_map_section_missing_timing_is_explicit(tmp_path):
+    path = tmp_path / "map.osu"
+    path.write_text(MAP, encoding="utf-8")
+    timing = inspect(path, 1000, 1400)["timing"]
+    assert timing["section_present"] is False and timing["initial_candidates"] == []

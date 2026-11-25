@@ -40,6 +40,9 @@ def inspect(path, start_ms, end_ms, rate=1.0):
     declared_id = None
     objects = []
     saw_objects = False
+    timing_points = []
+    saw_timing = False
+    invalid_timing_lines = 0
     try:
         for raw_line in text.splitlines():
             line = raw_line.strip()
@@ -48,12 +51,30 @@ def inspect(path, start_ms, end_ms, rate=1.0):
             if line.startswith("[") and line.endswith("]"):
                 section = line[1:-1]
                 saw_objects |= section == "HitObjects"
+                saw_timing |= section == "TimingPoints"
                 continue
             if section == "General" and line.startswith("Mode:"):
                 mode = int(line.split(":", 1)[1])
             elif section == "Metadata" and line.startswith("BeatmapID:"):
                 value = int(line.split(":", 1)[1])
                 declared_id = value if value > 0 else None
+            elif section == "TimingPoints":
+                fields = line.split(",")
+                try:
+                    time = float(fields[0])
+                    flag = fields[6].strip() if len(fields) >= 7 else "1"
+                    if not math.isfinite(time) or flag not in ("0", "1"):
+                        raise ValueError
+                    if flag == "1":
+                        length = float(fields[1])
+                        bpm = 60000 / length if math.isfinite(length) and length > 0 else None
+                        if bpm is not None and not math.isfinite(bpm * rate):
+                            bpm = None
+                        timing_points.append({"map_time_ms": time, "beat_length_ms": length if bpm is not None else None,
+                                              "bpm": round(bpm, 3) if bpm is not None else None,
+                                              "playback_bpm": round(bpm * rate, 3) if bpm is not None else None})
+                except (ValueError, IndexError, OverflowError, ZeroDivisionError):
+                    invalid_timing_lines += 1
             elif section == "HitObjects":
                 fields = line.split(",")
                 x, y = _coordinate(fields[0]), _coordinate(fields[1])
@@ -72,6 +93,11 @@ def inspect(path, start_ms, end_ms, rate=1.0):
         raise OsuError(".osu file has no HitObjects section")
     unordered = any(a["map_time_ms"] > b["map_time_ms"] for a, b in zip(objects, objects[1:]))
     objects.sort(key=lambda obj: obj["map_time_ms"])
+    timing_unordered = any(a["map_time_ms"] > b["map_time_ms"] for a, b in zip(timing_points, timing_points[1:]))
+    timing_points.sort(key=lambda item: item["map_time_ms"])
+    before = [item for item in timing_points if item["map_time_ms"] <= start_ms]
+    initial = [item for item in before if item["map_time_ms"] == before[-1]["map_time_ms"]] if before else []
+    changes = [item for item in timing_points if start_ms < item["map_time_ms"] < end_ms]
     selected = [obj for obj in objects if start_ms <= obj["map_time_ms"] < end_ms]
     output = []
     previous = None
@@ -87,11 +113,18 @@ def inspect(path, start_ms, end_ms, rate=1.0):
     return {"file_md5": hashlib.md5(raw).hexdigest(), "file_sha256": hashlib.sha256(raw).hexdigest(),
             "declared_beatmap_id": declared_id, "section_map_time_ms": {"start": start_ms, "end_exclusive": end_ms},
             "constant_rate": rate, "input_was_unordered": unordered,
+            "timing": {"section_present": saw_timing, "invalid_lines": invalid_timing_lines,
+                       "red_points_unordered": timing_unordered,
+                       "initial_candidates": initial[:MAX_OUTPUT_OBJECTS] if not invalid_timing_lines else None,
+                       "initial_candidates_truncated": len(initial) > MAX_OUTPUT_OBJECTS,
+                       "changes": changes[:MAX_OUTPUT_OBJECTS], "changes_truncated": len(changes) > MAX_OUTPUT_OBJECTS},
             "selected_object_count": len(selected), "returned_object_count": len(output),
             "truncated": len(selected) > len(output), "onsets": output,
             "limitations": [
                 "Local file identity and declared beatmap ID are not verified against an API score or historical map version.",
-                "Times describe object starts, not actual taps, replay judgements, timing points or slider ends.",
+                "Object times describe starts, not actual taps, replay judgements or slider ends.",
+                "Timing entries are raw uninherited points, not verified client timing; simultaneous or malformed points can be ambiguous.",
+                "Map BPM does not establish tapping subdivision, speed or player ability.",
                 "Times are raw file timestamps; client-specific offsets or conversion are not applied.",
                 "Distances use raw file positions; client clamping, rounding, stacking, cursor path and mod effects are not simulated.",
                 "The constant rate is supplied by the user; variable speed and other mods are not simulated.",
