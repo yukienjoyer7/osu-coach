@@ -113,8 +113,16 @@ def inspect(path, start_ms, end_ms, rate=1.0):
                 if (len(fields) < 5 or kind not in (1, 2, 8) or not 0 <= flags <= 255
                         or not math.isfinite(time) or not -(2**31) <= time <= 2**31 - 1):
                     raise ValueError
-                objects.append({"map_time_ms": time, "type": {1: "circle", 2: "slider", 8: "spinner"}[kind],
-                                "x": x, "y": y})
+                obj = {"map_time_ms": time, "type": {1: "circle", 2: "slider", 8: "spinner"}[kind],
+                       "x": x, "y": y}
+                if kind == 8:
+                    try:
+                        spinner_end = float(fields[5])
+                        obj["file_spinner_end_ms"] = (spinner_end if math.isfinite(spinner_end)
+                                                       and time <= spinner_end <= 2**31 - 1 else None)
+                    except (IndexError, ValueError):
+                        obj["file_spinner_end_ms"] = None
+                objects.append(obj)
     except (ValueError, IndexError):
         raise OsuError(".osu file has malformed or unsupported hit objects") from None
     if mode != 0:
@@ -135,6 +143,12 @@ def inspect(path, start_ms, end_ms, rate=1.0):
     selected = objects[first:after]
     preceding = (objects[bisect_left(object_times, object_times[first - 1]):first] if first else [])
     following = (objects[after:bisect_right(object_times, object_times[after])] if after < len(objects) else [])
+    overlapping_spinners = [obj for obj in objects if obj["type"] == "spinner"
+                            and obj["file_spinner_end_ms"] is not None
+                            and obj["map_time_ms"] < obj["file_spinner_end_ms"]
+                            and obj["map_time_ms"] < end_ms and obj["file_spinner_end_ms"] > start_ms]
+    unknown_spinner_ends = sum(obj["type"] == "spinner" and obj["file_spinner_end_ms"] is None
+                               and obj["map_time_ms"] < end_ms for obj in objects)
     output = []
     previous = None
     for obj in selected[:MAX_OUTPUT_OBJECTS]:
@@ -173,10 +187,13 @@ def inspect(path, start_ms, end_ms, rate=1.0):
                                  "preceding_truncated": len(preceding) > MAX_OUTPUT_OBJECTS,
                                  "following_onsets": following[:MAX_OUTPUT_OBJECTS],
                                  "following_truncated": len(following) > MAX_OUTPUT_OBJECTS},
+            "spinner_context": {"overlapping_file_intervals": overlapping_spinners[:MAX_OUTPUT_OBJECTS],
+                                "truncated": len(overlapping_spinners) > MAX_OUTPUT_OBJECTS,
+                                "unknown_end_before_window_end": unknown_spinner_ends},
             "limitations": [
                 "Local file identity and declared beatmap ID are not verified against an API score or historical map version.",
                 "Object times describe starts, not actual taps, replay judgements or slider ends.",
-                "Boundary onsets are neighboring starts; they do not establish whether an earlier object overlaps the section.",
+                "Spinner overlaps use raw file intervals; invalid end times and sliders may leave overlap unknown.",
                 "Timing entries are raw uninherited points, not verified client timing; simultaneous or malformed points can be ambiguous.",
                 "Map BPM does not establish tapping subdivision, speed or player ability.",
                 "Beat-relative gaps describe adjacent object starts, not necessarily taps or a recognized rhythm pattern.",

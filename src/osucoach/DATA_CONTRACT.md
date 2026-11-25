@@ -36,6 +36,8 @@ When a score has a known mod list, one DT/NC/HT/DC mod, and an explicit finite p
 
 `boundary_context` contains raw object onsets at the nearest timestamp before the selected window and at the nearest timestamp at or after its exclusive end. Tied onsets are retained, with independent truncation flags. These are starts, not object durations: they do not establish whether an earlier slider or spinner overlaps the window. Gaps in `onsets` are computed only between selected objects, so the first selected onset has no preceding gap even when boundary context exists.
 
+`spinner_context` separately identifies raw spinner intervals overlapping the window and counts spinners starting before the window ends whose file end is missing or invalid. Intervals are start-inclusive and end-exclusive; zero-length intervals do not overlap. The list has a truncation flag. These are file times, not client-adjusted behavior; the inspector still cannot determine slider overlap.
+
 The latest profile is selected by its offset-aware `fetched_at` instant, not the local-date filename. Profiles with missing or unusable timestamps have unknown freshness and are excluded from selection when a timestamped profile exists. If none has a usable timestamp, the last filename is used as a legacy fallback; it is not proof of freshness. Incorrect clocks can still misorder snapshots.
 
 Rank threshold fetches update the selected profile, and profile refreshes carry forward previously saved thresholds with their original fetch times. A carried threshold is not a current ranking: refresh it when needed and inspect its own timestamp independently of the profile timestamp.

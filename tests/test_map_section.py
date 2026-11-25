@@ -99,6 +99,18 @@ def test_section_boundary_context_preserves_ties_and_exclusive_end(tmp_path):
     assert empty["boundary_context"]["following_onsets"] == []
 
 
+def test_spinner_intervals_find_overlaps_and_preserve_unknown_ends(tmp_path):
+    path = tmp_path / "map.osu"
+    path.write_text(MAP + "256,192,1600,8,0,broken\n", encoding="utf-8")
+    overlap = inspect(path, 1450, 1700)["spinner_context"]
+    assert len(overlap["overlapping_file_intervals"]) == 1
+    assert overlap["overlapping_file_intervals"][0]["file_spinner_end_ms"] == 1500
+    assert overlap["unknown_end_before_window_end"] == 1
+    assert inspect(path, 1500, 1550)["spinner_context"]["overlapping_file_intervals"] == []
+    path.write_text(MAP.replace("1400,8,0,1500", "1400,8,0,1300"), encoding="utf-8")
+    assert inspect(path, 1450, 1500)["spinner_context"]["unknown_end_before_window_end"] == 1
+
+
 def test_map_section_timing_points_preserve_changes_and_ambiguity(tmp_path):
     path = tmp_path / "map.osu"
     timing = ("[TimingPoints]\n0,500,4,1,0,100,1,0\n"
