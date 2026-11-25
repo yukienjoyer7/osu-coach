@@ -205,6 +205,34 @@ def test_rank_threshold_requires_matching_rank(tmp_path, monkeypatch):
         F.fetch_threshold(Client(), 99)
 
 
+def test_threshold_survives_profile_refresh_on_another_day(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    clock = datetime(2026, 11, 21, 23, tzinfo=timezone.utc)
+    monkeypatch.setattr(F, "now_local", lambda: clock)
+    write_json(P.PROFILE_DIR / "2026-11-20.json", {
+        "pp": 8000, "user_id": 123, "fetched_at": "2026-11-20T12:00:00Z"})
+
+    class Client:
+        user_id = "123"
+
+        def get(self, path, **params):
+            if path.startswith("/rankings/"):
+                return {"ranking": [{"global_rank": 100, "pp": 20000}]}
+            return {"id": 123, "statistics": {"pp": 8100, "global_rank": 500,
+                    "country_rank": 50, "hit_accuracy": 98, "play_count": 10, "play_time": 100}}
+
+    F.fetch_threshold(Client(), 100)
+    assert F.latest_profile()["rank_thresholds"]["100"]["pp"] == 20000
+    clock += timedelta(days=1)
+    F.fetch_profile(Client())
+    latest = F.latest_profile()
+    assert latest["pp"] == 8100
+    assert latest["rank_thresholds"]["100"] == {
+        "pp": 20000, "fetched_at": "2026-11-21T23:00:00+00:00"}
+
+
 @pytest.mark.parametrize("pp", [None, float("nan"), float("inf"), -1, True, "20000"])
 def test_rank_threshold_rejects_invalid_pp_without_overwriting(tmp_path, monkeypatch, pp):
     from osucoach.store import read_json, write_json

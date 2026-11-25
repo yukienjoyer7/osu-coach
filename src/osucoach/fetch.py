@@ -21,22 +21,29 @@ def profile_path(day: str | None = None):
     return P.PROFILE_DIR / f"{day or now_local().strftime('%Y-%m-%d')}.json"
 
 
-def latest_profile() -> dict | None:
+def _latest_profile_record():
     files = sorted(P.PROFILE_DIR.glob("*.json")) if P.PROFILE_DIR.exists() else []
     if not files:
-        return None
+        return None, None
     profiles = [(path, read_json(path)) for path in files]
     dated = []
     for path, profile in profiles:
         try:
             fetched = parse_ts(profile["fetched_at"])
             if fetched.utcoffset() is not None:
-                dated.append((fetched, path.name, profile))
+                dated.append((fetched, path.name, path, profile))
         except (TypeError, KeyError, ValueError, AttributeError):
             continue
     # Legacy files with no usable timestamp have unknown freshness. Use a
     # filename fallback only if no profile has a comparable fetch timestamp.
-    return max(dated, key=lambda item: (item[0], item[1]))[2] if dated else profiles[-1][1]
+    if dated:
+        _, _, path, profile = max(dated, key=lambda item: (item[0], item[1]))
+        return path, profile
+    return profiles[-1]
+
+
+def latest_profile() -> dict | None:
+    return _latest_profile_record()[1]
 
 
 def fetch_profile(c: Client) -> dict:
@@ -47,7 +54,7 @@ def fetch_profile(c: Client) -> dict:
     st = u["statistics"]
     account.bind(user_id)
     path = profile_path()
-    old = read_json(path, {})
+    old = latest_profile() or {}
     prof = {
         "fetched_at": now_local().isoformat(timespec="seconds"),
         "user_id": u.get("id"),
@@ -57,7 +64,7 @@ def fetch_profile(c: Client) -> dict:
         "accuracy": round(st["hit_accuracy"], 2),
         "play_count": st["play_count"],
         "play_time_s": st["play_time"],
-        "rank_threshold_10k_pp": old.get("rank_threshold_10k_pp"),  # keep today's value
+        "rank_threshold_10k_pp": old.get("rank_threshold_10k_pp"),
         "rank_thresholds": old.get("rank_thresholds", {}),
     }
     write_json(path, prof)
@@ -78,8 +85,10 @@ def fetch_threshold(c: Client, rank: int = 10000) -> dict:
     pp = match.get("pp")
     if type(pp) not in (int, float) or not math.isfinite(pp) or pp < 0:
         raise OsuError(f"ranking response contained invalid pp for rank #{rank}")
-    path = profile_path()
-    prof = read_json(path) or fetch_profile(c)
+    path, prof = _latest_profile_record()
+    if prof is None:
+        prof = fetch_profile(c)
+        path = profile_path()
     prof.setdefault("rank_thresholds", {})[str(rank)] = {
         "pp": pp, "fetched_at": now_local().isoformat(timespec="seconds")
     }

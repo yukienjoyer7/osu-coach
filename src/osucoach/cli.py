@@ -149,7 +149,7 @@ def fetch_best(json_out: bool = JSON) -> None:
 
 @fetch_app.command("threshold")
 def fetch_threshold(rank: int = typer.Option(10000, "--rank", min=1), json_out: bool = JSON) -> None:
-    """Fetch the pp threshold for a global rank into today's profile."""
+    """Fetch the pp threshold for a global rank into the latest profile."""
     p = _run(F.fetch_threshold, _client(), rank)
     threshold = p["rank_thresholds"][str(rank)]
     result = {"rank": rank, **threshold}

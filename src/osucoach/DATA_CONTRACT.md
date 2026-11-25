@@ -16,6 +16,8 @@ The fetcher writes; the coach only reads `data/` and writes `coach/`.
 
 The latest profile is selected by its offset-aware `fetched_at` instant, not the local-date filename. Profiles with missing or unusable timestamps have unknown freshness and are excluded from selection when a timestamped profile exists. If none has a usable timestamp, the last filename is used as a legacy fallback; it is not proof of freshness. Incorrect clocks can still misorder snapshots.
 
+Rank threshold fetches update the selected profile, and profile refreshes carry forward previously saved thresholds with their original fetch times. A carried threshold is not a current ranking: refresh it when needed and inspect its own timestamp independently of the profile timestamp.
+
 Sessions are ordered by recorded start instants rather than local-time IDs. For a selected session, `context` excludes journal sections whose IDs have no saved session, counted in `journal_unlinked_sections_omitted`, because their actual order is unknown. `previous_reviews` excludes sessions with the same start instant as the selected session because their order is unknown. Timestamp ties are broken by ID for deterministic listing, not as proof of order. Incorrect system clocks can still make recorded chronology misleading.
 
 ```
