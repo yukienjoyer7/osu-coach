@@ -103,3 +103,17 @@ def test_map_section_missing_timing_is_explicit(tmp_path):
     path.write_text(MAP, encoding="utf-8")
     timing = inspect(path, 1000, 1400)["timing"]
     assert timing["section_present"] is False and timing["initial_candidates"] == []
+
+
+def test_beat_relative_onset_gaps_require_unambiguous_timing(tmp_path):
+    path = tmp_path / "map.osu"
+    base = "[TimingPoints]\n0,500,4,1,0,100,1,0\n"
+    path.write_text(MAP.replace("[HitObjects]", base + "[HitObjects]"), encoding="utf-8")
+    first = inspect(path, 1000, 1400, 1.0)["onsets"]
+    sped_up = inspect(path, 1000, 1400, 1.5)["onsets"]
+    assert first[0]["previous_onset_gap_beats"] is None
+    assert first[1]["previous_onset_gap_beats"] == sped_up[1]["previous_onset_gap_beats"] == 0.2
+    assert sped_up[1]["previous_onset_gap_ms"] == 66.67
+    for timing in (base + "0,400,4,1,0,100,1,0\n", base + "1100,400,4,1,0,100,1,0\n", base + "bad\n"):
+        path.write_text(MAP.replace("[HitObjects]", timing + "[HitObjects]"), encoding="utf-8")
+        assert inspect(path, 1000, 1400)["onsets"][1]["previous_onset_gap_beats"] is None

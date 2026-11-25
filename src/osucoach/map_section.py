@@ -1,6 +1,7 @@
 """Inspect explicitly selected hit-object onsets in a local osu!standard map."""
 import hashlib
 import math
+from bisect import bisect_left, bisect_right
 from pathlib import Path
 
 from .api import OsuError
@@ -95,6 +96,7 @@ def inspect(path, start_ms, end_ms, rate=1.0):
     objects.sort(key=lambda obj: obj["map_time_ms"])
     timing_unordered = any(a["map_time_ms"] > b["map_time_ms"] for a, b in zip(timing_points, timing_points[1:]))
     timing_points.sort(key=lambda item: item["map_time_ms"])
+    timing_times = [item["map_time_ms"] for item in timing_points]
     before = [item for item in timing_points if item["map_time_ms"] <= start_ms]
     initial = [item for item in before if item["map_time_ms"] == before[-1]["map_time_ms"]] if before else []
     changes = [item for item in timing_points if start_ms < item["map_time_ms"] < end_ms]
@@ -103,11 +105,23 @@ def inspect(path, start_ms, end_ms, rate=1.0):
     previous = None
     for obj in selected[:MAX_OUTPUT_OBJECTS]:
         gap = (obj["map_time_ms"] - previous["map_time_ms"]) if previous else None
+        gap_beats = None
+        if previous is not None and not invalid_timing_lines:
+            start = previous["map_time_ms"]
+            end = obj["map_time_ms"]
+            index = bisect_right(timing_times, start) - 1
+            if (index >= 0 and bisect_left(timing_times, timing_times[index]) == index
+                    and (index + 1 == len(timing_times) or timing_times[index + 1] > end)):
+                beat_length = timing_points[index]["beat_length_ms"]
+                if beat_length is not None:
+                    ratio = gap / beat_length
+                    gap_beats = round(ratio, 4) if math.isfinite(ratio) else None
         distance = None
         if previous and previous["type"] == obj["type"] == "circle":
             distance = round(math.hypot(obj["x"] - previous["x"], obj["y"] - previous["y"]), 2)
         output.append({**obj, "playback_time_ms": round(obj["map_time_ms"] / rate, 2),
                        "previous_onset_gap_ms": round(gap / rate, 2) if gap is not None else None,
+                       "previous_onset_gap_beats": gap_beats,
                        "previous_file_circle_position_distance_osu_px": distance})
         previous = obj
     return {"file_md5": hashlib.md5(raw).hexdigest(), "file_sha256": hashlib.sha256(raw).hexdigest(),
@@ -125,6 +139,7 @@ def inspect(path, start_ms, end_ms, rate=1.0):
                 "Object times describe starts, not actual taps, replay judgements or slider ends.",
                 "Timing entries are raw uninherited points, not verified client timing; simultaneous or malformed points can be ambiguous.",
                 "Map BPM does not establish tapping subdivision, speed or player ability.",
+                "Beat-relative gaps describe adjacent object starts, not necessarily taps or a recognized rhythm pattern.",
                 "Times are raw file timestamps; client-specific offsets or conversion are not applied.",
                 "Distances use raw file positions; client clamping, rounding, stacking, cursor path and mod effects are not simulated.",
                 "The constant rate is supplied by the user; variable speed and other mods are not simulated.",
