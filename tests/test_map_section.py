@@ -136,12 +136,21 @@ def test_map_section_compares_declared_map_and_fetch_time_checksum(tmp_path, mon
     evidence = json.loads(response.output)["score_evidence"]
     assert evidence["declared_beatmap_matches_saved_score"] is True
     assert evidence["file_matches_fetch_time_checksum"] is True
+    assert evidence["rate_matches_explicit_score_setting"] is None
     write_json(paths.BEST, [{**score, "beatmap_id": 99, "beatmap_checksum": "b" * 32}])
     evidence = json.loads(CliRunner().invoke(app, args).output)["score_evidence"]
     assert evidence["declared_beatmap_matches_saved_score"] is False
     assert evidence["file_matches_fetch_time_checksum"] is False
     write_json(paths.BEST, [{**score, "beatmap_checksum": None}])
     assert json.loads(CliRunner().invoke(app, args).output)["score_evidence"]["file_matches_fetch_time_checksum"] is None
+    custom = {**score, "mods_known": True, "mods": ["DT"], "mod_settings": {"DT": {"speed_change": 1.2}}}
+    write_json(paths.BEST, [custom])
+    evidence = json.loads(CliRunner().invoke(app, args).output)["score_evidence"]
+    assert evidence["explicit_saved_speed_setting"] == 1.2 and evidence["rate_matches_explicit_score_setting"] is False
+    evidence = json.loads(CliRunner().invoke(app, args + ["--rate", "1.2"]).output)["score_evidence"]
+    assert evidence["rate_matches_explicit_score_setting"] is True
+    write_json(paths.BEST, [{**custom, "mods_known": False}])
+    assert json.loads(CliRunner().invoke(app, args).output)["score_evidence"]["rate_matches_explicit_score_setting"] is None
     assert CliRunner().invoke(app, args[:-2]).exit_code != 0
     write_json(paths.BEST, [score, score])
     assert CliRunner().invoke(app, args).exit_code != 0

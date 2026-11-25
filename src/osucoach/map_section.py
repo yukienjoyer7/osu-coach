@@ -24,12 +24,26 @@ def score_evidence(section, saved):
     declared_map = section.get("declared_beatmap_id")
     checksum = score.get("beatmap_checksum")
     checksum_valid = isinstance(checksum, str) and re.fullmatch(r"[0-9a-fA-F]{32}", checksum)
+    speed_setting = None
+    mods = score.get("mods")
+    settings = score.get("mod_settings")
+    if score.get("mods_known") is True and isinstance(mods, list) and isinstance(settings, dict):
+        speed_mods = [mod for mod in mods if mod in ("DT", "NC", "HT", "DC")]
+        if len(speed_mods) == 1 and not any(mod in ("WU", "WD", "AS") for mod in mods):
+            values = settings.get(speed_mods[0])
+            value = values.get("speed_change") if isinstance(values, dict) else None
+            if type(value) in (int, float) and math.isfinite(value) and value > 0:
+                speed_setting = value
     return {"source": saved["source"], "session_id": saved["session_id"], "score_id": score.get("score_id"),
             "score_retrieved_at": score.get("retrieved_at"), "scores_sync": saved["scores_sync"],
             "declared_beatmap_matches_saved_score": (declared_map == score_map
                 if type(declared_map) is int and type(score_map) is int else None),
             "file_matches_fetch_time_checksum": (section["file_md5"] == checksum.lower()
-                                                  if checksum_valid else None)}
+                                                  if checksum_valid else None),
+            "explicit_saved_speed_setting": speed_setting,
+            "rate_matches_explicit_score_setting": (math.isclose(section["constant_rate"], speed_setting,
+                                                                   rel_tol=0, abs_tol=1e-9)
+                                                     if speed_setting is not None else None)}
 
 
 def inspect(path, start_ms, end_ms, rate=1.0):
