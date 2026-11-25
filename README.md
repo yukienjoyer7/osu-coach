@@ -32,6 +32,8 @@ See `plan.md` for the build plan. Run `osucoach schema` for the data contract, i
 
 `osucoach history BEATMAP_ID` shows saved scores for a map across sessions, including mods, setup snapshots and fetch metadata. It includes matching saved top scores and their fetch metadata, lists sessions with missing score files, and reports duplicate score IDs when session windows overlap while preserving the original records. The top-score list is selective, not a complete play history. Compare conditions, including client and Classic mod settings when known, and deduplicate IDs before interpreting changes. Newly fetched scores retain the API's legacy score ID and build ID when present; their absence does not prove a client.
 
+`osucoach map-section /path/to/map.osu --start-ms 30000 --end-ms 45000 --rate 1.5` inspects a local osu!standard map section using map-audio times. It reports object starts and consecutive circle-center distances, not replay hits, slider ends or verified pattern difficulty. The rate is supplied by the caller and other mod effects are not simulated; check the returned limitations and truncation flag.
+
 `osucoach hypothesis H-aim --through SESSION_ID` finds explicitly tagged plans, reviews, player observations and journal entries from that session and earlier sessions. Omit `--through` to search all saved sessions. Untagged notes are not found, and a session timestamp does not establish when a note was written or an observation occurred.
 
 For hypothesis lookup during planning, use `--before SESSION_ID` instead: it excludes that session and observations reported at or after its start. Plans, reviews and journal entries can still have been written later, so this is not a historical snapshot.

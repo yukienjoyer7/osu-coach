@@ -17,6 +17,7 @@ from . import gap as G
 from . import history as H
 from . import hypothesis as HY
 from . import maps as MAPS
+from . import map_section as MS
 from . import mods as M
 from . import paths as P
 from . import scores as S
@@ -334,6 +335,16 @@ def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
 def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
     """Show saved session scores and conditions for a beatmap as JSON."""
     typer.echo(json.dumps(H.map_history(beatmap_id), ensure_ascii=False, indent=2))
+
+
+@app.command("map-section")
+def map_section(path: str = typer.Argument(..., help="Local .osu file"),
+                start_ms: int = typer.Option(..., "--start-ms", min=0, help="Inclusive map time"),
+                end_ms: int = typer.Option(..., "--end-ms", min=0, help="Exclusive map time"),
+                rate: float = typer.Option(1.0, "--rate", help="Constant playback rate")) -> None:
+    """Inspect object onsets in a chosen local map section as JSON."""
+    result = _run(MS.inspect, path, start_ms, end_ms, rate)
+    typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 @app.command("compare")

@@ -29,6 +29,10 @@ def main():
             return subprocess.run(command + list(values), cwd=temp, env=env, check=True,
                                   capture_output=True, text=True).stdout
 
+        section = json.loads(run("map-section", str(root / "tests/fixtures/synth_clean.osu"),
+                                 "--start-ms", "1000", "--end-ms", "2000"))
+        assert section["selected_object_count"] == 2
+        assert section["onsets"][1]["previous_circle_center_distance_osu_px"] == 300
         run("init")
         sid = json.loads(run("session", "start", "--json"))["session_id"]
         result = json.loads(run("analysis", "import", str(output / "handoff_metrics.json"), "--session", sid,
@@ -39,7 +43,7 @@ def main():
         assert result["saved_score_map_match"] is None
         assert result["analyzer_reported_flags"]["trustworthy"] is True
         assert isinstance(shown["report"], dict) and "Untrusted" in shown["interpretation"]
-        print("Synthetic analyzer report imported, found in history and retrieved; score match remains unknown.")
+        print("Synthetic map section inspected; analyzer report imported and retrieved; score match remains unknown.")
 
 
 if __name__ == "__main__":
