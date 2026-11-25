@@ -1219,6 +1219,26 @@ def test_compare_session_boundary_preserves_time_uncertainty():
     assert _boundary(fallback, sess)["ended_after_session"] is None
 
 
+def test_map_history_finds_score_linked_observations_and_conflicts(tmp_data, monkeypatch):
+    from osucoach import history
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    sess = SS.start()
+    sid = sess["session_id"]
+    SS.add_observation(sess, "score-only", score_id=1)
+    SS.add_observation(sess, "conflicting map", beatmap_id=99, score_id=1)
+    SS.add_observation(sess, "ambiguous", score_id=2)
+    assert history.map_history(11)["score_linked_observations"] == []
+    first = _sc(1, 11, "2026-01-01T00:01:00Z")
+    duplicate = _sc(2, 11, "2026-01-01T00:02:00Z")
+    write_json(P.session_dir(sid) / "scores.json", [first, duplicate, {**duplicate, "beatmap_id": 99}])
+    result = history.map_history(11)["score_linked_observations"][0]["links"]
+    assert [(item["observation"]["text"], item["declared_beatmap_matches_saved_score"]) for item in result] == [
+        ("score-only", None), ("conflicting map", False)]
+    assert history.map_history(99)["map_observations"][0]["observations"][0]["text"] == "conflicting map"
+
+
 def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
     from osucoach import context
 

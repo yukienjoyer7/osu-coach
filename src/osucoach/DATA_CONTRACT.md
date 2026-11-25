@@ -12,6 +12,8 @@ The fetcher writes; the coach only reads `data/` and writes `coach/`.
 
 `session observe TEXT --score ID` optionally records a player-identified score ID, independently of the optional beatmap ID. This is a declared link and is not verified on entry. `compare` returns observations and imported-analysis metadata with a matching declared score ID for each selected session; check any declared beatmap and report metadata for conflicts. Neither matching ID nor recording time proves play identity, event timing or a cause.
 
+`history BEATMAP_ID` also exposes `score_linked_observations` when a declared score ID uniquely matches a saved score for that map in the same session. `declared_beatmap_matches_saved_score` is false when an observation's explicit map conflicts, true when it matches, and null when no map was declared. A matching observation can appear in both the direct map and score-linked lists. Missing score files, missing IDs and duplicate IDs within a session prevent score-based linking; absence of a link is not evidence that no observation exists.
+
 `history ID` also lists metadata for imported external analyses whose declared beatmap ID matches, including analyses from sessions without score files. These are importer-supplied identifiers, not verified replay or map matches; inspect the report and provenance separately when relevant.
 
 `osucoach context` returns the resolved absolute `workspace` path. Coaching files and generated plans/reviews are relative to it, which may differ from the process working directory. The path does not expose credential contents.

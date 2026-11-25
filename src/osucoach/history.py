@@ -6,6 +6,7 @@ from .store import parse_ts, read_json
 def map_history(beatmap_id: int) -> dict:
     entries = []
     map_observations = []
+    score_linked_observations = []
     map_analyses = []
     missing_sessions = []
     for sid in session.list_ids():
@@ -22,6 +23,20 @@ def map_history(beatmap_id: int) -> dict:
             missing_sessions.append(sid)
             continue
         matches = [row for row in rows if row.get("beatmap_id") == beatmap_id]
+        score_links = []
+        for item in sess.get("observations", []):
+            score_id = item.get("score_id")
+            if type(score_id) is not int:
+                continue
+            linked = [row for row in rows if row.get("score_id") == score_id]
+            if len(linked) != 1 or linked[0].get("beatmap_id") != beatmap_id:
+                continue
+            declared_map = item.get("beatmap_id")
+            score_links.append({"observation": item,
+                                "declared_beatmap_matches_saved_score": (
+                                    declared_map == beatmap_id if type(declared_map) is int else None)})
+        if score_links:
+            score_linked_observations.append({"session_id": sid, "links": score_links})
         if matches:
             entries.append({
                 "session_id": sid,
@@ -47,6 +62,7 @@ def map_history(beatmap_id: int) -> dict:
         session_ids & {row["score_id"] for row in best_matches})
     return {"beatmap_id": beatmap_id, "account": account.binding(), "sessions": entries,
             "map_observations": map_observations,
+            "score_linked_observations": score_linked_observations,
             "map_analyses": map_analyses,
             "missing_score_sessions": missing_sessions, "best_scores": best_matches,
             "best_sync": read_json(paths.BEST.with_name("best_sync.json")),
