@@ -4,12 +4,25 @@ A mod is a dict {"acronym": "DT", "settings": {...}} (settings optional).
 """
 import hashlib
 import json
+import math
 import re
 
 from .api import OsuError
 
 SPEED = {"DT": 1.5, "NC": 1.5, "HT": 0.75, "DC": 0.75}
 ALIAS = {"NC": "DT", "DC": "HT"}  # same star rating / stats as DT / HT
+
+
+def set_rate(mods: list[dict], value: float) -> None:
+    """Set a user-requested speed within the selected lazer mod's documented range."""
+    speed_mods = [mod for mod in mods if mod["acronym"] in SPEED]
+    if len(speed_mods) != 1 or not math.isfinite(value):
+        raise OsuError("--rate requires exactly one DT, NC, HT or DC mod and a finite rate")
+    mod = speed_mods[0]
+    low, high = (1.01, 2.0) if mod["acronym"] in {"DT", "NC"} else (0.5, 0.99)
+    if not low <= value <= high:
+        raise OsuError(f"--rate for {mod['acronym']} must be between {low:g} and {high:g}")
+    mod["settings"] = {**(mod.get("settings") or {}), "speed_change": value}
 
 
 def parse_mods(arg: str | None) -> list[dict]:

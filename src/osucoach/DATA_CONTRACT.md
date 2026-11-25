@@ -100,6 +100,8 @@ New attribute files include `fetched_at` and `mod_settings`. The versioned cache
 
 Manual mod input rejects combinations with multiple speed-changing mods or more than one of EZ, HR and DA. This is a partial compatibility check, not a complete list of incompatible mods or a guarantee that a combination is playable or ranked. Recorded score mods are preserved as reported by the API.
 
+For manual custom-rate requests, DT/NC accept 1.01 to 2.0 and HT/DC accept 0.5 to 0.99, matching the documented lazer mod ranges. This does not establish ranked or pp eligibility, and recorded score settings are retained separately.
+
 ## session.json
 ```json
 {"session_id": "2026-11-21_2000",

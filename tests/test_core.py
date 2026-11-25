@@ -304,6 +304,24 @@ def test_numeric_mod_keys_and_legacy_cache(tmp_path, monkeypatch):
     assert F.beatmap_path(11, float_mods) != old
 
 
+@pytest.mark.parametrize("mod,valid,invalid", [
+    ("DT", (1.01, 2.0), (0.99, 2.01)), ("NC", (1.01, 2.0), (1.0, 2.01)),
+    ("HT", (0.5, 0.99), (0.49, 1.0)), ("DC", (0.5, 0.99), (0.49, 1.01)),
+])
+def test_custom_rate_matches_selected_mod_range(mod, valid, invalid, monkeypatch):
+    from osucoach import cli
+
+    monkeypatch.setattr(cli, "_client", lambda: (_ for _ in ()).throw(AssertionError("unexpected client")))
+    for rate in valid:
+        selected = M.parse_mods(mod)
+        M.set_rate(selected, rate)
+        assert selected[0]["settings"]["speed_change"] == rate
+    for rate in invalid:
+        for command in (["fetch", "beatmap", "11"], ["map-attributes", "11"]):
+            result = CliRunner().invoke(app, [*command, "--mods", mod, "--rate", str(rate)])
+            assert result.exit_code != 0 and "must be between" in result.output
+
+
 def test_refresh_beatmap_replaces_cached_attributes(tmp_path, monkeypatch):
     from osucoach.store import write_json
 

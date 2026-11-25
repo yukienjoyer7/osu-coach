@@ -151,10 +151,7 @@ def fetch_beatmap(beatmap_id: int, mods: Optional[str] = typer.Option(None, "--m
     """Mod-adjusted difficulty + map stats -> data/beatmaps/ID_MODS.json (cached)."""
     selected = _run(M.parse_mods, mods)
     if rate is not None:
-        speed_mods = [mod for mod in selected if mod["acronym"] in M.SPEED]
-        if not math.isfinite(rate) or rate <= 0 or len(speed_mods) != 1:
-            _fail(OsuError("--rate requires a positive finite value and exactly one DT, NC, HT or DC mod"))
-        speed_mods[0]["settings"] = {"speed_change": rate}
+        _run(M.set_rate, selected, rate)
     adjustments = {key: value for key, value in (("approach_rate", ar), ("overall_difficulty", od),
                                                  ("circle_size", cs)) if value is not None}
     if adjustments:
@@ -248,10 +245,7 @@ def map_attributes(beatmap_ids: str = typer.Argument(..., help="Comma-separated 
     ids = list(dict.fromkeys(int(part) for part in parts))
     selected = _run(M.parse_mods, mods)
     if rate is not None:
-        speed_mods = [mod for mod in selected if mod["acronym"] in M.SPEED]
-        if not math.isfinite(rate) or rate <= 0 or len(speed_mods) != 1:
-            _fail(OsuError("--rate requires a positive finite value and exactly one DT, NC, HT or DC mod"))
-        speed_mods[0]["settings"] = {"speed_change": rate}
+        _run(M.set_rate, selected, rate)
     client = _client()
     results = []
     for beatmap_id in ids:
