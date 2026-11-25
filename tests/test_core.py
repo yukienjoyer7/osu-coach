@@ -1219,6 +1219,30 @@ def test_compare_session_boundary_preserves_time_uncertainty():
     assert _boundary(fallback, sess)["ended_after_session"] is None
 
 
+def test_compare_best_score_preserves_selective_source_and_unknown_setup(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    sess = SS.start()
+    row = _sc(1, 11, "2026-01-01T00:01:00Z")
+    row["mods_known"] = True
+    write_json(P.session_dir(sess["session_id"]) / "scores.json", [row])
+    write_json(P.BEST, [row])
+    write_json(P.BEST.with_name("best_sync.json"), {"fetched_at": "2026-01-02T00:00:00Z"})
+    args = ["compare", "--first-session", "best", "--first-score", "1",
+            "--second-session", sess["session_id"], "--second-score", "1"]
+    result = CliRunner().invoke(app, args)
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data["same_score_id"] is True and data["first"]["source"] == "best"
+    assert data["first"]["setup"] is None and data["first"]["session_boundary_evidence"] is None
+    assert data["first"]["scores_sync"]["fetched_at"] == "2026-01-02T00:00:00Z"
+    assert data["recorded_checks"]["session_client"] == "unknown"
+    assert any("selectively" in warning for warning in data["limitations"])
+    write_json(P.BEST, [row, row])
+    assert CliRunner().invoke(app, args).exit_code != 0
+
+
 def test_map_history_finds_score_linked_observations_and_conflicts(tmp_data, monkeypatch):
     from osucoach import history
     from osucoach.store import write_json

@@ -337,11 +337,11 @@ def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
 
 
 @app.command("compare")
-def compare(first_session: str = typer.Option(..., "--first-session"),
+def compare(first_session: str = typer.Option(..., "--first-session", help="Session ID or best"),
             first_score: int = typer.Option(..., "--first-score", min=1),
-            second_session: str = typer.Option(..., "--second-session"),
+            second_session: str = typer.Option(..., "--second-session", help="Session ID or best"),
             second_score: int = typer.Option(..., "--second-score", min=1)) -> None:
-    """Compare recorded conditions for two saved session scores as JSON."""
+    """Compare recorded conditions for saved session or best scores as JSON."""
     result = _run(CMP.compare, first_session, first_score, second_session, second_score)
     typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 

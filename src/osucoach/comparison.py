@@ -35,6 +35,18 @@ def _boundary(score, sess):
 
 
 def _score(session_id, score_id):
+    if session_id == "best":
+        rows = read_json(paths.BEST)
+        if rows is None:
+            raise OsuError("best scores missing; run `osucoach fetch best`")
+        found = [row for row in rows if row.get("score_id") == score_id]
+        if len(found) != 1:
+            raise OsuError(f"expected one saved best score {score_id}; found {len(found)}")
+        return {"source": "best", "session_id": None, "session_started_at": None,
+                "session_ended_at": None, "setup": None,
+                "scores_sync": read_json(paths.BEST.with_name("best_sync.json")), "score": found[0],
+                "session_boundary_evidence": None, "observations_with_declared_score_id": None,
+                "analyses_with_declared_score_id": None}
     sid = session.resolve(session_id)
     rows = read_json(paths.session_dir(sid) / "scores.json")
     if rows is None:
@@ -45,7 +57,7 @@ def _score(session_id, score_id):
     sess = session.load(sid)
     observations = [item for item in sess.get("observations", []) if item.get("score_id") == score_id]
     reports = [item for item in analysis.list_reports(sid) if item.get("score_id") == score_id]
-    return {"session_id": sid, "session_started_at": sess.get("started_at"),
+    return {"source": "session", "session_id": sid, "session_started_at": sess.get("started_at"),
             "session_ended_at": sess.get("ended_at"), "setup": sess.get("setup"),
             "scores_sync": fetch.recent_sync(sid), "score": found[0],
             "session_boundary_evidence": _boundary(found[0], sess),
@@ -99,5 +111,6 @@ def compare(first_session, first_score, second_session, second_score):
                 "Session setup is a snapshot, not proof of settings used on each score.",
                 "Observation and analysis score IDs are declared links, not verified play identity or causation.",
                 "Mod settings may omit defaults or other relevant conditions; missing values are unknown.",
+                "Best scores are selectively saved top results, not representative samples or complete play history.",
                 "Score and session coverage may be incomplete; inspect sync metadata and player experience.",
             ]}

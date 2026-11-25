@@ -34,7 +34,7 @@ See `plan.md` for the build plan. Run `osucoach schema` for the data contract, i
 
 `osucoach hypothesis H-aim --through SESSION_ID` finds explicitly tagged plans, reviews, player observations and journal entries from that session and earlier sessions. Omit `--through` to search all saved sessions. Untagged notes are not found, and a session timestamp does not establish when a note was written or an observation occurred.
 
-`osucoach compare --first-session ID --first-score ID --second-session ID --second-score ID` shows recorded condition differences and unknowns for two saved session scores. It does not determine comparability or prove improvement.
+`osucoach compare --first-session ID --first-score ID --second-session ID --second-score ID` shows recorded condition differences and unknowns for two saved scores. Either session selector may be `best` for a score from the saved best list, which is selective and has no session setup. The command does not determine comparability or prove improvement.
 
 For planning, use `--before SESSION_ID` instead: it excludes that session and observations reported at or after its start. Plans, reviews and journal entries can still have been written later, so this is not a historical snapshot.
 
