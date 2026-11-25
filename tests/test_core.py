@@ -1083,6 +1083,15 @@ def test_accuracy_sample_count_excludes_failed_and_unknown_scores():
     assert partial["avg_sr_failed_samples"] == 0 and partial["avg_sr_failed"] is None
 
 
+@pytest.mark.parametrize("invalid", [None, -0.1, 1.01, float("nan"), float("inf"), True, "0.98"])
+def test_invalid_accuracy_is_excluded_from_all_summary_denominators(invalid):
+    rows = S.add_retry_index([_sc(1, 1, "2026-01-01T00:00:00Z", acc=0.98),
+                              _sc(2, 1, "2026-01-01T00:01:00Z", acc=invalid)])
+    summary = ST.compute(rows, blocks=[{"label": "focus", "started_at": "2026-01-01T00:00:00Z"}])
+    for part in (summary, summary["maps"][0], summary["blocks"][0]):
+        assert part["acc_passed"] == 98.0 and part["acc_passed_samples"] == 1
+
+
 def test_stats_empty_and_render():
     assert ST.compute([]) == {"plays": 0}
     assert "no plays" in ST.render("x", {"plays": 0})

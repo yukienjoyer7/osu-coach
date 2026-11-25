@@ -1,6 +1,7 @@
 """Session summary numbers. Pure functions over scores.json rows (plus a map lookup)."""
 from collections import Counter, defaultdict
 import json
+import math
 from statistics import mean
 
 from .store import parse_ts
@@ -8,8 +9,13 @@ from .store import parse_ts
 WINDOW_MIN = 20
 
 
+def _valid_accuracy(row):
+    value = row.get("accuracy")
+    return type(value) in (int, float) and math.isfinite(value) and 0 <= value <= 1
+
+
 def _acc(rows: list[dict]) -> float | None:
-    vals = [r["accuracy"] for r in rows if r["passed"] and r.get("accuracy") is not None]
+    vals = [r["accuracy"] for r in rows if r["passed"] and _valid_accuracy(r)]
     return round(100 * mean(vals), 2) if vals else None
 
 
@@ -19,7 +25,7 @@ def _pass_rate(rows: list[dict]) -> float | None:
 
 def _block(rows: list[dict]) -> dict:
     return {"plays": len(rows), "pass_rate": _pass_rate(rows), "acc_passed": _acc(rows),
-            "acc_passed_samples": sum(row["passed"] and row.get("accuracy") is not None for row in rows)}
+            "acc_passed_samples": sum(row["passed"] and _valid_accuracy(row) for row in rows)}
 
 
 def _hit_results(rows: list[dict]) -> dict:
@@ -113,7 +119,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
     out["hit_results"] = _hit_results(rows)
     out["pass_rate"] = _pass_rate(rows)
     out["acc_passed"] = _acc(rows)
-    out["acc_passed_samples"] = sum(row.get("accuracy") is not None for row in passed)
+    out["acc_passed_samples"] = sum(_valid_accuracy(row) for row in passed)
     pps = [r["pp"] for r in rows if r.get("pp") is not None]
     out["best_pp"] = max(pps) if pps else None
 
@@ -160,7 +166,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
             "max_retry": max(x["retry_index"] or 0 for x in rs),
             "consecutive_recorded_repeats": consecutive_repeats[(bid, mods, settings)],
             "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
-            "acc_passed_samples": sum(row["passed"] and row.get("accuracy") is not None for row in rs),
+            "acc_passed_samples": sum(row["passed"] and _valid_accuracy(row) for row in rs),
             "hit_results": _hit_results(rs),
             "sr": sr_lookup(rs[0]) if sr_lookup else None,
         })
