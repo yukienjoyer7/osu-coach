@@ -911,7 +911,7 @@ def test_live_observations_preserve_reports_and_recording_time(tmp_data, monkeyp
     assert first.exit_code == 0, first.output
     assert json.loads(first.output) == {"reported_at": clock.isoformat(timespec="seconds"),
                                         "text": "streams felt tense", "beatmap_id": 99,
-                                        "recorded_after_session": False}
+                                        "recorded_after_session": False, "kind": "player-report"}
     clock += timedelta(minutes=5)
     assert runner.invoke(app, ["session", "observe", "aim felt better"]).exit_code == 0
     assert runner.invoke(app, ["session", "observe", "   "]).exit_code != 0
@@ -943,6 +943,17 @@ def test_apply_updates_validation():
         SS.apply_updates(s, after={"bogus": 1})
     with pytest.raises(OsuError):
         SS.apply_updates(s, followed_plan="maybe")
+
+
+def test_observation_perspective_is_explicit_and_invalid_kind_does_not_write(tmp_data):
+    sess = SS.start()
+    runner = CliRunner()
+    note = runner.invoke(app, ["session", "observe", "H-aim: possible reading issue", "--kind", "coach-note", "--json"])
+    assert note.exit_code == 0 and json.loads(note.output)["kind"] == "coach-note"
+    rejected = runner.invoke(app, ["session", "observe", "bad", "--kind", "diagnosis"])
+    assert rejected.exit_code != 0
+    saved = SS.load(sess["session_id"])["observations"]
+    assert len(saved) == 1 and saved[0]["kind"] == "coach-note"
 
 
 def test_invalid_feedback_is_rejected_without_partial_updates(tmp_data):

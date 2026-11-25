@@ -472,6 +472,7 @@ def session_observe(text: str = typer.Argument(..., help="Player observation to 
                                                           help="Map ID only when the player identifies it."),
                     score: Optional[int] = typer.Option(None, "--score", min=1,
                                                         help="Score ID only when the player identifies it."),
+                    kind: str = typer.Option("player-report", "--kind", help="player-report or coach-note"),
                     session: Optional[str] = typer.Option(None, "--session", help="Explicit session ID for a retrospective report."),
                     json_out: bool = JSON) -> None:
     """Record a player observation, optionally for an explicitly selected session."""
@@ -481,7 +482,7 @@ def session_observe(text: str = typer.Argument(..., help="Player observation to 
     sess = SS.load(sid)
     if not session and sess.get("ended_at"):
         _fail(OsuError("session has ended; specify --session for a retrospective report"))
-    observation = _run(SS.add_observation, sess, text, beatmap, score)
+    observation = _run(SS.add_observation, sess, text, beatmap, score, kind)
     _out(observation, json_out, f"{sid}: observation recorded")
 
 

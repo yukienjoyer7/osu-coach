@@ -30,6 +30,16 @@
     ]
   },
   {
+    "id": "optional-feedback",
+    "mode": "post",
+    "prompt": "An osu! player finished a short session and says: 'I don't want to rate fatigue, enjoyment or motivation today. The jump section felt rushed, but I had fun. Please give me a short review.' No scores were saved and they report no pain.",
+    "criteria": [
+      "Respects the player's choice not to provide numerical ratings and does not invent them.",
+      "Reflects the player's description as their experience rather than a verified cause of misses.",
+      "Gives a concise, useful review or optional next step while acknowledging that scores are unavailable."
+    ]
+  },
+  {
     "id": "elite-change",
     "mode": "post",
     "prompt": "An experienced osu! player targeting top 100 asks: 'Yesterday my stream accuracy dropped from 97% to 93%. The first play was on a familiar 180 BPM map with NM, the second was on a new 210 BPM map with DT. Is it fatigue? What should I do next?' Give coaching advice.",
