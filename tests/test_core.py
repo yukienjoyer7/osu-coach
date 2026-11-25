@@ -676,6 +676,8 @@ def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
         "- input: tablet\n"
         "- tablet: Example tablet\n"
         "- keypad: Example keypad\n"
+        "- rapid trigger: on, 0.15 mm\n"
+        "- actuation: 0.8 mm\n"
         "- fps: ~480\n"
         "- client: lazer (always)\n"
         "- tablet area: 60 × 40 mm, center (75.5, 45) mm, rotation 0°\n"
@@ -694,6 +696,7 @@ def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
         "area_mm": [60, 40], "area_center_mm": [75.5, 45],
         "area_offset_mm": None, "area_rotation_deg": 0,
         "driver": "OpenTabletDriver, Absolute Mode", "keypad": "Example keypad",
+        "rapid_trigger": "on, 0.15 mm", "actuation": "0.8 mm",
         "fps": 480, "client": "lazer", "changed_since_last": None,
     }
     SS.close(first_session["session_id"])
@@ -714,6 +717,22 @@ def test_cli_session_start_snapshots_latest_player_setup(tmp_data, monkeypatch):
     SS.close(third["session_id"])
     started_at += timedelta(minutes=1)
     assert SS.start(setup_changed=False)["setup"]["changed_since_last"] is False
+
+
+def test_setup_records_rapid_trigger_changes(tmp_data, monkeypatch):
+    clock = datetime(2026, 11, 21, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    P.COACH.mkdir()
+    profile = P.COACH / "player.md"
+    profile.write_text("- input: mouse\n- rapid trigger: off\n", encoding="utf-8")
+    first = SS.start()
+    SS.close(first["session_id"])
+    clock += timedelta(minutes=1)
+    profile.write_text("- input: mouse\n- rapid trigger: on, 0.2 mm\n", encoding="utf-8")
+    second = SS.start()
+    assert second["setup"]["rapid_trigger"] == "on, 0.2 mm"
+    assert second["setup"]["changed_since_last"] is True
+    assert SS.load(first["session_id"])["setup"]["rapid_trigger"] == "off"
 
 
 def test_legacy_player_setup_and_missing_profile_fallback(tmp_data, monkeypatch):

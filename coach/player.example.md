@@ -7,6 +7,8 @@
 - input: <tablet or mouse>
 - tablet: <tablet model, if applicable>
 - keypad: <keypad or keyboard>
+- rapid trigger: <optional settings, or off>
+- actuation: <optional settings>
 - fps: <integer>
 - client: <lazer or stable>
 - tablet area: <width x height mm, optional center (x, y) mm and rotation angle°>

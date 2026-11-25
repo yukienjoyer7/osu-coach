@@ -6,7 +6,7 @@ from .api import OsuError
 
 SETUP_FIELDS = (
     "input", "tablet", "area_mm", "area_center_mm", "area_offset_mm",
-    "area_rotation_deg", "driver", "keypad", "fps", "client",
+    "area_rotation_deg", "driver", "keypad", "rapid_trigger", "actuation", "fps", "client",
 )
 
 NUMBER = r"-?\d+(?:\.\d+)?"
@@ -56,6 +56,8 @@ def read_setup(path: Path) -> dict | None:
         "area_rotation_deg": float(rotation[1]) if rotation else None,
         "driver": fields.get("driver", inline_driver.strip() or None),
         "keypad": fields.get("keypad", keypad.strip() or None),
+        "rapid_trigger": fields.get("rapid trigger"),
+        "actuation": fields.get("actuation"),
         "fps": int(fps_match[1]) if fps_match else None,
         "client": client[1].casefold() if client else None,
     }

@@ -111,11 +111,13 @@ Manual mod input rejects combinations with multiple speed-changing mods or more 
  "setup": {"input": "tablet", "tablet": "Example tablet", "area_mm": [60,40],
            "area_center_mm": [75.5,45], "area_offset_mm": null,
            "area_rotation_deg": 0, "driver": "OpenTabletDriver",
-           "keypad": "Example keypad",
+           "keypad": "Example keypad", "rapid_trigger": null, "actuation": null,
            "fps": 480, "client": "lazer", "changed_since_last": false}}
 ```
 `session start` reads `coach/player.md` and saves a setup snapshot. Edit the profile to change future sessions. For example, `- tablet area: 60 × 40 mm, center (75.5, 45) mm, rotation 0°` supplies dimensions, center coordinates and rotation. Blank setup fields are null. If the profile is missing, the CLI reuses the last recorded setup when available.
 `setup.changed_since_last` is true when known recorded values differ, and otherwise null unless the player explicitly reports a change or confirms the setup is the same. Matching saved fields cannot rule out unrecorded or stale settings. `--setup-changed` and `--setup-same` record the player's report and override the comparison; earlier sessions may contain automatically inferred false values from older versions. Unknown `before` and `after` fields are null.
+
+Optional `rapid_trigger` and `actuation` are free-text player-reported settings copied from the player profile at session start. Null means unknown, not disabled. Older sessions may omit them. They describe reported configuration, not measured timing or proof of causation.
 `after.duration_min` is computed at `session end`. Edit fields afterwards only with `osucoach session update`.
 Energy, motivation, fatigue and enjoyment use integer values from 1 to 5. Pain uses integers from 0 to 10. Sleep hours must be finite and non-negative. Invalid updates are rejected before saving.
 Optional `blocks` is an ordered array of `{ "label": "focus", "started_at": "ISO8601 with offset" }` markers created by `session block`. Older sessions may omit it. Statistics assign scores by score end time, including crossing plays, and count plays before the first marker separately.

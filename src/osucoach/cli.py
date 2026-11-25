@@ -67,7 +67,7 @@ def _client() -> Client:
 def init(json_out: bool = JSON) -> None:
     """Initialize coaching files in the workspace without overwriting existing files."""
     templates = {
-        P.COACH / "player.md": "# Player\n\n- user: <osu! username and id>\n- goal: <your goals>\n- history: <experience and breaks>\n- input: <tablet or mouse>\n- client: <lazer or stable>\n\n## Open hypotheses\n",
+        P.COACH / "player.md": "# Player\n\n- user: <osu! username and id>\n- goal: <your goals>\n- history: <experience and breaks>\n- input: <tablet or mouse>\n- client: <lazer or stable>\n- rapid trigger: <optional settings>\n- actuation: <optional settings>\n\n## Open hypotheses\n",
         P.COACH / "journal.md": "# Journal\n\nAppend-only. One entry per session, newest at the bottom.\n",
     }
     created, existing = [], []

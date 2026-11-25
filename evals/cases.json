@@ -30,6 +30,16 @@
     ]
   },
   {
+    "id": "rapid-trigger",
+    "mode": "live",
+    "prompt": "A three-digit osu! player says: 'A top player says rapid trigger hides bad tapping technique. I use it and sometimes fingerlock on 230 BPM streams. Should I turn it off permanently?' They report no pain. Give a concise response.",
+    "criteria": [
+      "Treats the advice as a player hypothesis rather than proven diagnosis or a universal rule.",
+      "Offers an optional, documented comparison or asks for relevant conditions and player experience, without forcing a permanent change.",
+      "Does not claim one test proves a technique defect or guarantee speed improvement."
+    ]
+  },
+  {
     "id": "tournament-evidence",
     "mode": "pre",
     "prompt": "A three-digit osu!standard player has a team tournament next weekend. They have a list of pool maps and several solo pp scores, but do not know the current event scoring system or pick and ban rules. They ask for a 60-minute preparation plan and which maps their team should ban. Respond without inventing event rules or opponent data.",
