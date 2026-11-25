@@ -17,6 +17,8 @@ osucoach analysis import REPORT.json --session ID --source NAME --beatmap ID
 osucoach analysis list --session ID
 osucoach analysis show REPORT_ID --session ID
 osucoach history BEATMAP_ID
+osucoach hypothesis H-TAG [--before ID | --through ID]
+osucoach compare --first-session ID --first-score ID --second-session ID --second-score ID
 osucoach maps [--min-sr X --max-sr X --min-bpm X --max-bpm X]
 osucoach map-tag BEATMAP_ID --tags LABELS
 osucoach map-search QUERY
@@ -24,7 +26,7 @@ osucoach discover QUERY
 osucoach map-attributes ID,ID [--mods X] [--rate X]
 osucoach gap
 ```
-Add `--json` when you need to parse output. `session start` takes `--sleep-h --energy --pain --motivation`. `session end` takes `--fatigue --pain --enjoyment --felt-hard --notes --followed-plan yes|partly|no`. For `session update`, use `--pain-before` and `--pain-after` for the respective pain values. Use it to record what the player tells you. `osucoach <cmd> --help` lists every option.
+Use `--json` where offered. Commands including `context`, `scores`, `history`, `hypothesis`, `compare`, and `analysis` subcommands already output JSON. `session start` takes `--sleep-h --energy --pain --motivation`. `session end` takes `--fatigue --pain --enjoyment --felt-hard --notes --followed-plan yes|partly|no`. For `session update`, use `--pain-before` and `--pain-after` for the respective pain values. Use it to record what the player tells you. `osucoach <cmd> --help` lists every option.
 
 ## Modes
 - `pre`: plan the next session -> `coach/plans/<id>.md`
