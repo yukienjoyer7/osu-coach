@@ -1243,6 +1243,30 @@ def test_compare_best_score_preserves_selective_source_and_unknown_setup(tmp_dat
     assert CliRunner().invoke(app, args).exit_code != 0
 
 
+def test_compare_highlights_conflicting_same_id_and_account(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    sess = SS.start()
+    first = {**_sc(1, 11, "2026-01-01T00:01:00Z"), "user_id": 123,
+             "timestamp_source": "ended_at", "legacy_score_id": 10}
+    second = {**first, "beatmap_id": 12, "user_id": 456, "legacy_score_id": 20,
+              "created_at": "2026-01-01T00:03:00Z"}
+    write_json(P.BEST, [first])
+    write_json(P.session_dir(sess["session_id"]) / "scores.json", [second])
+    write_json(P.DATA / "account.json", {"user_id": "123", "legacy_data_present": True})
+    args = ["compare", "--first-session", "best", "--first-score", "1",
+            "--second-session", sess["session_id"], "--second-score", "1"]
+    result = json.loads(CliRunner().invoke(app, args).output)
+    assert result["same_score_id"] is True
+    assert set(result["same_id_record_conflicts"]) == {"beatmap_id", "user_id", "legacy_score_id", "recorded_end_time"}
+    assert result["identity_evidence"] == {"first_matches_workspace_account": "same",
+                                           "second_matches_workspace_account": "different"}
+    second["user_id"] = None
+    write_json(P.session_dir(sess["session_id"]) / "scores.json", [second])
+    assert json.loads(CliRunner().invoke(app, args).output)["identity_evidence"]["second_matches_workspace_account"] == "unknown"
+
+
 def test_map_history_finds_score_linked_observations_and_conflicts(tmp_data, monkeypatch):
     from osucoach import history
     from osucoach.store import write_json

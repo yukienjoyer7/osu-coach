@@ -103,8 +103,21 @@ def compare(first_session, first_score, second_session, second_score):
         "build_id": _equality(a.get("build_id"), b.get("build_id")),
     }
     checks.update({f"session_{key}": _equality(setup_a.get(key), setup_b.get(key)) for key in SETUP_FIELDS})
-    return {"account": account.binding(), "first": first, "second": second,
-            "same_score_id": a.get("score_id") == b.get("score_id"), "recorded_checks": checks,
+    same_id = a.get("score_id") == b.get("score_id")
+    conflicts = None
+    if same_id:
+        conflicts = [key for key in ("beatmap_id", "user_id", "legacy_score_id")
+                     if _equality(a.get(key), b.get(key)) == "different"]
+        if (a.get("timestamp_source") == b.get("timestamp_source") == "ended_at"
+                and _equality(_timestamp(a.get("created_at")), _timestamp(b.get("created_at"))) == "different"):
+            conflicts.append("recorded_end_time")
+    binding = account.binding()
+    binding_id = binding.get("user_id") if isinstance(binding, dict) else None
+    binding_id = int(binding_id) if isinstance(binding_id, str) and binding_id.isascii() and binding_id.isdecimal() else None
+    identity = {"first_matches_workspace_account": _equality(a.get("user_id"), binding_id),
+                "second_matches_workspace_account": _equality(b.get("user_id"), binding_id)}
+    return {"account": binding, "identity_evidence": identity, "first": first, "second": second,
+            "same_score_id": same_id, "same_id_record_conflicts": conflicts, "recorded_checks": checks,
             "limitations": [
                 "Same recorded values do not prove comparable conditions, client rules or causal improvement.",
                 "Beatmap checksums describe fetch-time metadata, not necessarily the version played.",
@@ -112,5 +125,6 @@ def compare(first_session, first_score, second_session, second_score):
                 "Observation and analysis score IDs are declared links, not verified play identity or causation.",
                 "Mod settings may omit defaults or other relevant conditions; missing values are unknown.",
                 "Best scores are selectively saved top results, not representative samples or complete play history.",
+                "Matching score IDs alone do not verify identity; conflicting saved fields warrant investigation.",
                 "Score and session coverage may be incomplete; inspect sync metadata and player experience.",
             ]}
