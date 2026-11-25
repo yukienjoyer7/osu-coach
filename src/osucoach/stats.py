@@ -24,10 +24,15 @@ def _pass_rate(rows: list[dict]) -> float | None:
     return round(100 * sum(r["passed"] for r in known) / len(known), 1) if known else None
 
 
+def _no_fail(rows: list[dict]) -> int:
+    return sum("NF" in (row.get("mods") or []) for row in rows)
+
+
 def _block(rows: list[dict]) -> dict:
     return {"plays": len(rows), "pass_rate": _pass_rate(rows),
             "pass_rate_samples": sum(type(row.get("passed")) is bool for row in rows), "acc_passed": _acc(rows),
-            "acc_passed_samples": sum(row.get("passed") is True and _valid_accuracy(row) for row in rows)}
+            "acc_passed_samples": sum(row.get("passed") is True and _valid_accuracy(row) for row in rows),
+            "recorded_no_fail_plays": _no_fail(rows)}
 
 
 def _hit_results(rows: list[dict]) -> dict:
@@ -132,6 +137,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
     out["first_recorded_attempts"] = _block(first_attempts)
     out["later_recorded_attempts"] = _block(later_attempts)
     out["passes"] = len(passed)
+    out["recorded_no_fail_plays"] = _no_fail(rows)
     out["hit_results"] = _hit_results(rows)
     out["pass_rate"] = _pass_rate(rows)
     out["pass_rate_samples"] = sum(type(row.get("passed")) is bool for row in rows)
@@ -183,6 +189,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
             "beatmap_id": bid, "title": rs[0]["title"], "version": rs[0]["version"],
             "mods": list(mods), "mod_settings": json.loads(settings),
             "plays": len(rs), "passes": sum(x.get("passed") is True for x in rs),
+            "recorded_no_fail_plays": _no_fail(rs),
             "pass_rate_samples": sum(type(row.get("passed")) is bool for row in rs),
             "max_retry": max(x["retry_index"] or 0 for x in rs),
             "consecutive_recorded_repeats": consecutive_repeats[(bid, mods, settings)],
@@ -209,6 +216,8 @@ def render(session_id: str, s: dict) -> str:
         f"avg SR passed {_f(s['avg_sr_passed'])} (n={s.get('avg_sr_passed_samples', '?')}) "
         f"vs failed {_f(s['avg_sr_failed'])} (n={s.get('avg_sr_failed_samples', '?')})",
     ]
+    if s.get("recorded_no_fail_plays"):
+        lines.append(f"No Fail recorded on {s['recorded_no_fail_plays']} plays; pass rate has different meaning.")
     for label, key in (("1st half", "first_half"), ("2nd half", "second_half"),
                        ("first 20m", "first_20min"), ("last 20m", "last_20min")):
         b = s.get(key)

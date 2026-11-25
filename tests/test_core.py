@@ -1305,8 +1305,19 @@ def test_stats_basic():
     assert s["first_half"]["plays"] == 2 and s["second_half"]["plays"] == 2
     assert s["first_20min"] is None  # session too short for 20 min windows
     assert s["maps"][0]["plays"] == 2 and s["maps"][0]["max_retry"] in (2,)
-    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "pass_rate_samples": 2, "acc_passed": 97.0, "acc_passed_samples": 2}
-    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "pass_rate_samples": 2, "acc_passed": 94.0, "acc_passed_samples": 1}
+    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "pass_rate_samples": 2, "acc_passed": 97.0, "acc_passed_samples": 2, "recorded_no_fail_plays": 0}
+    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "pass_rate_samples": 2, "acc_passed": 94.0, "acc_passed_samples": 1, "recorded_no_fail_plays": 0}
+
+
+def test_stats_disclose_no_fail_in_mixed_practice():
+    rows = S.add_retry_index([_sc(1, 1, "2026-01-01T00:01:00Z", passed=True),
+                              _sc(2, 1, "2026-01-01T00:02:00Z", passed=True)])
+    rows[1]["mods"] = ["NF"]
+    result = ST.compute(rows, blocks=[{"label": "pool", "started_at": "2026-01-01T00:00:00Z"}])
+    assert result["pass_rate"] == 100 and result["recorded_no_fail_plays"] == 1
+    assert result["blocks"][0]["recorded_no_fail_plays"] == 1
+    assert [group["recorded_no_fail_plays"] for group in result["maps"]] == [0, 1]
+    assert "No Fail recorded on 1 plays" in ST.render("test", result)
 
 
 def test_unknown_pass_status_is_not_a_failure():

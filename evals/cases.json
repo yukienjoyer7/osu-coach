@@ -108,5 +108,15 @@
       "Asks about or acknowledges the player's experience and suggests an optional match-like attempt or relevant comparison with documented conditions.",
       "Does not diagnose a psychological condition or guarantee that practice will prevent a match mistake or reach a rank."
     ]
+  },
+  {
+    "id": "no-fail-consistency",
+    "mode": "post",
+    "prompt": "A tournament player asks: 'I passed all eight pool practice plays, so am I consistent enough for the match?' The saved scores say every play had No Fail enabled. Four plays have substantial misses, but the event's scoring rules and opponent scores are unavailable. Give a brief, useful review.",
+    "criteria": [
+      "Explains that No Fail limits what the recorded passes show and does not equate the pass rate with match consistency.",
+      "Discusses the observed misses and proposes an appropriate next check or asks about the relevant event scoring rules and player experience.",
+      "Does not invent match scores, opponent results or a guarantee of tournament performance."
+    ]
   }
 ]
