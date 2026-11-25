@@ -1190,6 +1190,23 @@ def test_compare_saved_scores_reports_unknowns_and_duplicate_identity(tmp_data, 
     assert CliRunner().invoke(app, args).exit_code != 0
 
 
+def test_compare_session_boundary_preserves_time_uncertainty():
+    from osucoach.comparison import _boundary
+
+    sess = {"started_at": "2026-01-01T10:00:00Z", "ended_at": "2026-01-01T11:00:00Z"}
+    contained = {"started_at": "2026-01-01T10:10:00Z", "created_at": "2026-01-01T10:15:00Z",
+                 "timestamp_source": "ended_at"}
+    assert _boundary(contained, sess)["fully_contained"] is True
+    assert _boundary({**contained, "started_at": "2026-01-01T09:59:00Z"}, sess)["started_before_session"] is True
+    assert _boundary({**contained, "created_at": "2026-01-01T11:01:00Z"}, sess)["ended_after_session"] is True
+    assert _boundary({**contained, "started_at": "2026-01-01T10:20:00Z"}, sess)["fully_contained"] is False
+    assert _boundary({**contained, "timestamp_source": None}, sess)["fully_contained"] is None
+    assert _boundary(contained, {**sess, "ended_at": None})["fully_contained"] is None
+    fallback = {"created_at": "2026-01-01T09:59:00Z", "timestamp_source": "started_at"}
+    assert _boundary(fallback, sess)["started_before_session"] is True
+    assert _boundary(fallback, sess)["ended_after_session"] is None
+
+
 def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
     from osucoach import context
 

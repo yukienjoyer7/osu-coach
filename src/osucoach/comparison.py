@@ -4,7 +4,34 @@ import re
 from . import account, fetch, paths, session
 from .api import OsuError
 from .player import SETUP_FIELDS
-from .store import read_json
+from .store import parse_ts, read_json
+
+
+def _timestamp(value):
+    try:
+        parsed = parse_ts(value)
+        return parsed if parsed.utcoffset() is not None else None
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def _boundary(score, sess):
+    session_start, session_end = _timestamp(sess.get("started_at")), _timestamp(sess.get("ended_at"))
+    score_start = _timestamp(score.get("started_at"))
+    if score_start is None and score.get("timestamp_source") == "started_at":
+        score_start = _timestamp(score.get("created_at"))
+    score_end = _timestamp(score.get("created_at")) if score.get("timestamp_source") == "ended_at" else None
+    starts_before = score_start < session_start if score_start and session_start else None
+    ends_after = score_end > session_end if score_end and session_end else None
+    ordered = score_start <= score_end if score_start and score_end else None
+    if starts_before is True or ends_after is True or ordered is False:
+        contained = False
+    elif starts_before is False and ends_after is False and ordered is True:
+        contained = True
+    else:
+        contained = None
+    return {"started_before_session": starts_before, "ended_after_session": ends_after,
+            "score_times_ordered": ordered, "fully_contained": contained}
 
 
 def _score(session_id, score_id):
@@ -18,7 +45,8 @@ def _score(session_id, score_id):
     sess = session.load(sid)
     return {"session_id": sid, "session_started_at": sess.get("started_at"),
             "session_ended_at": sess.get("ended_at"), "setup": sess.get("setup"),
-            "scores_sync": fetch.recent_sync(sid), "score": found[0]}
+            "scores_sync": fetch.recent_sync(sid), "score": found[0],
+            "session_boundary_evidence": _boundary(found[0], sess)}
 
 
 def _equality(left, right):
