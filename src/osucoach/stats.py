@@ -28,11 +28,17 @@ def _no_fail(rows: list[dict]) -> int:
     return sum("NF" in (row.get("mods") or []) for row in rows)
 
 
+def _mod_coverage(rows: list[dict]) -> dict:
+    return {"unknown_mods_plays": sum(row.get("mods_known") is False for row in rows),
+            "legacy_mod_provenance_plays": sum(row.get("mods_known") is not True
+                                               and row.get("mods_known") is not False for row in rows)}
+
+
 def _block(rows: list[dict]) -> dict:
     return {"plays": len(rows), "pass_rate": _pass_rate(rows),
             "pass_rate_samples": sum(type(row.get("passed")) is bool for row in rows), "acc_passed": _acc(rows),
             "acc_passed_samples": sum(row.get("passed") is True and _valid_accuracy(row) for row in rows),
-            "recorded_no_fail_plays": _no_fail(rows)}
+            "recorded_no_fail_plays": _no_fail(rows), **_mod_coverage(rows)}
 
 
 def _hit_results(rows: list[dict]) -> dict:
@@ -138,6 +144,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
     out["later_recorded_attempts"] = _block(later_attempts)
     out["passes"] = len(passed)
     out["recorded_no_fail_plays"] = _no_fail(rows)
+    out.update(_mod_coverage(rows))
     out["hit_results"] = _hit_results(rows)
     out["pass_rate"] = _pass_rate(rows)
     out["pass_rate_samples"] = sum(type(row.get("passed")) is bool for row in rows)
@@ -190,6 +197,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
             "mods": list(mods), "mods_known": mods_known, "mod_settings": json.loads(settings),
             "plays": len(rs), "passes": sum(x.get("passed") is True for x in rs),
             "recorded_no_fail_plays": _no_fail(rs),
+            **_mod_coverage(rs),
             "pass_rate_samples": sum(type(row.get("passed")) is bool for row in rs),
             "max_retry": max(x["retry_index"] or 0 for x in rs),
             "consecutive_recorded_repeats": consecutive_repeats[(bid, mods, settings, mods_known)],
@@ -218,6 +226,9 @@ def render(session_id: str, s: dict) -> str:
     ]
     if s.get("recorded_no_fail_plays"):
         lines.append(f"No Fail recorded on {s['recorded_no_fail_plays']} plays; pass rate has different meaning.")
+    if s.get("unknown_mods_plays") or s.get("legacy_mod_provenance_plays"):
+        lines.append(f"Mod provenance: {s['unknown_mods_plays']} unknown, "
+                     f"{s['legacy_mod_provenance_plays']} legacy/uncertain.")
     for label, key in (("1st half", "first_half"), ("2nd half", "second_half"),
                        ("first 20m", "first_20min"), ("last 20m", "last_20min")):
         b = s.get(key)

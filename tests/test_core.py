@@ -1305,8 +1305,8 @@ def test_stats_basic():
     assert s["first_half"]["plays"] == 2 and s["second_half"]["plays"] == 2
     assert s["first_20min"] is None  # session too short for 20 min windows
     assert s["maps"][0]["plays"] == 2 and s["maps"][0]["max_retry"] in (2,)
-    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "pass_rate_samples": 2, "acc_passed": 97.0, "acc_passed_samples": 2, "recorded_no_fail_plays": 0}
-    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "pass_rate_samples": 2, "acc_passed": 94.0, "acc_passed_samples": 1, "recorded_no_fail_plays": 0}
+    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "pass_rate_samples": 2, "acc_passed": 97.0, "acc_passed_samples": 2, "recorded_no_fail_plays": 0, "unknown_mods_plays": 0, "legacy_mod_provenance_plays": 2}
+    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "pass_rate_samples": 2, "acc_passed": 94.0, "acc_passed_samples": 1, "recorded_no_fail_plays": 0, "unknown_mods_plays": 0, "legacy_mod_provenance_plays": 2}
 
 
 def test_stats_disclose_no_fail_in_mixed_practice():
@@ -1338,6 +1338,7 @@ def test_missing_mods_do_not_become_known_nomod_attributes(tmp_data, monkeypatch
     F.fill_map_max_combo(rows)
     assert [row["map_max_combo"] for row in rows] == [None, 300]
     summary = ST.compute(rows, lambda row: 5.5)
+    assert summary["unknown_mods_plays"] == 1 and summary["legacy_mod_provenance_plays"] == 0
     assert summary["avg_sr_passed_samples"] == int(explicit["passed"] is True)
     assert len(summary["maps"]) == 2
     unknown = next(row for row in summary["maps"] if row["mods_known"] is False)
