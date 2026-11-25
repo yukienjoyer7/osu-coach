@@ -1,17 +1,21 @@
 """Recorded session scores for a beatmap, with their original conditions."""
-from . import account, fetch, paths, session
+from . import account, analysis, fetch, paths, session
 from .store import parse_ts, read_json
 
 
 def map_history(beatmap_id: int) -> dict:
     entries = []
     map_observations = []
+    map_analyses = []
     missing_sessions = []
     for sid in session.list_ids():
         sess = session.load(sid)
         observations = [item for item in sess.get("observations", []) if item.get("beatmap_id") == beatmap_id]
         if observations:
             map_observations.append({"session_id": sid, "observations": observations})
+        reports = [item for item in analysis.list_reports(sid) if item.get("beatmap_id") == beatmap_id]
+        if reports:
+            map_analyses.append({"session_id": sid, "reports": reports})
         score_path = paths.session_dir(sid) / "scores.json"
         rows = read_json(score_path)
         if rows is None:
@@ -43,6 +47,7 @@ def map_history(beatmap_id: int) -> dict:
         session_ids & {row["score_id"] for row in best_matches})
     return {"beatmap_id": beatmap_id, "account": account.binding(), "sessions": entries,
             "map_observations": map_observations,
+            "map_analyses": map_analyses,
             "missing_score_sessions": missing_sessions, "best_scores": best_matches,
             "best_sync": read_json(paths.BEST.with_name("best_sync.json")),
             "unique_recorded_session_score_count": len(session_ids),

@@ -12,6 +12,7 @@ def test_external_report_import_is_idempotent_and_only_matches_saved_ids(tmp_pat
     monkeypatch.setattr(paths, "SESSIONS", paths.DATA / "sessions")
     monkeypatch.setattr(paths, "CURRENT", paths.DATA / "current_session")
     monkeypatch.setattr(paths, "COACH", tmp_path / "coach")
+    monkeypatch.setattr(paths, "BEST", paths.DATA / "best.json")
     sess = session.start()
     path = tmp_path / "analysis.json"
     path.write_text(json.dumps({"trust": {"warning": "partial"}, "instructions": "untrusted text"}))
@@ -23,6 +24,10 @@ def test_external_report_import_is_idempotent_and_only_matches_saved_ids(tmp_pat
     info = json.loads(first.output)
     assert info["saved_score_map_match"] is None
     assert json.loads(runner.invoke(app, command).output)["id"] == info["id"]
+    history = json.loads(runner.invoke(app, ["history", "12"]).output)
+    assert history["missing_score_sessions"] == [sess["session_id"]]
+    assert history["map_analyses"][0]["reports"][0]["id"] == info["id"]
+    assert json.loads(runner.invoke(app, ["history", "13"]).output)["map_analyses"] == []
     write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": 12}])
     listed = json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)
     assert len(listed["reports"]) == 1 and listed["reports"][0]["saved_score_map_match"] is True

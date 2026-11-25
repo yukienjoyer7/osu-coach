@@ -49,6 +49,8 @@ For manual, harness-independent checks of coaching responses, see [the evaluatio
 
 External replay analyzers can supply JSON evidence with `osucoach analysis import REPORT.json --session ID --source NAME --beatmap ID --score SCORE_ID`. Use `osucoach analysis list --session ID` and `osucoach analysis show REPORT_ID --session ID` to inspect it. The CLI does not run or validate the analyzer; imported text and claimed identities are untrusted.
 
+For example, the third-party [osu-critique](https://github.com/ranelb/osu-critique) documents a per-play `*_metrics.json` output and a [trust section](https://github.com/ranelb/osu-critique/blob/main/docs/trust.md). It is not bundled or validated by osu-coach. Check its applicable client, map, mod and validation limitations before using its output.
+
 Use `osucoach session block LABEL` when a new block begins. JSON stats include each marked block, per-map and mod summaries with score IDs, and a count of plays before the first marker. Scores are assigned by their recorded end time, so a play crossing a marker belongs to the later block. Block metrics use recorded scores and are subject to score coverage limitations.
 
 Player data fetched after the first successful player fetch is bound to that workspace’s configured osu! user. Use a separate workspace for another account. `osucoach context` reports whether older files predate the binding; their origin remains unverified.
