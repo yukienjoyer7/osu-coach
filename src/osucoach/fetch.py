@@ -90,11 +90,14 @@ def fetch_best(c: Client) -> list[dict]:
     account.bind(user_id)
     for r in raw:
         _save_meta(r)
+    fetched_at = now_local().isoformat(timespec="seconds")
     scores = [S.map_score(r) for r in raw]
+    for score in scores:
+        score["retrieved_at"] = fetched_at
     fill_map_max_combo(scores)
     write_json(P.BEST, scores)
     write_json(P.BEST.with_name("best_sync.json"), {
-        "fetched_at": now_local().isoformat(timespec="seconds"),
+        "fetched_at": fetched_at,
         "scores_returned": len(scores),
     })
     return scores
@@ -144,10 +147,12 @@ def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
     raw, page_limit_reached = _recent_raw(c)
     account.check_response(user_id, raw)
     account.bind(user_id)
+    fetched_at = now_local().isoformat(timespec="seconds")
     for r in raw:
         sc = S.map_score(r)
         if sc["created_at"] and in_session(sc["created_at"], start, end):
             _save_meta(r)
+            sc["retrieved_at"] = fetched_at
             merged[sc["score_id"]] = sc
     scores = S.add_retry_index(list(merged.values()))
     fill_map_max_combo(scores)
@@ -155,7 +160,7 @@ def fetch_recent(c: Client, session_id: str, session: dict) -> list[dict]:
     timestamps = [r.get("ended_at") or r.get("started_at") for r in raw]
     timestamps = [t for t in timestamps if t]
     write_json(sync_path, {
-        "fetched_at": now_local().isoformat(timespec="seconds"),
+        "fetched_at": fetched_at,
         "returned_scores": len(raw),
         "page_limit_reached": page_limit_reached,
         "limit_reached_ever": bool(page_limit_reached or previous_sync.get("limit_reached_ever")

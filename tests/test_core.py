@@ -548,6 +548,34 @@ def test_recent_sync_records_page_limit(tmp_data, monkeypatch):
     assert later["page_limit_reached"] is False and later["limit_reached_ever"] is True
 
 
+def test_recent_scores_keep_individual_retrieval_times(tmp_data, monkeypatch):
+    clock = datetime(2026, 11, 20, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    monkeypatch.setattr(F, "now_local", lambda: clock)
+    session = SS.start()
+    first = {**RAW, "id": 1, "ended_at": "2026-11-20T10:01:00Z", "processed": False}
+    second = {**RAW, "id": 2, "ended_at": "2026-11-20T10:02:00Z"}
+
+    class Client:
+        user_id = "123"
+        rows = [first, second]
+        def get(self, *args, **kwargs):
+            return self.rows
+
+    client = Client()
+    clock += timedelta(minutes=10)
+    initial = F.fetch_recent(client, session["session_id"], session)
+    assert all(row["retrieved_at"] == clock.isoformat(timespec="seconds") for row in initial)
+    earlier = clock.isoformat(timespec="seconds")
+    clock += timedelta(minutes=10)
+    client.rows = [{**first, "processed": True}]
+    updated = F.fetch_recent(client, session["session_id"], session)
+    by_id = {row["score_id"]: row for row in updated}
+    assert by_id[1]["processed"] is True and by_id[1]["retrieved_at"] == clock.isoformat(timespec="seconds")
+    assert by_id[2]["retrieved_at"] == earlier
+    assert F.recent_sync(session["session_id"])["fetched_at"] == clock.isoformat(timespec="seconds")
+
+
 def test_old_full_sync_metadata_is_flagged(tmp_data):
     from osucoach.store import write_json
 
