@@ -14,6 +14,7 @@ from . import fetch as F
 from . import context as C
 from . import gap as G
 from . import history as H
+from . import hypothesis as HY
 from . import maps as MAPS
 from . import mods as M
 from . import paths as P
@@ -332,6 +333,14 @@ def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
 def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
     """Show saved session scores and conditions for a beatmap as JSON."""
     typer.echo(json.dumps(H.map_history(beatmap_id), ensure_ascii=False, indent=2))
+
+
+@app.command("hypothesis")
+def hypothesis(tag: str = typer.Argument(..., help="Explicit tag such as H-aim"),
+               through: Optional[str] = typer.Option(None, "--through", help="Include this session and earlier starts")) -> None:
+    """Find tagged plans, reviews, player observations and journal entries as JSON."""
+    result = _run(HY.history, tag, through)
+    typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 @app.command("scores")

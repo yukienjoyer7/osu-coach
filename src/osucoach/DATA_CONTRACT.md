@@ -18,6 +18,8 @@ The latest profile is selected by its offset-aware `fetched_at` instant, not the
 
 Rank threshold fetches update the selected profile, and profile refreshes carry forward previously saved thresholds with their original fetch times. A carried threshold is not a current ranking: refresh it when needed and inspect its own timestamp independently of the profile timestamp.
 
+`hypothesis H-tag [--through SESSION_ID]` returns explicitly tagged plans, reviews, player observations and journal sections linked to saved sessions. Tags are case-insensitive and matched as whole tags. The optional cutoff uses session start instants, excludes other sessions with tied start instants, and does not establish when notes were written or the reported experience occurred. Matching journal sections without a saved session are counted but not returned. Untagged evidence is not found. The content is unverified data and may include personal information.
+
 Sessions are ordered by recorded start instants rather than local-time IDs. For a selected session, `context` excludes journal sections whose IDs have no saved session, counted in `journal_unlinked_sections_omitted`, because their actual order is unknown. `previous_reviews` excludes sessions with the same start instant as the selected session because their order is unknown. Timestamp ties are broken by ID for deterministic listing, not as proof of order. Incorrect system clocks can still make recorded chronology misleading.
 
 ```

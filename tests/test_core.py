@@ -1036,6 +1036,36 @@ def test_context_previous_reviews_follow_selected_session(tmp_data, monkeypatch)
     assert previous[0]["scores_sync"] is None
 
 
+def test_hypothesis_history_finds_tagged_evidence_with_cutoff(tmp_data, monkeypatch):
+    from osucoach import hypothesis
+
+    clock = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    ids = []
+    for _ in range(5):
+        sess = SS.start()
+        ids.append(sess["session_id"])
+        SS.close(sess["session_id"])
+        clock += timedelta(minutes=1)
+    plans = P.COACH / "plans"
+    plans.mkdir(parents=True)
+    (plans / f"{ids[0]}.md").write_text("Test H-AIM with a familiar map", encoding="utf-8")
+    (plans / f"{ids[1]}.md").write_text("H-aim-extra is a different tag", encoding="utf-8")
+    (plans / f"{ids[4]}.md").write_text("H-aim future plan", encoding="utf-8")
+    SS.add_observation(SS.load(ids[2]), "H-aim: the jumps felt easier")
+    (P.COACH / "journal.md").write_text(
+        f"## {ids[0]} | H-aim\nresult unknown\n"
+        f"## {ids[4]} | H-aim\nfuture\n## notes\nH-aim unlinked\n", encoding="utf-8")
+    result = hypothesis.history("H-aim", through=ids[3])
+    assert [item["session_id"] for item in result["entries"]] == [ids[0], ids[2]]
+    assert result["entries"][0]["journal_sections"] and result["entries"][1]["observations"]
+    assert result["unlinked_matching_journal_sections"] == 1
+    assert len(hypothesis.history("H-aim")["entries"]) == 3
+    cli = CliRunner().invoke(app, ["hypothesis", "H-aim", "--through", ids[3]])
+    assert cli.exit_code == 0 and json.loads(cli.output)["entries"] == result["entries"]
+    assert CliRunner().invoke(app, ["hypothesis", "../bad"]).exit_code != 0
+
+
 def test_context_journal_does_not_include_future_or_undated_entries(tmp_data, monkeypatch):
     from osucoach import context
 
