@@ -337,6 +337,9 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
     thr = entry["pp"] if entry else (prof.get("rank_threshold_10k_pp") if rank == 10000 else None)
     if thr is None:
         _fail(OsuError(f"no threshold: run `osucoach fetch threshold --rank {rank}`"))
+    if (type(prof.get("pp")) not in (int, float) or not math.isfinite(prof["pp"]) or prof["pp"] < 0 or
+            type(thr) not in (int, float) or not math.isfinite(thr) or thr < 0):
+        _fail(OsuError("profile or threshold contains invalid pp; refresh both"))
     try:
         values = [float(t) for t in targets.split(",")]
         if not all(math.isfinite(value) and value > 0 for value in values):
@@ -344,7 +347,7 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
     except ValueError:
         _fail(OsuError("--pp must be a comma-separated list of positive finite numbers"))
     best_pps = [b.get("pp") for b in best]
-    if any(type(value) not in (int, float) or not math.isfinite(value) for value in best_pps):
+    if any(type(value) not in (int, float) or not math.isfinite(value) or value < 0 for value in best_pps):
         _fail(OsuError("best scores contain missing or invalid pp; refresh best scores"))
     tbl = G.table(best_pps, prof["pp"], thr, values)
     sync = read_json(P.BEST.with_name("best_sync.json")) or {}
@@ -354,13 +357,14 @@ def gap(targets: str = typer.Option(",".join(map(str, G.TARGETS)), "--pp",
            "profile_date": prof["fetched_at"][:10], "profile_fetched_at": prof["fetched_at"],
            "best_fetched_at": sync.get("fetched_at"),
            "fixed_residual_pp": round(prof["pp"] - G.weighted(sorted(best_pps, reverse=True)[:100]), 2),
-           "model": "top 100 only; fixed residual and threshold; distinct new scores",
+           "model": "top 100 only; fixed residual and threshold; distinct new scores that do not replace existing top scores",
            "table": tbl}
     lines = [f"pp {prof['pp']:,.0f} | #{rank:,} = {thr:,.0f} | gap {res['gap']:,.0f} "
              f"(profile {res['profile_fetched_at']})",
              f"best fetched: {res['best_fetched_at'] or 'unknown'}; threshold fetched: {res['threshold_fetched_at'] or 'unknown'}",
              f"identity: profile {profile_id or 'unknown'}; best scores with user ID {identity['best_scores_with_user_id']}/{len(best)}",
-             "scenario: top 100 only; residual and threshold held fixed", "new play pp -> plays needed"]
+             "scenario: top 100 only; fixed residual and threshold; new scores do not replace existing top scores",
+             "new play pp -> plays needed"]
     lines += [f"  {t['play_pp']:>5g} -> {t['plays_needed'] if t['plays_needed'] is not None else f'not reached within {G.CAP} plays'}"
               for t in tbl]
     _out(res, json_out, "\n".join(lines))

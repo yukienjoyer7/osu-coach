@@ -14,7 +14,8 @@ def plays_needed(best_pps: list[float], total_pp: float, threshold: float,
 
     The residual (total minus weighted top-100 sum) is held constant. It includes
     bonus pp, contributions below the top 100, and any snapshot mismatch. Each
-    new play is inserted in sorted position and the list is truncated to 100.
+    new play is inserted without replacing an existing top score, and the list
+    is truncated to 100. This is a hypothetical scenario, not a map-level model.
     """
     pps = sorted(best_pps, reverse=True)[:100]
     residual = total_pp - weighted(pps)

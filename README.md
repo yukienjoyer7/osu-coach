@@ -43,7 +43,7 @@ Use two-character mod acronyms such as `HDDT` or `HD,DT`; `NM` must stand alone.
 
 `osucoach map-tag 123 --tags jumps,bursts` replaces the user-supplied labels for beatmap 123. Find labeled candidates with `osucoach maps --tag jumps`. Labels apply to the beatmap across all mods, are subjective, and do not verify ranked status. An empty `--tags` value clears them.
 
-Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000,1200,1400` to model a rank target. The calculation models only the top 100 and holds the remaining contribution, bonus pp and the rank threshold constant. It assumes distinct new scores and does not model changes below the top 100. Fetch times help assess whether inputs are comparable. It is a scenario, not a forecast.
+Use `osucoach fetch threshold --rank 100` and `osucoach gap --rank 100 --pp 1000,1200,1400` to model a rank target. The calculation models only the top 100 and holds the remaining contribution, bonus pp and the rank threshold constant. It assumes distinct new scores that do not replace existing top scores and does not model changes below the top 100. Fetch times help assess whether inputs are comparable. It is a scenario, not a forecast.
 
 For manual, harness-independent checks of coaching responses, see [the evaluation cases](evals/README.md). They are development examples, not evidence of elite coaching effectiveness.
 

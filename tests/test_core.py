@@ -253,6 +253,25 @@ def test_gap_identifies_conflicting_and_unknown_player_data(tmp_path, monkeypatc
     assert evidence["workspace_account"] is None
 
 
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), -1, True, "5000"])
+def test_gap_rejects_invalid_saved_pp_values(tmp_path, monkeypatch, invalid):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_path / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_path / "best.json")
+    profile = {"pp": 8000, "fetched_at": "2026-01-01T00:00:00Z", "rank_threshold_10k_pp": 9000}
+    runner = CliRunner()
+    for field in ("pp", "rank_threshold_10k_pp"):
+        write_json(F.profile_path(), {**profile, field: invalid})
+        write_json(P.BEST, [{"pp": 300}])
+        result = runner.invoke(app, ["gap"])
+        assert result.exit_code != 0 and "invalid pp" in result.output
+    write_json(F.profile_path(), profile)
+    write_json(P.BEST, [{"pp": invalid}])
+    result = runner.invoke(app, ["gap"])
+    assert result.exit_code != 0 and "invalid pp" in result.output
+
+
 # ---- mods ------------------------------------------------------------------
 def test_parse_mods():
     assert [m["acronym"] for m in M.parse_mods("HD,DT")] == ["HD", "DT"]
