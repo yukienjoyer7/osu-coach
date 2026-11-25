@@ -31,7 +31,7 @@ def map_score(s: dict) -> dict:
         "timestamp_source": "ended_at" if s.get("ended_at") else ("started_at" if s.get("started_at") else None),
         "started_at": s.get("started_at") if s.get("ended_at") else None,
         "mods": mods,
-        "passed": bool(s.get("passed")),
+        "passed": s.get("passed") if type(s.get("passed")) is bool else None,
         "accuracy": s.get("accuracy"),
         "max_combo": s.get("max_combo"),
         "map_max_combo": None,  # filled from beatmap files once fetched

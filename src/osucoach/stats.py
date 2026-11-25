@@ -15,17 +15,19 @@ def _valid_accuracy(row):
 
 
 def _acc(rows: list[dict]) -> float | None:
-    vals = [r["accuracy"] for r in rows if r["passed"] and _valid_accuracy(r)]
+    vals = [r["accuracy"] for r in rows if r.get("passed") is True and _valid_accuracy(r)]
     return round(100 * mean(vals), 2) if vals else None
 
 
 def _pass_rate(rows: list[dict]) -> float | None:
-    return round(100 * sum(r["passed"] for r in rows) / len(rows), 1) if rows else None
+    known = [r for r in rows if type(r.get("passed")) is bool]
+    return round(100 * sum(r["passed"] for r in known) / len(known), 1) if known else None
 
 
 def _block(rows: list[dict]) -> dict:
-    return {"plays": len(rows), "pass_rate": _pass_rate(rows), "acc_passed": _acc(rows),
-            "acc_passed_samples": sum(row["passed"] and _valid_accuracy(row) for row in rows)}
+    return {"plays": len(rows), "pass_rate": _pass_rate(rows),
+            "pass_rate_samples": sum(type(row.get("passed")) is bool for row in rows), "acc_passed": _acc(rows),
+            "acc_passed_samples": sum(row.get("passed") is True and _valid_accuracy(row) for row in rows)}
 
 
 def _hit_results(rows: list[dict]) -> dict:
@@ -43,7 +45,7 @@ def _condition_key(row):
 def _contained(rows, start, session_end):
     contained = [row for row in rows if row.get("started_at") and parse_ts(row["started_at"]) >= start
                  and (session_end is None or parse_ts(row["created_at"]) <= session_end)]
-    return {**_block(contained), "passes": sum(row["passed"] for row in contained),
+    return {**_block(contained), "passes": sum(row.get("passed") is True for row in contained),
             "score_ids": [row["score_id"] for row in contained],
             "hit_results": _hit_results(contained)}
 
@@ -58,7 +60,7 @@ def _block_maps(rows, start, session_end):
             "beatmap_id": beatmap_id, "title": group[0]["title"], "version": group[0]["version"],
             "mods": list(mods), "mod_settings": json.loads(settings),
             "score_ids": [row["score_id"] for row in group],
-            **_block(group), "passes": sum(row["passed"] for row in group),
+            **_block(group), "passes": sum(row.get("passed") is True for row in group),
             "hit_results": _hit_results(group),
             "crossing_start": sum(parse_ts(row["started_at"]) < start for row in group if row.get("started_at")),
             "unknown_start": sum(not row.get("started_at") for row in group),
@@ -106,7 +108,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
         out["plays_with_unknown_end_time"] = sum(row.get("timestamp_source") == "started_at" for row in rows)
     if not rows:
         return out
-    passed = [r for r in rows if r["passed"]]
+    passed = [r for r in rows if r.get("passed") is True]
     seen = set()
     first_attempts, later_attempts = [], []
     for row in rows:
@@ -118,6 +120,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
     out["passes"] = len(passed)
     out["hit_results"] = _hit_results(rows)
     out["pass_rate"] = _pass_rate(rows)
+    out["pass_rate_samples"] = sum(type(row.get("passed")) is bool for row in rows)
     out["acc_passed"] = _acc(rows)
     out["acc_passed_samples"] = sum(_valid_accuracy(row) for row in passed)
     pps = [r["pp"] for r in rows if r.get("pp") is not None]
@@ -132,7 +135,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
         return (round(mean(vals), 2) if vals else None, len(vals))
 
     out["avg_sr_passed"], out["avg_sr_passed_samples"] = avg_sr(passed)
-    out["avg_sr_failed"], out["avg_sr_failed_samples"] = avg_sr([r for r in rows if not r["passed"]])
+    out["avg_sr_failed"], out["avg_sr_failed_samples"] = avg_sr([r for r in rows if r.get("passed") is False])
 
     half = len(rows) // 2
     out["first_half"] = _block(rows[:half or 1])
@@ -162,11 +165,12 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
         maps.append({
             "beatmap_id": bid, "title": rs[0]["title"], "version": rs[0]["version"],
             "mods": list(mods), "mod_settings": json.loads(settings),
-            "plays": len(rs), "passes": sum(x["passed"] for x in rs),
+            "plays": len(rs), "passes": sum(x.get("passed") is True for x in rs),
+            "pass_rate_samples": sum(type(row.get("passed")) is bool for row in rs),
             "max_retry": max(x["retry_index"] or 0 for x in rs),
             "consecutive_recorded_repeats": consecutive_repeats[(bid, mods, settings)],
             "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
-            "acc_passed_samples": sum(row["passed"] and _valid_accuracy(row) for row in rs),
+            "acc_passed_samples": sum(row.get("passed") is True and _valid_accuracy(row) for row in rs),
             "hit_results": _hit_results(rs),
             "sr": sr_lookup(rs[0]) if sr_lookup else None,
         })
@@ -182,7 +186,7 @@ def render(session_id: str, s: dict) -> str:
     if not s.get("plays"):
         return f"{session_id}: no plays recorded"
     lines = [
-        f"{session_id} | {s['plays']} plays, {s['passes']} passes ({s['pass_rate']}%) | "
+        f"{session_id} | {s['plays']} plays, {s['passes']} passes ({_f(s['pass_rate'], '{}%')}; n={s['pass_rate_samples']}) | "
         f"span {s['span_min']} min | best pp {_f(s['best_pp'], '{:.0f}')}",
         f"acc (passes) {_f(s['acc_passed'], '{}%')} (n={s.get('acc_passed_samples', '?')}) | "
         f"avg SR passed {_f(s['avg_sr_passed'])} (n={s.get('avg_sr_passed_samples', '?')}) "

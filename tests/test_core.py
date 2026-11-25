@@ -1067,8 +1067,22 @@ def test_stats_basic():
     assert s["first_half"]["plays"] == 2 and s["second_half"]["plays"] == 2
     assert s["first_20min"] is None  # session too short for 20 min windows
     assert s["maps"][0]["plays"] == 2 and s["maps"][0]["max_retry"] in (2,)
-    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "acc_passed": 97.0, "acc_passed_samples": 2}
-    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "acc_passed": 94.0, "acc_passed_samples": 1}
+    assert s["first_recorded_attempts"] == {"plays": 2, "pass_rate": 100.0, "pass_rate_samples": 2, "acc_passed": 97.0, "acc_passed_samples": 2}
+    assert s["later_recorded_attempts"] == {"plays": 2, "pass_rate": 50.0, "pass_rate_samples": 2, "acc_passed": 94.0, "acc_passed_samples": 1}
+
+
+def test_unknown_pass_status_is_not_a_failure():
+    raw = {**RAW, "passed": None}
+    assert S.map_score(raw)["passed"] is None
+    assert S.map_score({**RAW, "passed": "false"})["passed"] is None
+    rows = S.add_retry_index([_sc(1, 1, "2026-01-01T00:00:00Z", passed=True),
+                              _sc(2, 1, "2026-01-01T00:01:00Z", passed=None)])
+    summary = ST.compute(rows, lambda row: 5.0)
+    assert summary["passes"] == 1 and summary["pass_rate"] == 100.0
+    assert summary["pass_rate_samples"] == 1 and summary["plays"] == 2
+    assert summary["avg_sr_failed"] is None and summary["avg_sr_failed_samples"] == 0
+    assert summary["maps"][0]["pass_rate_samples"] == 1
+    assert ST.compute(S.add_retry_index([rows[1]]))["pass_rate"] is None
 
 
 def test_accuracy_sample_count_excludes_failed_and_unknown_scores():
