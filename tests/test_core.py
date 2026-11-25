@@ -1746,7 +1746,7 @@ def test_map_attributes_batch_preserves_successes_and_errors(monkeypatch):
     def fetch(client, beatmap_id, mods, refresh):
         calls.append((beatmap_id, mods, refresh))
         if beatmap_id == 12:
-            raise OsuError("map unavailable")
+            raise F.MapDataError("map unavailable")
         return {"star_rating": 5.5, "mods": ["DT"]}, True
     monkeypatch.setattr(F, "fetch_beatmap", fetch)
     result = CliRunner().invoke(app, ["map-attributes", "11,12,11", "--mods", "DT", "--rate", "1.3"])
@@ -1756,6 +1756,28 @@ def test_map_attributes_batch_preserves_successes_and_errors(monkeypatch):
     assert output["results"][0]["attributes"]["star_rating"] == 5.5
     assert output["results"][1]["attributes"] is None and output["results"][1]["error"] == "map unavailable"
     assert calls[0][1] == [{"acronym": "DT", "settings": {"speed_change": 1.3}}]
+
+
+def test_map_attributes_stops_after_systemic_failure(monkeypatch):
+    from osucoach import cli
+    from osucoach.api import HttpError
+
+    monkeypatch.setattr(cli, "_client", lambda: object())
+    calls = []
+    def fetch(client, beatmap_id, mods, refresh):
+        calls.append(beatmap_id)
+        if beatmap_id == 12:
+            raise HttpError("GET", "/beatmaps/12", 503)
+        return {"star_rating": 5.5}, True
+
+    monkeypatch.setattr(F, "fetch_beatmap", fetch)
+    result = CliRunner().invoke(app, ["map-attributes", "11,12,13"])
+    assert result.exit_code != 0
+    output = json.loads(result.output)
+    assert calls == [11, 12] and output["stopped_early"] is True
+    assert output["results"][0]["attributes"]["star_rating"] == 5.5
+    assert "HTTP 503" in output["results"][1]["error"]
+    assert output["results"][2]["skipped"] is True
 
 
 def test_map_attributes_invalid_batch_fails_before_client(monkeypatch):

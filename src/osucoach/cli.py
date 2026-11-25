@@ -19,7 +19,7 @@ from . import paths as P
 from . import scores as S
 from . import session as SS
 from . import stats as ST
-from .api import Client, OsuError
+from .api import Client, HttpError, OsuError
 from .store import read_json
 
 for _s in (sys.stdout, sys.stderr):  # map/player titles contain unicode
@@ -248,17 +248,26 @@ def map_attributes(beatmap_ids: str = typer.Argument(..., help="Comma-separated 
         _run(M.set_rate, selected, rate)
     client = _client()
     results = []
-    for beatmap_id in ids:
+    stopped_early = False
+    for index, beatmap_id in enumerate(ids):
         try:
             attributes, fetched = F.fetch_beatmap(client, beatmap_id, selected, refresh)
         except OsuError as exc:
             results.append({"beatmap_id": beatmap_id, "attributes": None, "error": str(exc)})
+            if not isinstance(exc, F.MapDataError) and not (isinstance(exc, HttpError) and exc.status == 404):
+                stopped_early = True
+                results.extend({"beatmap_id": remaining, "attributes": None,
+                                "error": "not attempted after batch error", "skipped": True}
+                               for remaining in ids[index + 1:])
+                break
         else:
             results.append({"beatmap_id": beatmap_id, "attributes": attributes, "fetched": fetched, "error": None})
-    typer.echo(json.dumps({"results": results, "selection_limits": [
+    typer.echo(json.dumps({"results": results, "stopped_early": stopped_early, "selection_limits": [
         "Attributes do not establish ranked status, pattern type or player familiarity.",
         "BPM is map-level tempo and total length includes breaks; verify the relevant section.",
     ]}, ensure_ascii=False, indent=2))
+    if stopped_early:
+        raise typer.Exit(1)
 
 
 @app.command("maps")
