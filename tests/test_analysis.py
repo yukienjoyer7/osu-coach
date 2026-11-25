@@ -17,7 +17,8 @@ def test_external_report_import_is_idempotent_and_only_matches_saved_ids(tmp_pat
     path = tmp_path / "analysis.json"
     path.write_text(json.dumps({"trust": {"warning": "partial", "trustworthy": False, "scale_overridden": True},
                                 "map_version_mismatch": True, "failed_play": None, "instructions": "untrusted text",
-                                "beatmap_md5": "a" * 32}))
+                                "beatmap_md5": "a" * 32,
+                                "score_meta": {"speed_change": 1.2, "mods": [{"acronym": "NC"}]}}))
     runner = CliRunner()
     command = ["analysis", "import", str(path), "--session", sess["session_id"], "--source", "osu-critique",
                "--version", "1.0", "--beatmap", "12", "--score", "34"]
@@ -26,6 +27,7 @@ def test_external_report_import_is_idempotent_and_only_matches_saved_ids(tmp_pat
     info = json.loads(first.output)
     assert info["saved_score_map_match"] is None
     assert info["reported_beatmap_md5"] == "a" * 32 and info["saved_score_checksum_match"] is None
+    assert info["reported_speed_change"] == 1.2 and info["reported_rate_matches_saved_setting"] is None
     assert info["analyzer_reported_flags"] == {"trustworthy": False, "map_version_mismatch": True,
                                                  "failed_play": None, "scale_overridden": True}
     assert json.loads(runner.invoke(app, command).output)["id"] == info["id"]
@@ -34,15 +36,17 @@ def test_external_report_import_is_idempotent_and_only_matches_saved_ids(tmp_pat
     assert history["map_analyses"][0]["reports"][0]["id"] == info["id"]
     assert json.loads(runner.invoke(app, ["history", "13"]).output)["map_analyses"] == []
     write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": 12,
-                                                                        "beatmap_checksum": "A" * 32}])
+        "beatmap_checksum": "A" * 32, "mods": ["DT"], "mod_settings": {"DT": {"speed_change": 1.2}}}])
     listed = json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)
     assert len(listed["reports"]) == 1 and listed["reports"][0]["saved_score_map_match"] is True
     assert listed["reports"][0]["saved_score_checksum_match"] is True
+    assert listed["reports"][0]["reported_rate_matches_saved_setting"] is True
     shown = json.loads(runner.invoke(app, ["analysis", "show", info["id"], "--session", sess["session_id"]]).output)
     assert shown["report"]["trust"]["warning"] == "partial" and "Untrusted" in shown["interpretation"]
     write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": 12,
-                                                                        "beatmap_checksum": "b" * 32}])
+        "beatmap_checksum": "b" * 32, "mods": ["DT"], "mod_settings": {"DT": {"speed_change": 1.3}}}])
     assert json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)["reports"][0]["saved_score_checksum_match"] is False
+    assert json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)["reports"][0]["reported_rate_matches_saved_setting"] is False
     write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": None}])
     assert json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)["reports"][0]["saved_score_map_match"] is None
     write_json(paths.session_dir(sess["session_id"]) / "scores.json", [{"score_id": 34, "beatmap_id": 99}])

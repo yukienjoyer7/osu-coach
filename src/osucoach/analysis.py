@@ -61,7 +61,10 @@ def metadata(entry, session_id):
     score_id = entry.get("score_id")
     match = None
     checksum_match = None
+    rate_match = None
     reported_md5 = None
+    reported_rate = None
+    reported_speed_mod = None
     reported_flags = None
     report = entry.get("report")
     if entry.get("source", "").casefold() == "osu-critique" and isinstance(report, dict):
@@ -75,6 +78,15 @@ def metadata(entry, session_id):
                           "map_version_mismatch": flag(report.get("map_version_mismatch")),
                           "failed_play": flag(report.get("failed_play")),
                           "scale_overridden": flag(trust.get("scale_overridden"))}
+        score_meta = report.get("score_meta")
+        if isinstance(score_meta, dict):
+            rate = score_meta.get("speed_change")
+            mods = score_meta.get("mods")
+            if type(rate) in (int, float) and math.isfinite(rate) and rate > 0 and isinstance(mods, list):
+                speed_mods = [mod.get("acronym") for mod in mods if isinstance(mod, dict)
+                              and mod.get("acronym") in ("DT", "NC", "HT", "DC")]
+                if len(speed_mods) == 1:
+                    reported_rate, reported_speed_mod = rate, speed_mods[0]
     if rows is not None and score_id is not None:
         matching = [row for row in rows if row.get("score_id") == score_id]
         if matching and type(matching[0].get("beatmap_id")) is int:
@@ -82,9 +94,20 @@ def metadata(entry, session_id):
             checksum = matching[0].get("beatmap_checksum")
             if match and reported_md5 and isinstance(checksum, str) and re.fullmatch(r"[0-9a-fA-F]{32}", checksum):
                 checksum_match = checksum.lower() == reported_md5
+            saved_mods = matching[0].get("mods")
+            settings = matching[0].get("mod_settings")
+            if match and reported_speed_mod and isinstance(saved_mods, list) and isinstance(settings, dict):
+                speed_mods = [mod for mod in saved_mods if mod in ("DT", "NC", "HT", "DC")]
+                aliases = {"NC": "DT", "DC": "HT"}
+                if len(speed_mods) == 1 and aliases.get(speed_mods[0], speed_mods[0]) == aliases.get(reported_speed_mod, reported_speed_mod):
+                    saved_settings = settings.get(speed_mods[0])
+                    saved_rate = saved_settings.get("speed_change") if isinstance(saved_settings, dict) else None
+                    if type(saved_rate) in (int, float) and math.isfinite(saved_rate) and saved_rate > 0:
+                        rate_match = saved_rate == reported_rate
     return ({key: value for key, value in entry.items() if key != "report"} |
             {"saved_score_map_match": match, "reported_beatmap_md5": reported_md5,
-             "saved_score_checksum_match": checksum_match, "analyzer_reported_flags": reported_flags})
+             "saved_score_checksum_match": checksum_match, "analyzer_reported_flags": reported_flags,
+             "reported_speed_change": reported_rate, "reported_rate_matches_saved_setting": rate_match})
 
 
 def list_reports(session_id):
