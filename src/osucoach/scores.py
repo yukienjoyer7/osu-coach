@@ -35,6 +35,9 @@ def map_score(s: dict) -> dict:
         "accuracy": s.get("accuracy"),
         "max_combo": s.get("max_combo"),
         "map_max_combo": None,  # filled from beatmap files once fetched
+        "total_score": s.get("total_score"),
+        "classic_total_score": s.get("classic_total_score"),
+        "legacy_total_score": s.get("legacy_total_score"),
         "n300": _hit_count(st, "great"),
         "n100": _hit_count(st, "ok"),
         "n50": _hit_count(st, "meh"),

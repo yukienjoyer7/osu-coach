@@ -1335,6 +1335,15 @@ def test_score_mapping_preserves_api_user_id():
     assert S.map_score(RAW)["user_id"] is None
 
 
+def test_score_mapping_retains_score_variants_without_inventing_them():
+    score = S.map_score({**RAW, "total_score": 998000, "classic_total_score": 973000,
+                         "legacy_total_score": 912345})
+    assert (score["total_score"], score["classic_total_score"], score["legacy_total_score"]) == (
+        998000, 973000, 912345)
+    missing = S.map_score(RAW)
+    assert all(missing[field] is None for field in ("total_score", "classic_total_score", "legacy_total_score"))
+
+
 def test_score_with_no_end_time_is_not_assigned_to_block():
     from osucoach import stats
 
