@@ -145,17 +145,22 @@ def mark_block(session: dict, label: str) -> dict:
     return marker
 
 
-def add_observation(session: dict, text: str, beatmap_id: int | None = None) -> dict:
+def add_observation(session: dict, text: str, beatmap_id: int | None = None,
+                    score_id: int | None = None) -> dict:
     """Record a player observation with the time it was reported, not when it occurred."""
     text = text.strip()
     if not text:
         raise OsuError("observation cannot be empty")
     if beatmap_id is not None and (type(beatmap_id) is not int or beatmap_id < 1):
         raise OsuError("beatmap ID must be a positive integer")
+    if score_id is not None and (type(score_id) is not int or score_id < 1):
+        raise OsuError("score ID must be a positive integer")
     observation = {"reported_at": now_local().isoformat(timespec="seconds"), "text": text,
                    "recorded_after_session": bool(session.get("ended_at"))}
     if beatmap_id is not None:
         observation["beatmap_id"] = beatmap_id
+    if score_id is not None:
+        observation["score_id"] = score_id
     session.setdefault("observations", []).append(observation)
     save(session)
     return observation

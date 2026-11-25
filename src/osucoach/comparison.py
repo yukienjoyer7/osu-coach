@@ -1,7 +1,7 @@
 """Compare recorded score conditions without deciding whether performance improved."""
 import re
 
-from . import account, fetch, paths, session
+from . import account, analysis, fetch, paths, session
 from .api import OsuError
 from .player import SETUP_FIELDS
 from .store import parse_ts, read_json
@@ -43,10 +43,14 @@ def _score(session_id, score_id):
     if len(found) != 1:
         raise OsuError(f"expected one saved score {score_id} in {sid}; found {len(found)}")
     sess = session.load(sid)
+    observations = [item for item in sess.get("observations", []) if item.get("score_id") == score_id]
+    reports = [item for item in analysis.list_reports(sid) if item.get("score_id") == score_id]
     return {"session_id": sid, "session_started_at": sess.get("started_at"),
             "session_ended_at": sess.get("ended_at"), "setup": sess.get("setup"),
             "scores_sync": fetch.recent_sync(sid), "score": found[0],
-            "session_boundary_evidence": _boundary(found[0], sess)}
+            "session_boundary_evidence": _boundary(found[0], sess),
+            "observations_with_declared_score_id": observations,
+            "analyses_with_declared_score_id": reports}
 
 
 def _equality(left, right):
@@ -93,6 +97,7 @@ def compare(first_session, first_score, second_session, second_score):
                 "Same recorded values do not prove comparable conditions, client rules or causal improvement.",
                 "Beatmap checksums describe fetch-time metadata, not necessarily the version played.",
                 "Session setup is a snapshot, not proof of settings used on each score.",
+                "Observation and analysis score IDs are declared links, not verified play identity or causation.",
                 "Mod settings may omit defaults or other relevant conditions; missing values are unknown.",
                 "Score and session coverage may be incomplete; inspect sync metadata and player experience.",
             ]}

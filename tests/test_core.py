@@ -1170,12 +1170,24 @@ def test_compare_saved_scores_reports_unknowns_and_duplicate_identity(tmp_data, 
              beatmap_checksum="b" * 32, user_id=123)
     write_json(P.session_dir(first["session_id"]) / "scores.json", [a])
     write_json(P.session_dir(second["session_id"]) / "scores.json", [b, {**a}])
+    runner = CliRunner()
+    recorded = runner.invoke(app, ["session", "observe", "the jumps felt rushed", "--session",
+                                   first["session_id"], "--score", "1", "--beatmap", "11", "--json"])
+    assert recorded.exit_code == 0 and json.loads(recorded.output)["score_id"] == 1
+    report = tmp_data / "report.json"
+    report.write_text('{"note": "untrusted"}', encoding="utf-8")
+    imported = runner.invoke(app, ["analysis", "import", str(report), "--session", first["session_id"],
+                                   "--source", "test", "--beatmap", "11", "--score", "1"])
+    assert imported.exit_code == 0
     args = ["compare", "--first-session", first["session_id"], "--first-score", "1",
             "--second-session", second["session_id"], "--second-score", "2"]
     response = CliRunner().invoke(app, args)
     assert response.exit_code == 0, response.output
     result = json.loads(response.output)
     assert result["same_score_id"] is False
+    assert result["first"]["observations_with_declared_score_id"][0]["text"] == "the jumps felt rushed"
+    assert result["first"]["analyses_with_declared_score_id"][0]["id"] == json.loads(imported.output)["id"]
+    assert result["second"]["observations_with_declared_score_id"] == []
     assert result["recorded_checks"]["recorded_mods"] == "same"
     assert result["recorded_checks"]["recorded_mod_settings"] == "different"
     assert result["recorded_checks"]["fetch_time_beatmap_checksum"] == "different"

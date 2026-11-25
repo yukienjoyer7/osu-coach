@@ -10,6 +10,8 @@ The fetcher writes; the coach only reads `data/` and writes `coach/`.
 
 `session observe TEXT --beatmap ID` optionally links a report to a map explicitly identified by the player. `history ID` returns matching reports in `map_observations`, even if that session has no score file. An absent report does not mean no difficulty, and the link alone does not establish the relevant play, mods, timing or cause.
 
+`session observe TEXT --score ID` optionally records a player-identified score ID, independently of the optional beatmap ID. This is a declared link and is not verified on entry. `compare` returns observations and imported-analysis metadata with a matching declared score ID for each selected session; check any declared beatmap and report metadata for conflicts. Neither matching ID nor recording time proves play identity, event timing or a cause.
+
 `history ID` also lists metadata for imported external analyses whose declared beatmap ID matches, including analyses from sessions without score files. These are importer-supplied identifiers, not verified replay or map matches; inspect the report and provenance separately when relevant.
 
 `osucoach context` returns the resolved absolute `workspace` path. Coaching files and generated plans/reviews are relative to it, which may differ from the process working directory. The path does not expose credential contents.

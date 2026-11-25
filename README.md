@@ -17,6 +17,7 @@ python -m venv .venv
 osucoach session start      # then ask the agent: "pre"
 osucoach session block warmup  # mark each practice block as it starts
 osucoach session observe "streams felt tense during warmup"  # record a player report
+osucoach session observe "this play felt rushed" --score 123  # only if the player identifies that score
 # play; ask the agent anything mid-session (live mode)
 osucoach session end        # then ask the agent: "post"
 ```
