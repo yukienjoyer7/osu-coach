@@ -337,9 +337,10 @@ def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
 
 @app.command("hypothesis")
 def hypothesis(tag: str = typer.Argument(..., help="Explicit tag such as H-aim"),
-               through: Optional[str] = typer.Option(None, "--through", help="Include this session and earlier starts")) -> None:
+               through: Optional[str] = typer.Option(None, "--through", help="Include this session and earlier starts"),
+               before: Optional[str] = typer.Option(None, "--before", help="Earlier sessions and observations reported before this session")) -> None:
     """Find tagged plans, reviews, player observations and journal entries as JSON."""
-    result = _run(HY.history, tag, through)
+    result = _run(HY.history, tag, through, before)
     typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 

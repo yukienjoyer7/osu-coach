@@ -1053,16 +1053,26 @@ def test_hypothesis_history_finds_tagged_evidence_with_cutoff(tmp_data, monkeypa
     (plans / f"{ids[1]}.md").write_text("H-aim-extra is a different tag", encoding="utf-8")
     (plans / f"{ids[4]}.md").write_text("H-aim future plan", encoding="utf-8")
     SS.add_observation(SS.load(ids[2]), "H-aim: the jumps felt easier")
+    clock = datetime(2026, 11, 21, 10, 1, 30, tzinfo=timezone.utc)
+    SS.add_observation(SS.load(ids[1]), "H-aim: earlier report")
+    legacy = SS.load(ids[1])
+    legacy["observations"].append({"text": "H-aim: unknown report time"})
+    SS.save(legacy)
     (P.COACH / "journal.md").write_text(
         f"## {ids[0]} | H-aim\nresult unknown\n"
         f"## {ids[4]} | H-aim\nfuture\n## notes\nH-aim unlinked\n", encoding="utf-8")
     result = hypothesis.history("H-aim", through=ids[3])
-    assert [item["session_id"] for item in result["entries"]] == [ids[0], ids[2]]
-    assert result["entries"][0]["journal_sections"] and result["entries"][1]["observations"]
+    assert [item["session_id"] for item in result["entries"]] == [ids[0], ids[1], ids[2]]
+    assert result["entries"][0]["journal_sections"] and result["entries"][2]["observations"]
     assert result["unlinked_matching_journal_sections"] == 1
-    assert len(hypothesis.history("H-aim")["entries"]) == 3
+    assert len(hypothesis.history("H-aim")["entries"]) == 4
     cli = CliRunner().invoke(app, ["hypothesis", "H-aim", "--through", ids[3]])
     assert cli.exit_code == 0 and json.loads(cli.output)["entries"] == result["entries"]
+    prior = hypothesis.history("H-aim", before=ids[3])
+    assert [item["session_id"] for item in prior["entries"]] == [ids[0], ids[1]]
+    assert prior["late_or_undated_observations_omitted"] == 2
+    assert CliRunner().invoke(app, ["hypothesis", "H-aim", "--before", ids[3],
+                                    "--through", ids[3]]).exit_code != 0
     assert CliRunner().invoke(app, ["hypothesis", "../bad"]).exit_code != 0
 
 
