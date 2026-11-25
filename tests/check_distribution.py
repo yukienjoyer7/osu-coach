@@ -37,7 +37,12 @@ def main():
         assert "data contract" in run("schema").lower()
         context = json.loads(run("context"))
         assert context["workspace"] == str(temp / "workspace") and context["player"]
-        print("Installed wheel: init, guide, schema, and workspace context passed.")
+        started = json.loads(run("session", "start", "--json"))
+        run("session", "observe", "H-aim: synthetic observation")
+        history = json.loads(run("hypothesis", "H-aim"))
+        assert history["entries"][0]["session_id"] == started["session_id"]
+        assert history["entries"][0]["observations"][0]["text"] == "H-aim: synthetic observation"
+        print("Installed wheel: init, guide, schema, workspace context and hypothesis lookup passed.")
 
 
 if __name__ == "__main__":
