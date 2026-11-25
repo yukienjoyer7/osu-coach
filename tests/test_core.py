@@ -1405,6 +1405,14 @@ def test_score_mapping_retains_score_variants_without_inventing_them():
     assert all(missing[field] is None for field in ("total_score", "classic_total_score", "legacy_total_score"))
 
 
+def test_score_mapping_retains_processing_and_combo_flags():
+    score = S.map_score({**RAW, "processed": False, "ranked": True,
+                         "is_perfect_combo": True, "legacy_perfect": False})
+    assert [score[field] for field in ("processed", "ranked", "is_perfect_combo", "legacy_perfect")] == [False, True, True, False]
+    missing = S.map_score({**RAW, "processed": "false", "ranked": 1})
+    assert all(missing[field] is None for field in ("processed", "ranked", "is_perfect_combo", "legacy_perfect"))
+
+
 def test_score_with_no_end_time_is_not_assigned_to_block():
     from osucoach import stats
 

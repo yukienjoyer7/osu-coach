@@ -12,6 +12,11 @@ def _hit_count(statistics, key):
     return value if type(value) is int and value >= 0 else None
 
 
+def _boolean(source, key):
+    value = source.get(key)
+    return value if type(value) is bool else None
+
+
 def map_score(s: dict) -> dict:
     bm = s.get("beatmap") or {}
     st = s.get("statistics")
@@ -31,7 +36,11 @@ def map_score(s: dict) -> dict:
         "timestamp_source": "ended_at" if s.get("ended_at") else ("started_at" if s.get("started_at") else None),
         "started_at": s.get("started_at") if s.get("ended_at") else None,
         "mods": mods,
-        "passed": s.get("passed") if type(s.get("passed")) is bool else None,
+        "passed": _boolean(s, "passed"),
+        "processed": _boolean(s, "processed"),
+        "ranked": _boolean(s, "ranked"),
+        "is_perfect_combo": _boolean(s, "is_perfect_combo"),
+        "legacy_perfect": _boolean(s, "legacy_perfect"),
         "accuracy": s.get("accuracy"),
         "max_combo": s.get("max_combo"),
         "map_max_combo": None,  # filled from beatmap files once fetched
