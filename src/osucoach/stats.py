@@ -71,7 +71,8 @@ def _block_maps(rows, start, session_end):
     return summaries
 
 
-def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=None) -> dict:
+def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=None,
+            session_started_at=None) -> dict:
     """sr_lookup(score) -> star rating (mod adjusted) or None."""
     rows = sorted(scores, key=lambda r: (parse_ts(r["created_at"]), r["score_id"]))
     timestamps = Counter(parse_ts(row["created_at"]) for row in rows)
@@ -82,6 +83,18 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
             "unknown_timestamp_source": sum(row.get("timestamp_source") not in ("ended_at", "started_at") for row in rows),
             "tied_timestamp_groups": sum(count > 1 for count in timestamps.values()),
             "scores_in_tied_groups": sum(count for count in timestamps.values() if count > 1),
+        }
+    if session_started_at and rows:
+        start = parse_ts(session_started_at)
+        end = parse_ts(session_ended_at) if session_ended_at else None
+        def known_start(row):
+            return row.get("started_at") or (row["created_at"] if row.get("timestamp_source") == "started_at" else None)
+        out["session_boundary_evidence"] = {
+            "started_before_session": sum(bool(known_start(row)) and parse_ts(known_start(row)) < start for row in rows),
+            "unknown_start": sum(not known_start(row) for row in rows),
+            "ended_after_session": (sum(row.get("timestamp_source") == "ended_at" and
+                                        parse_ts(row["created_at"]) > end for row in rows) if end else None),
+            "unknown_end": sum(row.get("timestamp_source") != "ended_at" for row in rows),
         }
     if blocks:
         session_end = parse_ts(session_ended_at) if session_ended_at else None

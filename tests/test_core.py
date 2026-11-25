@@ -1386,6 +1386,22 @@ def test_stats_report_timestamp_ordering_limits():
                         "tied_timestamp_groups": 1, "scores_in_tied_groups": 2}
 
 
+def test_session_boundary_evidence_distinguishes_known_and_unknown_times():
+    rows = [_sc(1, 99, "2026-11-20T10:01:00Z"),
+            _sc(2, 99, "2026-11-20T10:11:00Z"),
+            _sc(3, 99, "2026-11-20T10:02:00Z")]
+    rows[0].update(timestamp_source="ended_at", started_at="2026-11-20T09:59:00Z")
+    rows[1].update(timestamp_source="ended_at", started_at="2026-11-20T10:09:00Z")
+    rows[2].update(timestamp_source="started_at", started_at=None)
+    S.add_retry_index(rows)
+    evidence = ST.compute(rows, session_started_at="2026-11-20T10:00:00Z",
+                          session_ended_at="2026-11-20T10:10:00Z")["session_boundary_evidence"]
+    assert evidence == {"started_before_session": 1, "unknown_start": 0,
+                        "ended_after_session": 1, "unknown_end": 1}
+    live = ST.compute(rows, session_started_at="2026-11-20T10:00:00Z")["session_boundary_evidence"]
+    assert live["ended_after_session"] is None
+
+
 def test_consecutive_repeats_respect_map_mods_and_intervening_plays():
     rows = [
         _sc(1, 10, "2026-01-01T00:01:00Z"),

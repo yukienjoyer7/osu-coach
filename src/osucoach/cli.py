@@ -501,6 +501,6 @@ def stats(session: Optional[str] = typer.Argument(None, help="Session id (defaul
         return d["star_rating"] if d else None
 
     sess = SS.load(sid)
-    res = ST.compute(scores, sr, sess.get("blocks"), sess.get("ended_at"))
+    res = ST.compute(scores, sr, sess.get("blocks"), sess.get("ended_at"), sess.get("started_at"))
     res["session_id"] = sid
     _out(res, json_out, ST.render(sid, res))

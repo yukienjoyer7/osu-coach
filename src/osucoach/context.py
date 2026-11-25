@@ -29,7 +29,7 @@ def _session_stats(session_id, sess):
         beatmap = read_json(fetch.beatmap_path(row["beatmap_id"], scores.score_mods(row)))
         return beatmap.get("star_rating") if beatmap else None
 
-    return stats.compute(rows, sr, sess.get("blocks"), sess.get("ended_at"))
+    return stats.compute(rows, sr, sess.get("blocks"), sess.get("ended_at"), sess.get("started_at"))
 
 
 def _previous(session_id):
