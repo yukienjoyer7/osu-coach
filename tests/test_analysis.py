@@ -71,3 +71,29 @@ def test_external_report_rejects_invalid_inputs_without_writing(tmp_path, monkey
                                           "--source", "test", "--beatmap", "12"])
         assert result.exit_code != 0 and "valid JSON" in result.output
     assert not (paths.session_dir(sess["session_id"]) / "analyses").exists()
+
+
+def test_analysis_match_is_unknown_for_duplicate_saved_score_ids(tmp_path, monkeypatch):
+    monkeypatch.setattr(paths, "DATA", tmp_path / "data")
+    monkeypatch.setattr(paths, "SESSIONS", paths.DATA / "sessions")
+    monkeypatch.setattr(paths, "CURRENT", paths.DATA / "current_session")
+    monkeypatch.setattr(paths, "COACH", tmp_path / "coach")
+    sess = session.start()
+    path = tmp_path / "analysis.json"
+    path.write_text(json.dumps({"beatmap_md5": "a" * 32, "score_meta": {"user_id": 123,
+        "speed_change": 1.2, "mods": [{"acronym": "DT"}]}}), encoding="utf-8")
+    runner = CliRunner()
+    args = ["analysis", "import", str(path), "--session", sess["session_id"],
+            "--source", "osu-critique", "--beatmap", "12", "--score", "34"]
+    imported = json.loads(runner.invoke(app, args).output)
+    assert imported["saved_score_id_occurrences"] is None
+    score = {"score_id": 34, "beatmap_id": 12, "beatmap_checksum": "a" * 32,
+             "user_id": 123, "mods": ["DT"], "mod_settings": {"DT": {"speed_change": 1.2}}}
+    write_json(paths.session_dir(sess["session_id"]) / "scores.json", [score, {**score, "beatmap_id": 99}])
+    metadata = json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)["reports"][0]
+    assert metadata["saved_score_id_occurrences"] == 2
+    for key in ("saved_score_map_match", "saved_score_checksum_match", "reported_user_matches_saved_score",
+                "reported_rate_matches_saved_setting"):
+        assert metadata[key] is None
+    write_json(paths.session_dir(sess["session_id"]) / "scores.json", [])
+    assert json.loads(runner.invoke(app, ["analysis", "list", "--session", sess["session_id"]]).output)["reports"][0]["saved_score_id_occurrences"] == 0
