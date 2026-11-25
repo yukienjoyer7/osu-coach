@@ -1152,6 +1152,44 @@ def test_session_chronology_uses_instants_across_timezones(tmp_data, monkeypatch
     assert later["journal_unlinked_sections_omitted"] == 1
 
 
+def test_compare_saved_scores_reports_unknowns_and_duplicate_identity(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    clock = datetime(2026, 11, 21, 10, tzinfo=timezone.utc)
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    first = SS.start()
+    SS.close(first["session_id"])
+    clock += timedelta(minutes=2)
+    second = SS.start()
+    SS.close(second["session_id"])
+    a = _sc(1, 11, "2026-11-21T10:01:00Z")
+    b = _sc(2, 11, "2026-11-21T10:03:00Z")
+    a.update(mods=["DT"], mods_known=True, mod_settings={"DT": {"speed_change": 1.2}},
+             beatmap_checksum="a" * 32, user_id=123)
+    b.update(mods=["DT"], mods_known=True, mod_settings={"DT": {"speed_change": 1.4}},
+             beatmap_checksum="b" * 32, user_id=123)
+    write_json(P.session_dir(first["session_id"]) / "scores.json", [a])
+    write_json(P.session_dir(second["session_id"]) / "scores.json", [b, {**a}])
+    args = ["compare", "--first-session", first["session_id"], "--first-score", "1",
+            "--second-session", second["session_id"], "--second-score", "2"]
+    response = CliRunner().invoke(app, args)
+    assert response.exit_code == 0, response.output
+    result = json.loads(response.output)
+    assert result["same_score_id"] is False
+    assert result["recorded_checks"]["recorded_mods"] == "same"
+    assert result["recorded_checks"]["recorded_mod_settings"] == "different"
+    assert result["recorded_checks"]["fetch_time_beatmap_checksum"] == "different"
+    assert result["recorded_checks"]["session_client"] == "unknown"
+    args[-1] = "1"
+    assert json.loads(CliRunner().invoke(app, args).output)["same_score_id"] is True
+    b["mods_known"] = False
+    write_json(P.session_dir(second["session_id"]) / "scores.json", [b])
+    args[-1] = "2"
+    assert json.loads(CliRunner().invoke(app, args).output)["recorded_checks"]["recorded_mods"] == "unknown"
+    args[-1] = "99"
+    assert CliRunner().invoke(app, args).exit_code != 0
+
+
 def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
     from osucoach import context
 

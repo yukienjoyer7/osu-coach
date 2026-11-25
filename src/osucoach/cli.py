@@ -12,6 +12,7 @@ from . import account as A
 from . import analysis as AN
 from . import fetch as F
 from . import context as C
+from . import comparison as CMP
 from . import gap as G
 from . import history as H
 from . import hypothesis as HY
@@ -333,6 +334,16 @@ def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
 def history(beatmap_id: int = typer.Argument(..., min=1)) -> None:
     """Show saved session scores and conditions for a beatmap as JSON."""
     typer.echo(json.dumps(H.map_history(beatmap_id), ensure_ascii=False, indent=2))
+
+
+@app.command("compare")
+def compare(first_session: str = typer.Option(..., "--first-session"),
+            first_score: int = typer.Option(..., "--first-score", min=1),
+            second_session: str = typer.Option(..., "--second-session"),
+            second_score: int = typer.Option(..., "--second-score", min=1)) -> None:
+    """Compare recorded conditions for two saved session scores as JSON."""
+    result = _run(CMP.compare, first_session, first_score, second_session, second_score)
+    typer.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 @app.command("hypothesis")
