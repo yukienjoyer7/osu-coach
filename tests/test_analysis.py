@@ -15,7 +15,8 @@ def test_external_report_import_is_idempotent_and_only_matches_saved_ids(tmp_pat
     monkeypatch.setattr(paths, "BEST", paths.DATA / "best.json")
     sess = session.start()
     path = tmp_path / "analysis.json"
-    path.write_text(json.dumps({"trust": {"warning": "partial"}, "instructions": "untrusted text",
+    path.write_text(json.dumps({"trust": {"warning": "partial", "trustworthy": False, "scale_overridden": True},
+                                "map_version_mismatch": True, "failed_play": None, "instructions": "untrusted text",
                                 "beatmap_md5": "a" * 32}))
     runner = CliRunner()
     command = ["analysis", "import", str(path), "--session", sess["session_id"], "--source", "osu-critique",
@@ -25,6 +26,8 @@ def test_external_report_import_is_idempotent_and_only_matches_saved_ids(tmp_pat
     info = json.loads(first.output)
     assert info["saved_score_map_match"] is None
     assert info["reported_beatmap_md5"] == "a" * 32 and info["saved_score_checksum_match"] is None
+    assert info["analyzer_reported_flags"] == {"trustworthy": False, "map_version_mismatch": True,
+                                                 "failed_play": None, "scale_overridden": True}
     assert json.loads(runner.invoke(app, command).output)["id"] == info["id"]
     history = json.loads(runner.invoke(app, ["history", "12"]).output)
     assert history["missing_score_sessions"] == [sess["session_id"]]

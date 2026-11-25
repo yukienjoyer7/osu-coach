@@ -37,6 +37,7 @@ def main():
         shown = json.loads(run("analysis", "show", result["id"], "--session", sid))
         assert reports[0]["reports"][0]["id"] == result["id"]
         assert result["saved_score_map_match"] is None
+        assert result["analyzer_reported_flags"]["trustworthy"] is True
         assert isinstance(shown["report"], dict) and "Untrusted" in shown["interpretation"]
         print("Synthetic analyzer report imported, found in history and retrieved; score match remains unknown.")
 

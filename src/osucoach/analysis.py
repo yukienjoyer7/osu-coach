@@ -62,11 +62,19 @@ def metadata(entry, session_id):
     match = None
     checksum_match = None
     reported_md5 = None
+    reported_flags = None
     report = entry.get("report")
     if entry.get("source", "").casefold() == "osu-critique" and isinstance(report, dict):
         candidate = report.get("beatmap_md5")
         if isinstance(candidate, str) and re.fullmatch(r"[0-9a-fA-F]{32}", candidate):
             reported_md5 = candidate.lower()
+        trust = report.get("trust") if isinstance(report.get("trust"), dict) else {}
+        def flag(value):
+            return value if type(value) is bool else None
+        reported_flags = {"trustworthy": flag(trust.get("trustworthy")),
+                          "map_version_mismatch": flag(report.get("map_version_mismatch")),
+                          "failed_play": flag(report.get("failed_play")),
+                          "scale_overridden": flag(trust.get("scale_overridden"))}
     if rows is not None and score_id is not None:
         matching = [row for row in rows if row.get("score_id") == score_id]
         if matching and type(matching[0].get("beatmap_id")) is int:
@@ -76,7 +84,7 @@ def metadata(entry, session_id):
                 checksum_match = checksum.lower() == reported_md5
     return ({key: value for key, value in entry.items() if key != "report"} |
             {"saved_score_map_match": match, "reported_beatmap_md5": reported_md5,
-             "saved_score_checksum_match": checksum_match})
+             "saved_score_checksum_match": checksum_match, "analyzer_reported_flags": reported_flags})
 
 
 def list_reports(session_id):
