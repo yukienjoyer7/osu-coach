@@ -13,6 +13,9 @@ osucoach fetch profile | best | threshold | recent [--session ID] | beatmap ID [
 osucoach stats [ID]
 osucoach context [ID]
 osucoach scores [ID]
+osucoach analysis import REPORT.json --session ID --source NAME --beatmap ID
+osucoach analysis list --session ID
+osucoach analysis show REPORT_ID --session ID
 osucoach history BEATMAP_ID
 osucoach maps [--min-sr X --max-sr X --min-bpm X --max-bpm X]
 osucoach map-tag BEATMAP_ID --tags LABELS

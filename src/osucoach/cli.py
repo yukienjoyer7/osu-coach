@@ -9,6 +9,7 @@ from typing import Optional
 import typer
 
 from . import account as A
+from . import analysis as AN
 from . import fetch as F
 from . import context as C
 from . import gap as G
@@ -32,9 +33,11 @@ app = typer.Typer(no_args_is_help=True, add_completion=False)
 auth_app = typer.Typer(no_args_is_help=True, help="Check API credentials.")
 fetch_app = typer.Typer(no_args_is_help=True, help="Fetch data from the osu! API into data/.")
 session_app = typer.Typer(no_args_is_help=True, help="Open, close and annotate sessions.")
+analysis_app = typer.Typer(no_args_is_help=True, help="Import and inspect external analysis reports.")
 app.add_typer(auth_app, name="auth")
 app.add_typer(fetch_app, name="fetch")
 app.add_typer(session_app, name="session")
+app.add_typer(analysis_app, name="analysis")
 
 JSON = typer.Option(False, "--json", help="Machine-readable output.")
 
@@ -61,6 +64,33 @@ def _run(fn, *a, **kw):
 
 def _client() -> Client:
     return _run(Client)
+
+
+@analysis_app.command("import")
+def analysis_import(path: str = typer.Argument(..., help="Path to an external JSON report"),
+                    session: str = typer.Option(..., "--session", help="Session ID"),
+                    source: str = typer.Option(..., "--source", help="Analyzer name"),
+                    version: Optional[str] = typer.Option(None, "--version", help="Analyzer version"),
+                    beatmap: int = typer.Option(..., "--beatmap", min=1, help="Reported beatmap ID"),
+                    score: Optional[int] = typer.Option(None, "--score", min=1, help="Reported score ID")) -> None:
+    """Copy an external report into a session without validating its analysis."""
+    sid = _run(SS.resolve, session)
+    result = _run(AN.import_report, sid, path, source, version, beatmap, score)
+    typer.echo(json.dumps(result, ensure_ascii=False))
+
+
+@analysis_app.command("list")
+def analysis_list(session: str = typer.Option(..., "--session", help="Session ID")) -> None:
+    """List imported report metadata for a session."""
+    sid = _run(SS.resolve, session)
+    typer.echo(json.dumps({"reports": AN.list_reports(sid)}, ensure_ascii=False))
+
+
+@analysis_app.command("show")
+def analysis_show(report_id: str, session: str = typer.Option(..., "--session", help="Session ID")) -> None:
+    """Show an imported, unverified external report."""
+    sid = _run(SS.resolve, session)
+    typer.echo(json.dumps(_run(AN.show_report, sid, report_id), ensure_ascii=False))
 
 
 @app.command("init")

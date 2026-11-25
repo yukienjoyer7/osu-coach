@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, timezone
 import re
 
-from . import account, fetch, paths, scores, session, stats
+from . import account, analysis, fetch, paths, scores, session, stats
 from .store import parse_ts, read_json
 
 
@@ -39,6 +39,7 @@ def _previous(session_id):
             "review": _text(paths.COACH / "reviews" / f"{session_id}.md"),
             "scores_sync": fetch.recent_sync(session_id),
             "map_sync": read_json(paths.session_dir(session_id) / "map_sync.json"),
+            "analyses": analysis.list_reports(session_id),
             "stats": _session_stats(session_id, sess)}
 
 
@@ -88,6 +89,7 @@ def build(session_id=None):
         "scores_file_modified_at": None,
         "scores_sync": None,
         "map_sync": None,
+        "analyses": [],
         "overlapping_session_ids": [],
         "overlapping_score_ids": {},
         "stats": None,
@@ -118,5 +120,6 @@ def build(session_id=None):
                 result["overlapping_score_ids"][other_id] = sorted(current_ids & other_ids)
         result["scores_sync"] = fetch.recent_sync(sid)
         result["map_sync"] = read_json(paths.session_dir(sid) / "map_sync.json")
+        result["analyses"] = analysis.list_reports(sid)
         result["stats"] = _session_stats(sid, current_session)
     return result
