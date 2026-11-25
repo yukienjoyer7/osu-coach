@@ -148,11 +148,10 @@ def add_observation(session: dict, text: str, beatmap_id: int | None = None) -> 
     text = text.strip()
     if not text:
         raise OsuError("observation cannot be empty")
-    if session.get("ended_at"):
-        raise OsuError("session has ended; use session update for retrospective notes")
     if beatmap_id is not None and (type(beatmap_id) is not int or beatmap_id < 1):
         raise OsuError("beatmap ID must be a positive integer")
-    observation = {"reported_at": now_local().isoformat(timespec="seconds"), "text": text}
+    observation = {"reported_at": now_local().isoformat(timespec="seconds"), "text": text,
+                   "recorded_after_session": bool(session.get("ended_at"))}
     if beatmap_id is not None:
         observation["beatmap_id"] = beatmap_id
     session.setdefault("observations", []).append(observation)

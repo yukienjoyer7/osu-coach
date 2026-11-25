@@ -37,6 +37,7 @@ Triggered when a session is open and the user asks something.
 
 ### post: review the session
 Inputs: session.json, including any recorded observations, saved scores, beatmaps/, replay_stats.json if present, the plan, `osucoach stats <id> --json`. If the session was closed offline or the latest sync predates its end, fetch recent scores promptly when possible. If fetching fails, review the player's description and available saved evidence, explicitly mark missing results as unknown, and avoid inventing metrics. Check `map_sync` in context for the last completed map pass and its errors; compare its score-sync reference to the latest score sync. Missing or stale attributes remain unknown. Use `osucoach scores <id>` to inspect the recorded scores and coverage metadata without reading data files directly.
+Use `session observe "..." --session ID` for a relevant report shared after closing, with `--beatmap ID` only when the player identifies the map. Recording time is not necessarily event time.
 If fatigue, enjoyment, pain or what felt hard is missing, ask the player for the missing values in one line and record their answers with `osucoach session update <id> ...`.
 Write `coach/reviews/<id>.md`:
 - Plan vs actual: followed? metrics hit?

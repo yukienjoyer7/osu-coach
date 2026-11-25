@@ -410,12 +410,16 @@ def session_block(label: str = typer.Argument(..., help="Name of the block begin
 def session_observe(text: str = typer.Argument(..., help="Player observation to record"),
                     beatmap: Optional[int] = typer.Option(None, "--beatmap", min=1,
                                                           help="Map ID only when the player identifies it."),
+                    session: Optional[str] = typer.Option(None, "--session", help="Explicit session ID for a retrospective report."),
                     json_out: bool = JSON) -> None:
-    """Record a player observation during the open session."""
-    sid = SS.current()
+    """Record a player observation, optionally for an explicitly selected session."""
+    sid = _run(SS.resolve, session) if session else SS.current()
     if not sid:
         _fail(OsuError("no open session"))
-    observation = _run(SS.add_observation, SS.load(sid), text, beatmap)
+    sess = SS.load(sid)
+    if not session and sess.get("ended_at"):
+        _fail(OsuError("session has ended; specify --session for a retrospective report"))
+    observation = _run(SS.add_observation, sess, text, beatmap)
     _out(observation, json_out, f"{sid}: observation recorded")
 
 

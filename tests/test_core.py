@@ -838,7 +838,8 @@ def test_live_observations_preserve_reports_and_recording_time(tmp_data, monkeyp
     first = runner.invoke(app, ["session", "observe", "  streams felt tense  ", "--beatmap", "99", "--json"])
     assert first.exit_code == 0, first.output
     assert json.loads(first.output) == {"reported_at": clock.isoformat(timespec="seconds"),
-                                        "text": "streams felt tense", "beatmap_id": 99}
+                                        "text": "streams felt tense", "beatmap_id": 99,
+                                        "recorded_after_session": False}
     clock += timedelta(minutes=5)
     assert runner.invoke(app, ["session", "observe", "aim felt better"]).exit_code == 0
     assert runner.invoke(app, ["session", "observe", "   "]).exit_code != 0
@@ -854,6 +855,14 @@ def test_live_observations_preserve_reports_and_recording_time(tmp_data, monkeyp
     session["ended_at"] = clock.isoformat(timespec="seconds")
     SS.save(session)
     assert runner.invoke(app, ["session", "observe", "too late"]).exit_code != 0
+    clock += timedelta(minutes=5)
+    retrospective = runner.invoke(app, ["session", "observe", "the final burst felt rushed", "--session",
+                                         session["session_id"], "--beatmap", "99", "--json"])
+    assert retrospective.exit_code == 0, retrospective.output
+    report = json.loads(retrospective.output)
+    assert report["recorded_after_session"] is True and report["reported_at"] == clock.isoformat(timespec="seconds")
+    history = json.loads(runner.invoke(app, ["history", "99"]).output)
+    assert history["map_observations"][0]["observations"] == [observations[0], report]
 
 
 def test_apply_updates_validation():
