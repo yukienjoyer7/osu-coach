@@ -1098,6 +1098,27 @@ def test_maps_reports_missing_history_and_account_provenance(tmp_data, monkeypat
     assert history["missing_score_sessions"] == [session["session_id"]]
 
 
+def test_maps_excludes_invalid_cached_values_and_reports_coverage(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    rows = [_sc(1, 11, "2026-11-21T10:01:00Z"), _sc(2, 12, "2026-11-21T10:02:00Z"),
+            _sc(3, 13, "2026-11-21T10:03:00Z")]
+    write_json(P.BEST, rows)
+    write_json(F.beatmap_path(11, []), {"star_rating": 5.5, "bpm": "unknown"})
+    write_json(F.beatmap_path(12, []), {"star_rating": -1})
+    runner = CliRunner()
+    result = runner.invoke(app, ["maps"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert data["maps"][0]["attributes"]["bpm"] is None
+    assert data["excluded_score_records"] == {"missing_attributes": 1, "invalid_star_rating": 1,
+                                                "unknown_filter_value": 0}
+    filtered = json.loads(runner.invoke(app, ["maps", "--min-bpm", "100"]).output)
+    assert filtered["maps"] == [] and filtered["excluded_score_records"]["unknown_filter_value"] == 1
+
+
 # ---- stats -----------------------------------------------------------------------
 def test_stats_basic():
     rows = [_sc(1, 1, "2026-01-01T00:00:00Z", True, 0.96), _sc(2, 1, "2026-01-01T00:10:00Z", False),

@@ -15,13 +15,26 @@ def set_tags(beatmap_id, tags):
 
 
 def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
-         min_ar=None, max_ar=None, min_length=None, max_length=None, tag=None):
+         min_ar=None, max_ar=None, min_length=None, max_length=None, tag=None, diagnostics=None):
     candidates = {}
+    counts = {"missing_attributes": 0, "invalid_star_rating": 0, "unknown_filter_value": 0}
     sources = [paths.BEST] + [paths.session_dir(sid) / "scores.json" for sid in session.list_ids()]
     for source in sources:
         for score in read_json(source, []) or []:
             attributes = read_json(fetch.beatmap_path(score["beatmap_id"], scores.score_mods(score)))
-            if not attributes:
+            if not isinstance(attributes, dict) or not attributes:
+                counts["missing_attributes"] += 1
+                continue
+            attributes = dict(attributes)
+            for field in ("star_rating", "bpm", "ar", "length_s"):
+                value = attributes.get(field)
+                valid = (type(value) in (int, float) and math.isfinite(value) and
+                         (field not in ("star_rating", "length_s") or value >= 0) and
+                         (field != "bpm" or value > 0))
+                if not valid:
+                    attributes[field] = None
+            if attributes["star_rating"] is None:
+                counts["invalid_star_rating"] += 1
                 continue
             annotation = read_json(paths.DATA / "map_tags" / f"{score['beatmap_id']}.json", {})
             tags = annotation.get("tags", [])
@@ -29,6 +42,10 @@ def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
                 continue
             filters = (("star_rating", min_sr, max_sr), ("bpm", min_bpm, max_bpm),
                        ("ar", min_ar, max_ar), ("length_s", min_length, max_length))
+            if any((low is not None or high is not None) and attributes[field] is None
+                   for field, low, high in filters):
+                counts["unknown_filter_value"] += 1
+                continue
             if any((low is not None and (attributes.get(field) is None or attributes[field] < low))
                    or (high is not None and (attributes.get(field) is None or attributes[field] > high))
                    for field, low, high in filters):
@@ -50,6 +67,8 @@ def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
     for candidate in candidates.values():
         candidate["recorded_score_ids"] = sorted(candidate["recorded_score_ids"])
         candidate["recorded_score_count"] = len(candidate["recorded_score_ids"])
+    if diagnostics is not None:
+        diagnostics.update(counts)
     return sorted(candidates.values(), key=lambda item: (item["attributes"]["star_rating"], item["beatmap_id"]))
 
 

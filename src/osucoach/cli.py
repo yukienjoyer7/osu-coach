@@ -277,9 +277,11 @@ def maps(min_sr: Optional[float] = typer.Option(None, "--min-sr", min=0),
         _fail(OsuError("map filters must be finite numbers"))
     if any(low is not None and high is not None and low > high for low, high in ranges):
         _fail(OsuError("minimum must not exceed maximum"))
+    diagnostics = {}
     results = MAPS.find(min_sr, max_sr, min_bpm, max_bpm, min_ar, max_ar, min_length, max_length,
-                        tag.strip() if tag else None)
-    typer.echo(json.dumps({"maps": results, "recorded_history": MAPS.recorded_history(), "selection_limits": [
+                        tag.strip() if tag else None, diagnostics)
+    typer.echo(json.dumps({"maps": results, "excluded_score_records": diagnostics,
+                           "recorded_history": MAPS.recorded_history(), "selection_limits": [
         "Cached BPM is a map-level tempo, not a measurement of stream or tapping speed; tempo can vary.",
         "Total length includes breaks and does not measure continuous playing time.",
         "Pattern type and ranked status are not verified by this command.",
