@@ -8,14 +8,17 @@ Data schemas: `DATA_CONTRACT.md`.
 ```
 osucoach auth check
 osucoach guide
-osucoach session start | end | current | block LABEL | update [ID]
+osucoach session start | end | current | block LABEL | observe TEXT | update [ID]
 osucoach fetch profile | best | threshold | recent [--session ID] | beatmap ID [--mods X] | beatmaps [--session ID]
 osucoach stats [ID]
 osucoach context [ID]
+osucoach scores [ID]
 osucoach history BEATMAP_ID
 osucoach maps [--min-sr X --max-sr X --min-bpm X --max-bpm X]
 osucoach map-tag BEATMAP_ID --tags LABELS
 osucoach map-search QUERY
+osucoach discover QUERY
+osucoach map-attributes ID,ID [--mods X] [--rate X]
 osucoach gap
 ```
 Add `--json` when you need to parse output. `session start` takes `--sleep-h --energy --pain --motivation`. `session end` takes `--fatigue --pain --enjoyment --felt-hard --notes --followed-plan yes|partly|no`. For `session update`, use `--pain-before` and `--pain-after` for the respective pain values. Use it to record what the player tells you. `osucoach <cmd> --help` lists every option.
@@ -30,6 +33,6 @@ Infer the mode from the request and `osucoach session current`.
 ## Rules
 - Fetch before you reason if the data is older than the question needs.
 - Never read or print `.env`.
-- Do not edit `data/` by hand; only the CLI writes there (including `session.json`, via `session update`).
+- Do not edit `data/` by hand; only the CLI writes there, including session updates and observations.
 - You may edit `coach/` files. `coach/journal.md` is append-only.
 - Brief, direct, no em-dashes.

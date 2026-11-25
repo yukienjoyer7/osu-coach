@@ -1,5 +1,7 @@
 # osu-coach MVP plan
 
+> Historical design plan. The CLI, coaching guidance and scope have evolved; use [README.md](README.md), `osucoach guide` and `osucoach schema` for current behavior. This plan is not evidence of present-day live API compatibility or elite coaching effectiveness.
+
 > Status 2026-11-20: steps 1-6 implemented and verified against the live API (17 offline tests in `tests/`). Step 7 (first real loop) is the player's. Implementation notes that differ from this plan: the attributes endpoint returns no AR/OD, so `mods.adjust` computes them; map meta comes free from score objects (`data/beatmaps/_meta/`); `session update` was added so the agent never hand-edits `data/`.
 
 Goal: an agent living in the repo that coaches osu!standard sessions (pre / live / post) using data it fetches itself through a CLI. Harness-agnostic (Claude Code, Codex, anything that reads `AGENTS.md`).
