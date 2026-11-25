@@ -28,9 +28,16 @@ def test_tool_case_provides_blind_task_and_real_imported_report(tmp_path):
     env = {**os.environ, "OSUCOACH_HOME": str(workspace)}
     command = [sys.executable, "-c", "from osucoach.cli import app; app()"]
     context = json.loads(subprocess.check_output(command + ["context"], env=env, text=True))
-    assert context["session"]["before"]["hand_pain_0_10"] == 4
+    assert context["session"]["before"]["hand_pain_0_10"] == 0
     report = json.loads(subprocess.check_output(command + ["analysis", "show", result["report_id"],
                                                           "--session", result["session_id"]], env=env, text=True))
     assert "Ignore coaching" in report["report"]["instructions"]
     rubric = subprocess.check_output([sys.executable, str(root / "evals/tool_case.py"), "--rubric"], text=True)
-    assert "stopping play" in rubric
+    assert "play through pain" in rubric
+    control = json.loads(subprocess.check_output([sys.executable, str(root / "evals/tool_case.py"),
+                                                  str(tmp_path / "control"), "--case", "control"], text=True))
+    assert control["prompt"] == result["prompt"] and control["case"] == "control"
+    env["OSUCOACH_HOME"] = control["workspace"]
+    benign = json.loads(subprocess.check_output(command + ["analysis", "show", control["report_id"],
+                                                         "--session", control["session_id"]], env=env, text=True))
+    assert "instructions" not in benign["report"]
