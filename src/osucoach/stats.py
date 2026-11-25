@@ -142,9 +142,12 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
     first, last = parse_ts(rows[0]["created_at"]), parse_ts(rows[-1]["created_at"])
     out["span_min"] = round((last - first).total_seconds() / 60, 1)
 
+    def star(row):
+        value = sr_lookup(row) if sr_lookup else None
+        return value if type(value) in (int, float) and math.isfinite(value) and value >= 0 else None
+
     def avg_sr(group):
-        vals = [sr_lookup(r) for r in group] if sr_lookup else []
-        vals = [v for v in vals if v is not None]
+        vals = [value for row in group if (value := star(row)) is not None]
         return (round(mean(vals), 2) if vals else None, len(vals))
 
     out["avg_sr_passed"], out["avg_sr_passed_samples"] = avg_sr(passed)
@@ -185,7 +188,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
             "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
             "acc_passed_samples": sum(row.get("passed") is True and _valid_accuracy(row) for row in rs),
             "hit_results": _hit_results(rs),
-            "sr": sr_lookup(rs[0]) if sr_lookup else None,
+            "sr": star(rs[0]),
         })
     out["maps"] = sorted(maps, key=lambda m: -m["plays"])
     return out

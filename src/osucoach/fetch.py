@@ -192,7 +192,8 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
     """Return (beatmap data, made_api_calls), optionally refreshing cached attributes."""
     path = beatmap_path(beatmap_id, mods)
     cached = read_json(path)
-    if isinstance(cached, dict) and _r(cached.get("star_rating"), 3) is not None and not refresh:
+    cached_sr = _r(cached.get("star_rating"), 3) if isinstance(cached, dict) else None
+    if cached_sr is not None and cached["star_rating"] >= 0 and not refresh:
         return cached, False
     norm = M.normalize(mods)
     meta_path = P.META_DIR / f"{beatmap_id}.json"
@@ -207,7 +208,8 @@ def fetch_beatmap(c: Client, beatmap_id: int, mods: list[dict], refresh: bool = 
             raise MapDataError(f"beatmap {beatmap_id} returned invalid metadata")
     response = c.post(f"/beatmaps/{beatmap_id}/attributes", {"mods": norm, "ruleset": "osu"})
     a = response.get("attributes") if isinstance(response, dict) else None
-    if not isinstance(a, dict) or _r(a.get("star_rating"), 3) is None:
+    rating = _r(a.get("star_rating"), 3) if isinstance(a, dict) else None
+    if rating is None or a["star_rating"] < 0:
         raise MapDataError(f"beatmap {beatmap_id} returned invalid difficulty attributes")
     adj = M.adjust(meta["cs"], meta["ar"], meta["accuracy"], meta["bpm"],
                    meta["total_length"], norm)

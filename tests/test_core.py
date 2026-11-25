@@ -1144,6 +1144,15 @@ def test_accuracy_sample_count_excludes_failed_and_unknown_scores():
     assert partial["avg_sr_failed_samples"] == 0 and partial["avg_sr_failed"] is None
 
 
+@pytest.mark.parametrize("invalid", [None, -0.1, float("nan"), float("inf"), True, "5"])
+def test_invalid_star_rating_is_excluded_from_summary(invalid):
+    rows = S.add_retry_index([_sc(1, 1, "2026-01-01T00:00:00Z"),
+                              _sc(2, 2, "2026-01-01T00:01:00Z")])
+    summary = ST.compute(rows, lambda row: 5.0 if row["score_id"] == 1 else invalid)
+    assert summary["avg_sr_passed"] == 5.0 and summary["avg_sr_passed_samples"] == 1
+    assert next(item for item in summary["maps"] if item["beatmap_id"] == 2)["sr"] is None
+
+
 @pytest.mark.parametrize("invalid", [None, -0.1, 1.01, float("nan"), float("inf"), True, "0.98"])
 def test_invalid_accuracy_is_excluded_from_all_summary_denominators(invalid):
     rows = S.add_retry_index([_sc(1, 1, "2026-01-01T00:00:00Z", acc=0.98),
@@ -1791,6 +1800,23 @@ def test_invalid_cached_map_metadata_is_refetched(tmp_data, monkeypatch):
             return {"attributes": {"star_rating": 5}}
     data, fetched = F.fetch_beatmap(Client(), 11, [])
     assert fetched and data["cs"] == 4
+
+
+def test_negative_cached_and_returned_stars_are_rejected(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    monkeypatch.setattr(P, "META_DIR", tmp_data / "meta")
+    write_json(F.beatmap_path(11, []), {"star_rating": -0.0001})
+    write_json(P.META_DIR / "11.json", {"id": 11, "cs": 4, "ar": 9, "accuracy": 8, "bpm": 180,
+                                         "total_length": 100, "count_circles": 1,
+                                         "count_sliders": 2, "count_spinners": 0})
+    class Client:
+        def post(self, path, body):
+            return {"attributes": {"star_rating": -0.0001}}
+
+    with pytest.raises(F.MapDataError, match="invalid difficulty"):
+        F.fetch_beatmap(Client(), 11, [])
 
 
 def test_nullable_map_bpm_preserves_other_attributes(tmp_data, monkeypatch):
