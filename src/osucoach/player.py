@@ -36,7 +36,10 @@ def read_setup(path: Path) -> dict | None:
     device = device.split(" (", 1)[0].strip()
     input_type = fields.get("input")
     if input_type is None and device:
-        input_type = "mouse" if "mouse" in device.casefold() else "tablet"
+        mentions_mouse = bool(re.search(r"\bmouse\b", device, re.IGNORECASE))
+        mentions_tablet = bool(re.search(r"\btablet\b", device, re.IGNORECASE))
+        if mentions_mouse != mentions_tablet:
+            input_type = "mouse" if mentions_mouse else "tablet"
     if input_type:
         input_type = input_type.casefold()
 

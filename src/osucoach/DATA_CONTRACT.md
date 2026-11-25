@@ -155,6 +155,8 @@ For manual custom-rate requests, DT/NC accept 1.01 to 2.0 and HT/DC accept 0.5 t
 `session start` reads `coach/player.md` and saves a setup snapshot. Edit the profile to change future sessions. For example, `- tablet area: 60 × 40 mm, center (75.5, 45) mm, rotation 0°` supplies dimensions, center coordinates and rotation. Blank setup fields are null. If the profile is missing, the CLI reuses the last recorded setup when available.
 `setup.changed_since_last` is true when known recorded values differ, and otherwise null unless the player explicitly reports a change or confirms the setup is the same. Matching saved fields cannot rule out unrecorded or stale settings. `--setup-changed` and `--setup-same` record the player's report and override the comparison; earlier sessions may contain automatically inferred false values from older versions. Unknown `before` and `after` fields are null.
 
+For legacy free-text `setup` fields without an explicit `input`, only an unambiguous mention of mouse or tablet is used to infer input type. Other device names remain unknown until the player specifies the input; older sessions may contain automatically guessed tablet values.
+
 Optional `rapid_trigger` and `actuation` are free-text player-reported settings copied from the player profile at session start. Null means unknown, not disabled. Older sessions may omit them. They describe reported configuration, not measured timing or proof of causation.
 `after.duration_min` is computed at `session end`. Edit fields afterwards only with `osucoach session update`.
 Energy, motivation, fatigue and enjoyment use integer values from 1 to 5. Pain uses integers from 0 to 10. Sleep hours must be finite and non-negative. Invalid updates are rejected before saving.

@@ -854,6 +854,15 @@ def test_setup_records_rapid_trigger_changes(tmp_data, monkeypatch):
     assert SS.load(first["session_id"])["setup"]["rapid_trigger"] == "off"
 
 
+@pytest.mark.parametrize("device", ["unknown", "Wacom CTL-472", "mouse or tablet"])
+def test_legacy_setup_does_not_guess_input_type(tmp_data, device):
+    P.COACH.mkdir()
+    (P.COACH / "player.md").write_text(f"- setup: {device}, keypad, 240 fps\n", encoding="utf-8")
+    setup = SS.start()["setup"]
+    assert setup["input"] is None and setup["tablet"] is None
+    assert setup["keypad"] == "keypad" and setup["fps"] == 240
+
+
 def test_legacy_player_setup_and_missing_profile_fallback(tmp_data, monkeypatch):
     profile = P.COACH / "player.md"
     profile.parent.mkdir()
