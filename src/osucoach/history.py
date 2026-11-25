@@ -6,6 +6,7 @@ from .store import parse_ts, read_json
 def map_history(beatmap_id: int) -> dict:
     entries = []
     map_observations = []
+    declared_map_score_evidence = []
     score_linked_observations = []
     map_analyses = []
     missing_sessions = []
@@ -19,6 +20,17 @@ def map_history(beatmap_id: int) -> dict:
             map_analyses.append({"session_id": sid, "reports": reports})
         score_path = paths.session_dir(sid) / "scores.json"
         rows = read_json(score_path)
+        direct_links = []
+        for item in observations:
+            score_id = item.get("score_id")
+            if type(score_id) is not int:
+                continue
+            linked = [row for row in (rows or []) if row.get("score_id") == score_id]
+            saved_map = linked[0].get("beatmap_id") if len(linked) == 1 else None
+            match = saved_map == beatmap_id if type(saved_map) is int else None
+            direct_links.append({"observation": item, "saved_score_map_match": match})
+        if direct_links:
+            declared_map_score_evidence.append({"session_id": sid, "links": direct_links})
         if rows is None:
             missing_sessions.append(sid)
             continue
@@ -62,6 +74,7 @@ def map_history(beatmap_id: int) -> dict:
         session_ids & {row["score_id"] for row in best_matches})
     return {"beatmap_id": beatmap_id, "account": account.binding(), "sessions": entries,
             "map_observations": map_observations,
+            "declared_map_score_evidence": declared_map_score_evidence,
             "score_linked_observations": score_linked_observations,
             "map_analyses": map_analyses,
             "missing_score_sessions": missing_sessions, "best_scores": best_matches,

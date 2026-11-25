@@ -1297,14 +1297,22 @@ def test_map_history_finds_score_linked_observations_and_conflicts(tmp_data, mon
     SS.add_observation(sess, "score-only", score_id=1)
     SS.add_observation(sess, "conflicting map", beatmap_id=99, score_id=1)
     SS.add_observation(sess, "ambiguous", score_id=2)
+    SS.add_observation(sess, "unresolved", beatmap_id=99, score_id=3)
+    SS.add_observation(sess, "matching map", beatmap_id=99, score_id=4)
     assert history.map_history(11)["score_linked_observations"] == []
+    initial = history.map_history(99)["declared_map_score_evidence"][0]["links"]
+    assert all(item["saved_score_map_match"] is None for item in initial)
     first = _sc(1, 11, "2026-01-01T00:01:00Z")
     duplicate = _sc(2, 11, "2026-01-01T00:02:00Z")
-    write_json(P.session_dir(sid) / "scores.json", [first, duplicate, {**duplicate, "beatmap_id": 99}])
+    write_json(P.session_dir(sid) / "scores.json", [first, duplicate, {**duplicate, "beatmap_id": 99},
+                                                      _sc(4, 99, "2026-01-01T00:04:00Z")])
     result = history.map_history(11)["score_linked_observations"][0]["links"]
     assert [(item["observation"]["text"], item["declared_beatmap_matches_saved_score"]) for item in result] == [
         ("score-only", None), ("conflicting map", False)]
     assert history.map_history(99)["map_observations"][0]["observations"][0]["text"] == "conflicting map"
+    declared = history.map_history(99)["declared_map_score_evidence"][0]["links"]
+    assert [(item["observation"]["text"], item["saved_score_map_match"]) for item in declared] == [
+        ("conflicting map", False), ("unresolved", None), ("matching map", True)]
 
 
 def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
