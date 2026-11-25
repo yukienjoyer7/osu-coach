@@ -550,6 +550,8 @@ def stats(session: Optional[str] = typer.Argument(None, help="Session id (defaul
         _fail(OsuError(f"scores missing for {sid}; run `osucoach fetch recent --session {sid}`"))
 
     def sr(sc):
+        if sc.get("mods_known") is False:
+            return None
         d = read_json(F.beatmap_path(sc["beatmap_id"], S.score_mods(sc)))
         return d.get("star_rating") if isinstance(d, dict) else None
 

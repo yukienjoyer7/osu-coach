@@ -44,7 +44,7 @@ def _hit_results(rows: list[dict]) -> dict:
 
 def _condition_key(row):
     settings = json.dumps(row.get("mod_settings") or {}, sort_keys=True, separators=(",", ":"))
-    return row["beatmap_id"], tuple(sorted(row["mods"])), settings
+    return row["beatmap_id"], tuple(sorted(row["mods"])), settings, row.get("mods_known")
 
 
 def _contained(rows, start, session_end):
@@ -61,10 +61,10 @@ def _block_maps(rows, start, session_end):
     for row in rows:
         groups[_condition_key(row)].append(row)
     summaries = []
-    for (beatmap_id, mods, settings), group in groups.items():
+    for (beatmap_id, mods, settings, mods_known), group in groups.items():
         summaries.append({
             "beatmap_id": beatmap_id, "title": group[0]["title"], "version": group[0]["version"],
-            "mods": list(mods), "mod_settings": json.loads(settings),
+            "mods": list(mods), "mods_known": mods_known, "mod_settings": json.loads(settings),
             "score_ids": [row["score_id"] for row in group],
             **_block(group), "passes": sum(row.get("passed") is True for row in group),
             "hit_results": _hit_results(group),
@@ -150,7 +150,7 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
     out["span_min"] = round((last - first).total_seconds() / 60, 1)
 
     def star(row):
-        value = sr_lookup(row) if sr_lookup else None
+        value = sr_lookup(row) if sr_lookup and row.get("mods_known") is not False else None
         return value if type(value) in (int, float) and math.isfinite(value) and value >= 0 else None
 
     def avg_sr(group):
@@ -178,21 +178,21 @@ def compute(scores: list[dict], sr_lookup=None, blocks=None, session_ended_at=No
     previous_key = None
     for r in rows:
         key = _condition_key(r)
-        if key == previous_key:
+        if key == previous_key and r.get("mods_known") is not False:
             consecutive_repeats[key] += 1
         groups[key].append(r)
         previous_key = key
     maps = []
-    for (bid, mods, settings), rs in groups.items():
+    for (bid, mods, settings, mods_known), rs in groups.items():
         p = [x["pp"] for x in rs if x.get("pp") is not None]
         maps.append({
             "beatmap_id": bid, "title": rs[0]["title"], "version": rs[0]["version"],
-            "mods": list(mods), "mod_settings": json.loads(settings),
+            "mods": list(mods), "mods_known": mods_known, "mod_settings": json.loads(settings),
             "plays": len(rs), "passes": sum(x.get("passed") is True for x in rs),
             "recorded_no_fail_plays": _no_fail(rs),
             "pass_rate_samples": sum(type(row.get("passed")) is bool for row in rs),
             "max_retry": max(x["retry_index"] or 0 for x in rs),
-            "consecutive_recorded_repeats": consecutive_repeats[(bid, mods, settings)],
+            "consecutive_recorded_repeats": consecutive_repeats[(bid, mods, settings, mods_known)],
             "acc_passed": _acc(rs), "best_pp": max(p) if p else None,
             "acc_passed_samples": sum(row.get("passed") is True and _valid_accuracy(row) for row in rs),
             "hit_results": _hit_results(rs),
@@ -228,7 +228,8 @@ def render(session_id: str, s: dict) -> str:
     lines.append(f"{'map':38} {'mods':6} {'plays':>5} {'pass':>4} {'rept':>5} {'acc%':>6} {'pp':>5}")
     for m in s["maps"][:12]:
         name = f"{m['title']} [{m['version']}]"
-        lines.append(f"{name[:38]:38} {''.join(m['mods'])[:6]:6} {m['plays']:>5} {m['passes']:>4} "
+        mod_label = "?" if m.get("mods_known") is False else "".join(m["mods"])
+        lines.append(f"{name[:38]:38} {mod_label[:6]:6} {m['plays']:>5} {m['passes']:>4} "
                      f"{m['consecutive_recorded_repeats']:>5} {_f(m['acc_passed']):>6} {_f(m['best_pp'], '{:.0f}'):>5}")
         if m.get("mod_settings"):
             lines.append(f"  settings: {json.dumps(m['mod_settings'], ensure_ascii=False, sort_keys=True)}")

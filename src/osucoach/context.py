@@ -26,6 +26,8 @@ def _session_stats(session_id, sess):
         return None
 
     def sr(row):
+        if row.get("mods_known") is False:
+            return None
         beatmap = read_json(fetch.beatmap_path(row["beatmap_id"], scores.score_mods(row)))
         return beatmap.get("star_rating") if beatmap else None
 

@@ -1284,7 +1284,7 @@ def test_maps_excludes_invalid_cached_values_and_reports_coverage(tmp_data, monk
     data = json.loads(result.output)
     assert data["maps"][0]["attributes"]["bpm"] is None
     assert data["excluded_score_records"] == {"missing_attributes": 1, "invalid_star_rating": 1,
-                                                "unknown_filter_value": 0}
+                                                "unknown_filter_value": 0, "unknown_mods": 0}
     filtered = json.loads(runner.invoke(app, ["maps", "--min-bpm", "100"]).output)
     assert filtered["maps"] == [] and filtered["excluded_score_records"]["unknown_filter_value"] == 1
 
@@ -1318,6 +1318,38 @@ def test_stats_disclose_no_fail_in_mixed_practice():
     assert result["blocks"][0]["recorded_no_fail_plays"] == 1
     assert [group["recorded_no_fail_plays"] for group in result["maps"]] == [0, 1]
     assert "No Fail recorded on 1 plays" in ST.render("test", result)
+
+
+def test_missing_mods_do_not_become_known_nomod_attributes(tmp_data, monkeypatch):
+    from osucoach import maps
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    monkeypatch.setattr(P, "BEATMAPS", tmp_data / "beatmaps")
+    missing = S.map_score({key: value for key, value in RAW.items() if key != "mods"})
+    explicit = S.map_score({**RAW, "mods": []})
+    malformed = S.map_score({**RAW, "mods": [{"settings": {}}]})
+    assert missing["mods_known"] is False and malformed["mods_known"] is False
+    assert explicit["mods_known"] is True and explicit["mods"] == []
+    missing.update(score_id=1, beatmap_id=11, created_at="2026-01-01T00:01:00Z")
+    explicit.update(score_id=2, beatmap_id=11, created_at="2026-01-01T00:02:00Z")
+    rows = S.add_retry_index([missing, explicit])
+    write_json(F.beatmap_path(11, []), {"star_rating": 5.5, "max_combo": 300})
+    F.fill_map_max_combo(rows)
+    assert [row["map_max_combo"] for row in rows] == [None, 300]
+    summary = ST.compute(rows, lambda row: 5.5)
+    assert summary["avg_sr_passed_samples"] == int(explicit["passed"] is True)
+    assert len(summary["maps"]) == 2
+    unknown = next(row for row in summary["maps"] if row["mods_known"] is False)
+    assert unknown["sr"] is None and "?" in ST.render("test", summary)
+    write_json(P.BEST, rows)
+    diagnostics = {}
+    candidates = maps.find(diagnostics=diagnostics)
+    assert diagnostics["unknown_mods"] == 1 and len(candidates) == 1
+    class Client:
+        def get(self, *args, **kwargs):
+            raise AssertionError("must not fetch attributes for unknown mods")
+    assert F.fetch_beatmaps_for(Client(), [missing])[2][0]["mods"] is None
 
 
 def test_unknown_pass_status_is_not_a_failure():

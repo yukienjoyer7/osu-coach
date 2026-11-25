@@ -17,10 +17,14 @@ def set_tags(beatmap_id, tags):
 def find(min_sr=None, max_sr=None, min_bpm=None, max_bpm=None,
          min_ar=None, max_ar=None, min_length=None, max_length=None, tag=None, diagnostics=None):
     candidates = {}
-    counts = {"missing_attributes": 0, "invalid_star_rating": 0, "unknown_filter_value": 0}
+    counts = {"missing_attributes": 0, "invalid_star_rating": 0, "unknown_filter_value": 0,
+              "unknown_mods": 0}
     sources = [paths.BEST] + [paths.session_dir(sid) / "scores.json" for sid in session.list_ids()]
     for source in sources:
         for score in read_json(source, []) or []:
+            if score.get("mods_known") is False:
+                counts["unknown_mods"] += 1
+                continue
             attributes = read_json(fetch.beatmap_path(score["beatmap_id"], scores.score_mods(score)))
             if not isinstance(attributes, dict) or not attributes:
                 counts["missing_attributes"] += 1

@@ -266,6 +266,13 @@ def fetch_beatmaps_for(c: Client, scores: list[dict]) -> tuple[int, int, list[di
     """Fetch distinct map/mod combinations, isolating missing or malformed maps."""
     seen, calls, errors = set(), 0, []
     for sc in scores:
+        if sc.get("mods_known") is False:
+            k = (sc["beatmap_id"], None)
+            if k not in seen:
+                seen.add(k)
+                errors.append({"beatmap_id": sc["beatmap_id"], "mods": None,
+                               "error": "score mods unavailable; attributes not fetched"})
+            continue
         mods = S.score_mods(sc)
         k = (sc["beatmap_id"], M.key(mods))
         if k in seen:
@@ -286,5 +293,8 @@ def fetch_beatmaps_for(c: Client, scores: list[dict]) -> tuple[int, int, list[di
 def fill_map_max_combo(scores: list[dict]) -> None:
     """Use only attributes calculated for the score's recorded mod combination."""
     for sc in scores:
+        if sc.get("mods_known") is False:
+            sc["map_max_combo"] = None
+            continue
         data = read_json(beatmap_path(sc["beatmap_id"], S.score_mods(sc)))
         sc["map_max_combo"] = data.get("max_combo") if data else None

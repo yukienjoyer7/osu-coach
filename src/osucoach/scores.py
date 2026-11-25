@@ -20,8 +20,12 @@ def _boolean(source, key):
 def map_score(s: dict) -> dict:
     bm = s.get("beatmap") or {}
     st = s.get("statistics")
-    mods = [m["acronym"] for m in s.get("mods") or []]
-    settings = {m["acronym"]: m["settings"] for m in s.get("mods") or [] if m.get("settings")}
+    raw_mods = s.get("mods")
+    mods_known = (isinstance(raw_mods, list) and all(
+        isinstance(m, dict) and isinstance(m.get("acronym"), str) and bool(m["acronym"])
+        and (m.get("settings") is None or isinstance(m["settings"], dict)) for m in raw_mods))
+    mods = [m["acronym"] for m in raw_mods] if mods_known else []
+    settings = {m["acronym"]: m["settings"] for m in raw_mods if m.get("settings")} if mods_known else {}
     w = s.get("weight") or {}
     out = {
         "score_id": s["id"],
@@ -37,6 +41,7 @@ def map_score(s: dict) -> dict:
         "timestamp_source": "ended_at" if s.get("ended_at") else ("started_at" if s.get("started_at") else None),
         "started_at": s.get("started_at") if s.get("ended_at") else None,
         "mods": mods,
+        "mods_known": mods_known,
         "passed": _boolean(s, "passed"),
         "processed": _boolean(s, "processed"),
         "ranked": _boolean(s, "ranked"),
