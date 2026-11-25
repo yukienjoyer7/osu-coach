@@ -43,7 +43,8 @@ def _condition_key(row):
 
 
 def _contained(rows, start, session_end):
-    contained = [row for row in rows if row.get("started_at") and parse_ts(row["started_at"]) >= start
+    contained = [row for row in rows if row.get("timestamp_source") == "ended_at" and row.get("started_at")
+                 and start <= parse_ts(row["started_at"]) <= parse_ts(row["created_at"])
                  and (session_end is None or parse_ts(row["created_at"]) <= session_end)]
     return {**_block(contained), "passes": sum(row.get("passed") is True for row in contained),
             "score_ids": [row["score_id"] for row in contained],

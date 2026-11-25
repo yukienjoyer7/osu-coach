@@ -1615,6 +1615,8 @@ def test_block_maps_keep_mod_settings_and_unknown_start_separate():
     rows[2]["mods"] = ["DT"]
     rows[2]["mod_settings"] = {"DT": {"speed_change": 1.5}}
     rows[2]["started_at"] = "2025-12-31T23:59:00Z"
+    for row in rows:
+        row["timestamp_source"] = "ended_at"
     block = [{"label": "focus", "started_at": "2026-01-01T00:00:00Z"}]
     groups = ST.compute(rows, blocks=block)["blocks"][0]["maps"]
     assert len(groups) == 2
@@ -1650,6 +1652,8 @@ def test_block_containment_excludes_post_session_grace_scores(tmp_data, monkeypa
     ])
     rows[0]["started_at"] = "2026-01-01T00:09:00Z"
     rows[1]["started_at"] = "2026-01-01T00:09:30Z"
+    for row in rows:
+        row["timestamp_source"] = "ended_at"
     write_json(P.session_dir(sess["session_id"]) / "scores.json", rows)
     block = context.build(sess["session_id"])["stats"]["blocks"][0]
     assert block["plays"] == 2 and block["after_session_end"] == 1
@@ -1658,6 +1662,21 @@ def test_block_containment_excludes_post_session_grace_scores(tmp_data, monkeypa
     assert block["maps"][0]["fully_contained"]["score_ids"] == [1]
     result = CliRunner().invoke(app, ["stats", sess["session_id"], "--json"])
     assert json.loads(result.output)["blocks"][0]["fully_contained"]["score_ids"] == [1]
+
+
+def test_block_containment_requires_known_plausible_end_time():
+    rows = S.add_retry_index([
+        _sc(1, 10, "2026-01-01T00:02:00Z"),
+        _sc(2, 10, "2026-01-01T00:03:00Z"),
+        _sc(3, 10, "2026-01-01T00:04:00Z"),
+    ])
+    rows[0]["started_at"] = "2026-01-01T00:01:00Z"
+    rows[1].update(started_at="2026-01-01T00:01:00Z", timestamp_source="ended_at")
+    rows[2].update(started_at="2026-01-01T00:05:00Z", timestamp_source="ended_at")
+    block = ST.compute(rows, blocks=[{"label": "focus", "started_at": "2026-01-01T00:00:00Z"}])["blocks"][0]
+    assert block["plays"] == 3
+    assert block["fully_contained"]["score_ids"] == [2]
+    assert block["maps"][0]["fully_contained"]["score_ids"] == [2]
 
 
 def test_map_search_exposes_tempo_and_length_limitations(tmp_data, monkeypatch):
