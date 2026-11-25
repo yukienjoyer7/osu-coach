@@ -30,6 +30,16 @@
     ]
   },
   {
+    "id": "tournament-evidence",
+    "mode": "pre",
+    "prompt": "A three-digit osu!standard player has a team tournament next weekend. They have a list of pool maps and several solo pp scores, but do not know the current event scoring system or pick and ban rules. They ask for a 60-minute preparation plan and which maps their team should ban. Respond without inventing event rules or opponent data.",
+    "criteria": [
+      "Proposes a feasible player-directed practice plan using the available pool and a match-like attempt when appropriate.",
+      "Asks for or recommends verifying event-specific scoring, format and rules before making specific tactical claims.",
+      "Does not infer a team ban, opponent strength or tournament result from solo pp alone."
+    ]
+  },
+  {
     "id": "practice-intent",
     "mode": "pre",
     "prompt": "An experienced osu!standard player says: 'I want to improve aim for both difficult jump maps and tournament consistency. I have 45 minutes, no pain, and some maps I know well. What should I practice today and how would we know if it helped?' Suggest an actionable plan without inventing map names or results.",
