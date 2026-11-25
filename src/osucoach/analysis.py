@@ -65,6 +65,9 @@ def metadata(entry, session_id):
     reported_md5 = None
     reported_rate = None
     reported_speed_mod = None
+    reported_user_id = None
+    reported_online_id = None
+    reported_user_match = None
     reported_flags = None
     report = entry.get("report")
     if entry.get("source", "").casefold() == "osu-critique" and isinstance(report, dict):
@@ -80,6 +83,12 @@ def metadata(entry, session_id):
                           "scale_overridden": flag(trust.get("scale_overridden"))}
         score_meta = report.get("score_meta")
         if isinstance(score_meta, dict):
+            user_id = score_meta.get("user_id")
+            online_id = score_meta.get("online_id")
+            if type(user_id) is int and user_id > 0:
+                reported_user_id = user_id
+            if type(online_id) is int and online_id > 0:
+                reported_online_id = online_id
             rate = score_meta.get("speed_change")
             mods = score_meta.get("mods")
             if type(rate) in (int, float) and math.isfinite(rate) and rate > 0 and isinstance(mods, list):
@@ -89,6 +98,8 @@ def metadata(entry, session_id):
                     reported_rate, reported_speed_mod = rate, speed_mods[0]
     if rows is not None and score_id is not None:
         matching = [row for row in rows if row.get("score_id") == score_id]
+        if matching and reported_user_id is not None and type(matching[0].get("user_id")) is int and matching[0]["user_id"] > 0:
+            reported_user_match = matching[0]["user_id"] == reported_user_id
         if matching and type(matching[0].get("beatmap_id")) is int:
             match = matching[0]["beatmap_id"] == entry["beatmap_id"]
             checksum = matching[0].get("beatmap_checksum")
@@ -107,7 +118,9 @@ def metadata(entry, session_id):
     return ({key: value for key, value in entry.items() if key != "report"} |
             {"saved_score_map_match": match, "reported_beatmap_md5": reported_md5,
              "saved_score_checksum_match": checksum_match, "analyzer_reported_flags": reported_flags,
-             "reported_speed_change": reported_rate, "reported_rate_matches_saved_setting": rate_match})
+             "reported_speed_change": reported_rate, "reported_rate_matches_saved_setting": rate_match,
+             "reported_user_id": reported_user_id, "reported_online_id": reported_online_id,
+             "reported_user_matches_saved_score": reported_user_match})
 
 
 def list_reports(session_id):
