@@ -11,9 +11,9 @@ MAX_OUTPUT_OBJECTS = 1000
 
 def _coordinate(value):
     number = float(value)
-    if not math.isfinite(number) or not number.is_integer() or abs(number) > 1_000_000:
+    if not math.isfinite(number) or abs(number) > 1_000_000:
         raise ValueError
-    return int(number)
+    return number
 
 
 def inspect(path, start_ms, end_ms, rate=1.0):
@@ -57,10 +57,10 @@ def inspect(path, start_ms, end_ms, rate=1.0):
             elif section == "HitObjects":
                 fields = line.split(",")
                 x, y = _coordinate(fields[0]), _coordinate(fields[1])
-                time, flags = int(fields[2]), int(fields[3])
+                time, flags = float(fields[2]), int(fields[3])
                 kind = flags & (1 | 2 | 8 | 128)
                 if (len(fields) < 5 or kind not in (1, 2, 8) or not 0 <= flags <= 255
-                        or not 0 <= time <= 2**31 - 1):
+                        or not math.isfinite(time) or not -(2**31) <= time <= 2**31 - 1):
                     raise ValueError
                 objects.append({"map_time_ms": time, "type": {1: "circle", 2: "slider", 8: "spinner"}[kind],
                                 "x": x, "y": y})
@@ -82,7 +82,7 @@ def inspect(path, start_ms, end_ms, rate=1.0):
             distance = round(math.hypot(obj["x"] - previous["x"], obj["y"] - previous["y"]), 2)
         output.append({**obj, "playback_time_ms": round(obj["map_time_ms"] / rate, 2),
                        "previous_onset_gap_ms": round(gap / rate, 2) if gap is not None else None,
-                       "previous_circle_center_distance_osu_px": distance})
+                       "previous_file_circle_position_distance_osu_px": distance})
         previous = obj
     return {"file_md5": hashlib.md5(raw).hexdigest(), "file_sha256": hashlib.sha256(raw).hexdigest(),
             "declared_beatmap_id": declared_id, "section_map_time_ms": {"start": start_ms, "end_exclusive": end_ms},
@@ -93,7 +93,7 @@ def inspect(path, start_ms, end_ms, rate=1.0):
                 "Local file identity and declared beatmap ID are not verified against an API score or historical map version.",
                 "Times describe object starts, not actual taps, replay judgements, timing points or slider ends.",
                 "Times are raw file timestamps; client-specific offsets or conversion are not applied.",
-                "Circle-center distances ignore cursor path, circle size, stacked positions and other mod effects.",
+                "Distances use raw file positions; client clamping, rounding, stacking, cursor path and mod effects are not simulated.",
                 "The constant rate is supplied by the user; variable speed and other mods are not simulated.",
                 "No pattern classification, difficulty rating, player weakness or cause of misses is established.",
             ]}

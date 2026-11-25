@@ -32,7 +32,7 @@ def main():
         section = json.loads(run("map-section", str(root / "tests/fixtures/synth_clean.osu"),
                                  "--start-ms", "1000", "--end-ms", "2000"))
         assert section["selected_object_count"] == 2
-        assert section["onsets"][1]["previous_circle_center_distance_osu_px"] == 300
+        assert section["onsets"][1]["previous_file_circle_position_distance_osu_px"] == 300
         run("init")
         sid = json.loads(run("session", "start", "--json"))["session_id"]
         result = json.loads(run("analysis", "import", str(output / "handoff_metrics.json"), "--session", sid,

@@ -33,8 +33,8 @@ def test_map_section_shows_onsets_and_circle_distances(tmp_path):
     assert result["selected_object_count"] == 4 and not result["truncated"]
     assert [item["type"] for item in result["onsets"]] == ["circle", "circle", "slider", "circle"]
     assert result["onsets"][1]["previous_onset_gap_ms"] == 50
-    assert result["onsets"][1]["previous_circle_center_distance_osu_px"] == 5
-    assert result["onsets"][3]["previous_circle_center_distance_osu_px"] is None
+    assert result["onsets"][1]["previous_file_circle_position_distance_osu_px"] == 5
+    assert result["onsets"][3]["previous_file_circle_position_distance_osu_px"] is None
     assert result["onsets"][0]["previous_onset_gap_ms"] is None
     cli = CliRunner().invoke(app, ["map-section", str(path), "--start-ms", "1000", "--end-ms", "1400", "--rate", "2"])
     assert cli.exit_code == 0 and json.loads(cli.output) == result
@@ -71,3 +71,12 @@ def test_map_section_stably_orders_unordered_onsets(tmp_path):
     result = inspect(path, 0, 2000)
     assert result["input_was_unordered"] is True
     assert [item["map_time_ms"] for item in result["onsets"][:2]] == [900, 1000]
+
+
+def test_map_section_preserves_raw_fractional_positions_and_times(tmp_path):
+    path = tmp_path / "map.osu"
+    path.write_text(MAP.replace("3,4,1100,5,0", "3.5,4.0,1100.25,5,0"), encoding="utf-8")
+    result = inspect(path, 1000, 1200)
+    assert result["onsets"][1]["map_time_ms"] == 1100.25
+    assert result["onsets"][1]["x"] == 3.5
+    assert result["onsets"][1]["previous_onset_gap_ms"] == 100.25
