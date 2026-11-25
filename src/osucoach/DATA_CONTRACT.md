@@ -14,6 +14,8 @@ The fetcher writes; the coach only reads `data/` and writes `coach/`.
 
 `osucoach context` returns the resolved absolute `workspace` path. Coaching files and generated plans/reviews are relative to it, which may differ from the process working directory. The path does not expose credential contents.
 
+The latest profile is selected by its offset-aware `fetched_at` instant, not the local-date filename. Profiles with missing or unusable timestamps have unknown freshness and are excluded from selection when a timestamped profile exists. If none has a usable timestamp, the last filename is used as a legacy fallback; it is not proof of freshness. Incorrect clocks can still misorder snapshots.
+
 Sessions are ordered by recorded start instants rather than local-time IDs. For a selected session, `context` excludes journal sections whose IDs have no saved session, counted in `journal_unlinked_sections_omitted`, because their actual order is unknown. `previous_reviews` excludes sessions with the same start instant as the selected session because their order is unknown. Timestamp ties are broken by ID for deterministic listing, not as proof of order. Incorrect system clocks can still make recorded chronology misleading.
 
 ```

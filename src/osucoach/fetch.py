@@ -23,7 +23,20 @@ def profile_path(day: str | None = None):
 
 def latest_profile() -> dict | None:
     files = sorted(P.PROFILE_DIR.glob("*.json")) if P.PROFILE_DIR.exists() else []
-    return read_json(files[-1]) if files else None
+    if not files:
+        return None
+    profiles = [(path, read_json(path)) for path in files]
+    dated = []
+    for path, profile in profiles:
+        try:
+            fetched = parse_ts(profile["fetched_at"])
+            if fetched.utcoffset() is not None:
+                dated.append((fetched, path.name, profile))
+        except (TypeError, KeyError, ValueError, AttributeError):
+            continue
+    # Legacy files with no usable timestamp have unknown freshness. Use a
+    # filename fallback only if no profile has a comparable fetch timestamp.
+    return max(dated, key=lambda item: (item[0], item[1]))[2] if dated else profiles[-1][1]
 
 
 def fetch_profile(c: Client) -> dict:

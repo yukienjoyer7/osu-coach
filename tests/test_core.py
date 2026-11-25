@@ -36,6 +36,21 @@ def test_token_network_failure_is_secret_free(monkeypatch):
     assert "test-secret" not in str(error.value)
 
 
+def test_latest_profile_uses_fetch_instant_not_local_filename(tmp_data, monkeypatch):
+    from osucoach.store import write_json
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    write_json(P.PROFILE_DIR / "2026-11-22.json",
+               {"pp": 100, "fetched_at": "2026-11-22T00:10:00+14:00"})
+    write_json(P.PROFILE_DIR / "2026-11-21.json",
+               {"pp": 200, "fetched_at": "2026-11-21T23:00:00-10:00"})
+    write_json(P.PROFILE_DIR / "2026-11-23.json", {"pp": 300})
+    assert F.latest_profile()["pp"] == 200
+    (P.PROFILE_DIR / "2026-11-21.json").unlink()
+    (P.PROFILE_DIR / "2026-11-22.json").unlink()
+    assert F.latest_profile()["pp"] == 300
+
+
 def test_api_invalid_json_and_redirect_are_clear_errors():
     from osucoach.api import Client
 
