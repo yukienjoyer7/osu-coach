@@ -14,6 +14,8 @@ The fetcher writes; the coach only reads `data/` and writes `coach/`.
 
 `osucoach context` returns the resolved absolute `workspace` path. Coaching files and generated plans/reviews are relative to it, which may differ from the process working directory. The path does not expose credential contents.
 
+Sessions are ordered by recorded start instants rather than local-time IDs. For a selected session, `context` excludes journal sections whose IDs have no saved session, counted in `journal_unlinked_sections_omitted`, because their actual order is unknown. `previous_reviews` excludes sessions with the same start instant as the selected session because their order is unknown. Timestamp ties are broken by ID for deterministic listing, not as proof of order. Incorrect system clocks can still make recorded chronology misleading.
+
 ```
 data/
   account.json                     # binding for subsequent player fetches; legacy data may be unverified

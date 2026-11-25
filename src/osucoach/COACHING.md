@@ -9,6 +9,8 @@ Run `osucoach context` to discover the resolved `workspace` path. All `coach/` p
 2. Last 3 entries of `coach/journal.md`
 3. Latest `data/profile/*.json` and `data/best.json` (run `osucoach fetch profile` / `fetch best` if missing or older than a day; use `best_sync.fetched_at` to assess best-score freshness, and treat missing metadata as unknown)
 
+For a selected session, `context` omits journal sections that cannot be linked to saved sessions and reports their count in `journal_unlinked_sections_omitted`. Check the journal directly when that count matters. Recorded timestamps can also be wrong if a system clock was incorrect.
+
 `osucoach context [ID]` provides saved context and recent reviews in JSON. A null account binding means provenance is unknown; `legacy_data_present` means pre-binding records may belong to a different user. Do not assume those records belong to the bound player without independent confirmation. Check `scores_sync` and its fetch time before relying on session statistics. A full recent-score response or old fetch can leave scores missing, and a short response does not prove full coverage. Fetch periodically during long sessions to preserve more scores. Check `overlapping_score_ids` when combining sessions because the five-minute grace period can include the same score twice. A null comparison means a score file is missing; an empty list only describes saved scores and does not prove complete coverage. Use `osucoach session block LABEL` to mark a new practice block when the player starts it. Scores are assigned using their end times. Known start-only timestamps are excluded from blocks; `plays_with_unknown_end_time` counts them. Older rows without timestamp provenance retain legacy treatment and may be uncertain.
 
 ## Modes

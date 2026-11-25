@@ -48,20 +48,24 @@ def build(session_id=None):
     ids = session.list_ids()
     sid = session.resolve(session_id) if session_id else session.current() or (ids[-1] if ids else None)
     profile = fetch.latest_profile()
+    starts = {item: parse_ts(session.load(item)["started_at"]) for item in ids}
     journal = _text(paths.COACH / "journal.md")
     entries = re.split(r"(?m)(?=^## )", journal) if journal else []
     sections = [entry for entry in entries if entry.startswith("## ")]
     omitted_undated = 0
+    omitted_unlinked = 0
     if sid and sections:
         eligible = []
         for entry in sections:
             match = re.match(r"## (\d{4}-\d{2}-\d{2}_\d{4})(?:\s|\||$)", entry)
             if not match:
                 omitted_undated += 1
-            elif match.group(1) <= sid:
-                eligible.append((match.group(1), entry))
-        eligible.sort(key=lambda item: item[0])
-        recent_journal = "".join(entry for _, entry in eligible[-3:]) or None
+            elif match.group(1) not in starts:
+                omitted_unlinked += 1
+            elif match.group(1) == sid or starts[match.group(1)] < starts[sid]:
+                eligible.append((starts[match.group(1)], match.group(1), entry))
+        eligible.sort(key=lambda item: (item[0], item[1]))
+        recent_journal = "".join(entry for _, _, entry in eligible[-3:]) or None
     elif sid and journal:
         recent_journal = None
         omitted_undated = 1
@@ -74,6 +78,7 @@ def build(session_id=None):
         "player": _text(paths.COACH / "player.md"),
         "recent_journal": recent_journal,
         "journal_undated_sections_omitted": omitted_undated,
+        "journal_unlinked_sections_omitted": omitted_unlinked,
         "profile": profile,
         "best": read_json(paths.BEST),
         "best_sync": read_json(paths.BEST.with_name("best_sync.json")),
@@ -84,7 +89,7 @@ def build(session_id=None):
         "review": _text(paths.COACH / "reviews" / f"{sid}.md") if sid else None,
         "previous_reviews": [
             _previous(previous_id)
-            for previous_id in [item for item in ids if sid and item < sid][-3:]
+            for previous_id in [item for item in ids if sid and starts[item] < starts[sid]][-3:]
         ],
         "scores_file_modified_at": None,
         "scores_sync": None,

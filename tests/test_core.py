@@ -1039,6 +1039,36 @@ def test_context_selects_recent_journal_by_session_not_append_order(tmp_data, mo
     assert journal.index("entry-1") < journal.index("entry-2") < journal.index("entry-3")
 
 
+def test_session_chronology_uses_instants_across_timezones(tmp_data, monkeypatch):
+    from osucoach import context
+
+    monkeypatch.setattr(P, "PROFILE_DIR", tmp_data / "profile")
+    monkeypatch.setattr(P, "BEST", tmp_data / "best.json")
+    clock = datetime(2026, 11, 21, 10, tzinfo=timezone(timedelta(hours=7)))
+    monkeypatch.setattr(SS, "now_local", lambda: clock)
+    first = SS.start()
+    SS.close(first["session_id"])
+    clock = datetime(2026, 11, 21, 9, tzinfo=timezone.utc)
+    second = SS.start()
+    SS.close(second["session_id"])
+    assert second["session_id"] < first["session_id"]
+    assert SS.list_ids() == [first["session_id"], second["session_id"]]
+    assert SS.resolve() == second["session_id"]
+    P.COACH.mkdir(parents=True, exist_ok=True)
+    (P.COACH / "journal.md").write_text(
+        f"## {first['session_id']} | focus: aim\nearlier\n"
+        f"## {second['session_id']} | focus: aim\nlater\n"
+        "## 2026-11-20_1200 | focus: aim\nunlinked\n", encoding="utf-8")
+    earlier = context.build(first["session_id"])
+    later = context.build(second["session_id"])
+    assert earlier["previous_reviews"] == []
+    assert "earlier" in earlier["recent_journal"] and "later" not in earlier["recent_journal"]
+    assert [item["session_id"] for item in later["previous_reviews"]] == [first["session_id"]]
+    assert later["recent_journal"].index("earlier") < later["recent_journal"].index("later")
+    assert "unlinked" not in later["recent_journal"]
+    assert later["journal_unlinked_sections_omitted"] == 1
+
+
 def test_context_flags_session_grace_overlap(tmp_data, monkeypatch):
     from osucoach import context
 

@@ -19,7 +19,9 @@ def new_id(dt: datetime) -> str:
 def list_ids() -> list[str]:
     if not P.SESSIONS.exists():
         return []
-    return sorted(d.name for d in P.SESSIONS.iterdir() if (d / "session.json").exists())
+    ids = [d.name for d in P.SESSIONS.iterdir() if (d / "session.json").exists()]
+    # IDs contain local wall time, which may move backwards when the timezone changes.
+    return sorted(ids, key=lambda sid: (parse_ts(load(sid)["started_at"]), sid))
 
 
 def current() -> str | None:
